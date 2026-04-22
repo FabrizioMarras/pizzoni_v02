@@ -1,26 +1,174 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --page-cream: #f7f0e4;
+  --page-cream-strong: #efe4d2;
+  --ink: #2b1f1a;
+  --ink-soft: #5d4c42;
+  --terracotta: #b24a2f;
+  --terracotta-deep: #8f331d;
+  --olive: #51643a;
+  --olive-soft: #6f8356;
+  --panel: rgba(255, 251, 246, 0.9);
+  --panel-border: rgba(147, 91, 53, 0.2);
+  --ring: rgba(178, 74, 47, 0.35);
+  --font-sans: "Avenir Next", "Avenir", "Gill Sans", "Trebuchet MS", sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--page-cream);
+  --color-foreground: var(--ink);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--panel-border);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(circle at 15% 15%, rgba(178, 74, 47, 0.14), transparent 36%),
+    radial-gradient(circle at 85% 0%, rgba(81, 100, 58, 0.16), transparent 34%),
+    radial-gradient(circle at 60% 65%, rgba(255, 255, 255, 0.45), transparent 40%),
+    linear-gradient(130deg, var(--page-cream) 0%, var(--page-cream-strong) 100%);
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.page-wrap {
+  margin-inline: auto;
+  width: min(1100px, 100% - 2rem);
+  padding-block: 1.5rem 2.5rem;
+}
+
+.page-title {
+  margin-bottom: 1rem;
+  font-size: clamp(1.9rem, 1.5rem + 1.6vw, 3rem);
+  line-height: 1.08;
+  color: var(--ink);
+}
+
+.page-subtitle {
+  color: var(--ink-soft);
+}
+
+.glass-card {
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), var(--panel));
+  box-shadow: 0 14px 34px rgba(93, 66, 46, 0.12);
+  backdrop-filter: blur(5px);
+}
+
+.surface-card {
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 8px 20px rgba(111, 79, 55, 0.12);
+}
+
+.label-text {
+  margin-bottom: 0.35rem;
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.field-input {
+  width: 100%;
+  border: 1px solid rgba(132, 92, 66, 0.32);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.62rem 0.78rem;
+  color: var(--ink);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--terracotta);
+  box-shadow: 0 0 0 3px var(--ring);
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: linear-gradient(120deg, var(--terracotta) 0%, var(--terracotta-deep) 100%);
+  color: #fff;
+  font-weight: 700;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.02);
+  box-shadow: 0 8px 18px rgba(143, 51, 29, 0.34);
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+}
+
+.btn-secondary {
+  border-radius: 999px;
+  border: 1px solid rgba(132, 92, 66, 0.34);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--ink);
+  font-weight: 600;
+  transition: border-color 0.16s ease, transform 0.16s ease;
+}
+
+.btn-secondary:hover {
+  border-color: var(--terracotta);
+  transform: translateY(-1px);
+}
+
+.badge-pill {
+  border-radius: 999px;
+  border: 1px solid rgba(81, 100, 58, 0.24);
+  background: rgba(81, 100, 58, 0.12);
+  color: var(--olive);
+}
+
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid rgba(147, 91, 53, 0.2);
+  background: rgba(255, 248, 238, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.top-nav-link {
+  border-radius: 999px;
+  padding: 0.4rem 0.75rem;
+  color: var(--ink-soft);
+  transition: background-color 0.16s ease, color 0.16s ease;
+}
+
+.top-nav-link:hover {
+  background: rgba(178, 74, 47, 0.12);
+  color: var(--ink);
 }
