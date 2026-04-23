@@ -20,10 +20,10 @@ export default async function Home({ searchParams }: HomePageProps) {
   return (
     <div className="app-shell">
       <Nav />
-      <main className="page-wrap">
-        <h1 className="page-title mb-4">Classifica</h1>
+      <main className="page-wrap space-y-6">
+        <h1 className="page-title">Classifica</h1>
         <NextEventCard />
-        <section className="glass-card mb-5 p-5">
+        <section className="glass-card p-5">
           <h2 className="mb-1 text-2xl" style={{ fontFamily: 'var(--font-display)' }}>
             Filtra per città
           </h2>

@@ -7,11 +7,11 @@ export default function VisitsPage() {
   return (
     <div className="app-shell">
       <Nav />
-      <main className="page-wrap">
+      <main className="page-wrap space-y-6">
         <h1 className="page-title mb-1">Eventi</h1>
-        <p className="page-subtitle mb-6">Archivio cronologico degli eventi Pizzoni, passati e futuri.</p>
+        <p className="page-subtitle">Archivio cronologico degli eventi Pizzoni, passati e futuri.</p>
         <PlannerBoard hideClosedPolls />
-        <NextEventCard />
+        <NextEventCard showCreateAction={false} />
         <VisitsManager />
       </main>
     </div>

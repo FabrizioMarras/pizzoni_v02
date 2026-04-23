@@ -41,6 +41,16 @@ body {
 
 a {
   color: inherit;
+  cursor: pointer;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled,
+a[aria-disabled="true"] {
+  cursor: not-allowed;
 }
 
 h1,
@@ -117,6 +127,7 @@ h4 {
   border: 1px solid transparent;
   background: linear-gradient(120deg, var(--terracotta) 0%, var(--terracotta-deep) 100%);
   color: #fff;
+  cursor: pointer;
   font-weight: 700;
   transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
 }
@@ -136,6 +147,7 @@ h4 {
   border: 1px solid rgba(132, 92, 66, 0.34);
   background: rgba(255, 255, 255, 0.88);
   color: var(--ink);
+  cursor: pointer;
   font-weight: 600;
   transition: border-color 0.16s ease, transform 0.16s ease;
 }

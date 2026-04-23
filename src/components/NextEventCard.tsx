@@ -48,7 +48,11 @@ function formatDate(value: string) {
   })
 }
 
-export default async function NextEventCard() {
+interface NextEventCardProps {
+  showCreateAction?: boolean
+}
+
+export default async function NextEventCard({ showCreateAction = true }: NextEventCardProps) {
   const supabase = await createSupabaseServerClient()
   const today = new Date().toISOString().slice(0, 10)
 
@@ -64,14 +68,16 @@ export default async function NextEventCard() {
 
   if (!nextVisit) {
     return (
-      <section className="glass-card mb-5 p-5">
+      <section className="glass-card p-5">
         <h2 className="mb-1 text-2xl" style={{ fontFamily: 'var(--font-display)' }}>
           Prossimo Evento Pizzoni
         </h2>
         <p className="page-subtitle">Nessun evento confermato al momento.</p>
-        <Link href="/eventi" className="btn-secondary mt-3 inline-block px-3 py-1.5 text-sm">
-          Crea nuova poll
-        </Link>
+        {showCreateAction && (
+          <Link href="/eventi" className="btn-secondary mt-3 inline-block px-3 py-1.5 text-sm">
+            Crea nuovo evento
+          </Link>
+        )}
       </section>
     )
   }
@@ -86,7 +92,7 @@ export default async function NextEventCard() {
   })
 
   return (
-    <section className="glass-card mb-5 p-5">
+    <section className="glass-card p-5">
       <h2 className="mb-1 text-2xl" style={{ fontFamily: 'var(--font-display)' }}>
         Prossimo Evento Pizzoni
       </h2>
