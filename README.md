@@ -1,74 +1,92 @@
 # Pizzoni 🍕
 
-Invite-only social pizzeria review app built with Next.js 16 and Supabase.
+App privata per gruppo chiuso: classifica pizzerie, organizzazione eventi, recensioni e foto.
 
-## Implemented
+## Funzionalita principali
 
-- Magic-link auth with invite-only enforcement
-- Profile editing (name, avatar URL, pizza emoji)
-- Admin invite management
-- Pizzeria CRUD (create + list)
-- Visit CRUD (create + list + detail pages)
-- Review submission with sub-scores and computed final score
-- Leaderboard with city filter
-- Photo upload to Cloudinary (unsigned preset) + gallery + pizza-of-the-night tag
-- Next visit planner (upcoming visits, RSVP, suggestion poll with votes)
-- Google Maps quick links from pizzerias/visits
-- Calendar export (`.ics`) for upcoming visits
-- Google Analytics hook (optional env var)
+- Login con Google OAuth (invite-only)
+- Gestione inviti admin
+- Profilo utente (nome, avatar, emoji pizza)
+- Pizzerie: creazione, elenco, filtro visitate/non visitate
+- Eventi:
+  - votazione date per nuovo evento (votazione-first)
+  - finalizzazione evento con creazione automatica visita
+  - storico eventi + dettaglio evento
+- Recensioni per evento con punteggio medio
+- Foto evento + tag "pizza della serata"
+- Classifica pizzerie con filtro citta
+- Ricerca pizzerie da Google Places API (New) con geolocalizzazione opzionale
+- Export calendario `.ics` (`/api/calendar`)
 
 ## Stack
 
-- Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4
-- Supabase Auth + PostgreSQL + RLS
-- Cloudinary for image hosting
+- Next.js 16 (App Router), React 19, TypeScript
+- Supabase (Auth + Postgres + RLS)
+- Cloudinary (upload immagini)
+- Google Places API (New)
 
-## Setup
+## Setup locale
 
-### 1. Install
+### 1) Install
 
 ```bash
 npm install
 ```
 
-### 2. Environment variables
+### 2) Variabili ambiente
 
-Create `.env.local`:
+Crea `.env.local` (vedi anche `env.example`):
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`
 - `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`
-- `NEXT_PUBLIC_GA_ID` (optional)
+- `GOOGLE_MAPS_API_KEY`
+- `NEXT_PUBLIC_GA_ID` (opzionale)
 
-### 3. Database migrations (Supabase Cloud, no CLI)
+### 3) Database migrations (Supabase Cloud, no CLI)
 
-Migration files are in `supabase/migrations/`.
+SQL in `supabase/migrations/`.
 
-- New DB: run `20260422190500_init.sql`, then newer files in order.
-- Existing DB: skip init and run `20260422191500_existing_db_security_sync.sql` then newer files.
-- Run `20260422194000_membership_and_invites.sql` for invite/admin membership features.
+- DB nuovo: eseguire dalla prima migrazione in ordine cronologico.
+- DB esistente: partire da `20260422191500_existing_db_security_sync.sql` e poi seguire ordine cronologico.
 
-### 4. Auth configuration in Supabase
+Migrazioni chiave del flusso attuale:
+- `20260422194000_membership_and_invites.sql`
+- `20260422213000_agenda_poll_first.sql`
+- `20260422221000_drop_legacy_planner_tables.sql`
+- `20260422224000_visit_attendees_admin_management.sql`
 
-- Site URL: `http://localhost:3000`
-- Redirect URL: `http://localhost:3000/auth/callback`
+### 4) Configurazione Supabase Auth
 
-Magic link email template should use token-hash callback format:
+- Provider Google abilitato in Supabase.
+- Site URL locale: `http://localhost:3000`
+- Redirect URL locale: `http://localhost:3000/auth/callback`
 
-```html
-<a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink&next=/">Sign in</a>
-```
+In produzione, aggiornare Site URL + Redirect URL con il dominio Vercel.
 
-### 5. Run
+### 5) Configurazione Google Cloud (Places)
+
+- Abilitare `Places API (New)` nello stesso progetto Google Cloud.
+- Creare API key e impostarla in `GOOGLE_MAPS_API_KEY`.
+- Restrizioni consigliate key:
+  - API restrictions: solo `Places API (New)`.
+  - Application restrictions: in base all'ambiente (dev/prod).
+
+### 6) Run
 
 ```bash
 npm run dev
 ```
 
-### 6. Quality checks
+### 7) Quality checks
 
 ```bash
 npm run lint
 npm run build
 ```
+
+## Documentazione
+
+- Guida utente funzionale: `docs/guida-funzionale.md`
+- Documentazione tecnica completa: `docs/documentazione-tecnica.md`
