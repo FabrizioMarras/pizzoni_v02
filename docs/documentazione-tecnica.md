@@ -147,7 +147,7 @@ Vincolo logico UI:
 - Dettaglio evento:
   - partecipanti;
   - recensioni;
-  - foto;
+  - foto (upload, modifica tag "pizza della serata", sostituzione, eliminazione per autore foto);
   - link Google Maps.
 
 ## 6.4 Inviti admin
@@ -169,11 +169,25 @@ Comportamento:
 - chiama `https://places.googleapis.com/v1/places:searchText`;
 - usa field mask minimale (`id`, `displayName`, `formattedAddress`, `addressComponents`);
 - mappa risposta a `{ id, name, address, city }`.
+- include anche metadati utili per persistenza pizzeria:
+  - `latitude`, `longitude`, `mapsUri`, `photoName`.
 
 Errori tipici:
 - `Missing GOOGLE_MAPS_API_KEY` se env non valorizzata.
 
-## 7.2 `GET /api/calendar`
+## 7.2 `GET /api/places/photo`
+File: `src/app/api/places/photo/route.ts`.
+
+Input query:
+- `name` (required): valore `google_photo_name` ricevuto da Places.
+- `w` (optional): larghezza max thumbnail.
+
+Comportamento:
+- proxy server-side verso Google Places Photo media endpoint;
+- non espone la API key al client;
+- ritorna stream immagine con cache header.
+
+## 7.3 `GET /api/calendar`
 - esporta prossimi eventi in formato ICS.
 
 ## 8. Configurazione ambiente
@@ -255,3 +269,9 @@ Stato atteso:
 - Nomenclatura business: “evento”, “votazione”, non “poll” nei testi utente.
 - Mobile-first su componenti interattivi (menu/modal full-screen mobile).
 - Tenere allineata questa documentazione quando cambia flusso o schema.
+Metadati Google su `pizzerias`:
+- `google_place_id`
+- `google_maps_uri`
+- `google_photo_name`
+- `latitude`
+- `longitude`

@@ -1,6 +1,7 @@
 'use client'
 /* eslint-disable react-hooks/set-state-in-effect */
 
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Modal from '@/components/ui/Modal'
@@ -11,6 +12,8 @@ interface Pizzeria {
   name: string
   location: string
   city: string
+  google_maps_uri: string | null
+  google_photo_name: string | null
   visited: boolean
   visitsCount: number
 }
@@ -20,6 +23,8 @@ interface PizzeriaRow {
   name: string
   location: string
   city: string
+  google_maps_uri: string | null
+  google_photo_name: string | null
   visits: { id: string }[] | null
 }
 
@@ -35,13 +40,18 @@ export default function PizzeriaManager() {
   const [searchError, setSearchError] = useState('')
   const [geo, setGeo] = useState<{ latitude: number; longitude: number } | null>(null)
   const [geoLoading, setGeoLoading] = useState(false)
+  const [googlePlaceId, setGooglePlaceId] = useState('')
+  const [googleMapsUri, setGoogleMapsUri] = useState('')
+  const [googlePhotoName, setGooglePhotoName] = useState('')
+  const [latitude, setLatitude] = useState<number | null>(null)
+  const [longitude, setLongitude] = useState<number | null>(null)
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
 
   const loadPizzerias = async () => {
     const { data } = await supabase
       .from('pizzerias')
-      .select('id, name, location, city, visits(id)')
+      .select('id, name, location, city, google_maps_uri, google_photo_name, visits(id)')
       .order('created_at', { ascending: false })
 
     const normalized = ((data as PizzeriaRow[] | null) ?? []).map((row) => {
@@ -51,6 +61,8 @@ export default function PizzeriaManager() {
         name: row.name,
         location: row.location,
         city: row.city,
+        google_maps_uri: row.google_maps_uri,
+        google_photo_name: row.google_photo_name,
         visited: count > 0,
         visitsCount: count,
       }
@@ -114,6 +126,11 @@ export default function PizzeriaManager() {
       name: name.trim(),
       location: location.trim(),
       city: city.trim(),
+      google_place_id: googlePlaceId || null,
+      google_maps_uri: googleMapsUri || null,
+      google_photo_name: googlePhotoName || null,
+      latitude,
+      longitude,
       created_by: user.id,
     })
 
@@ -127,6 +144,11 @@ export default function PizzeriaManager() {
     setName('')
     setLocation('')
     setCity('')
+    setGooglePlaceId('')
+    setGoogleMapsUri('')
+    setGooglePhotoName('')
+    setLatitude(null)
+    setLongitude(null)
     setAddModalOpen(false)
     setMessage('Pizzeria aggiunta.')
     void loadPizzerias()
@@ -151,7 +173,21 @@ export default function PizzeriaManager() {
     setName(place.name)
     setLocation(place.address)
     setCity(place.city)
+    setGooglePlaceId(place.id)
+    setGoogleMapsUri(place.mapsUri ?? '')
+    setGooglePhotoName(place.photoName ?? '')
+    setLatitude(place.latitude)
+    setLongitude(place.longitude)
     setSearchResults([])
+  }
+
+  const onNameChange = (value: string) => {
+    setName(value)
+    setGooglePlaceId('')
+    setGoogleMapsUri('')
+    setGooglePhotoName('')
+    setLatitude(null)
+    setLongitude(null)
   }
 
   const filteredPizzerias = pizzerias.filter((pizzeria) => {
@@ -180,7 +216,7 @@ export default function PizzeriaManager() {
 
       <Modal open={addModalOpen} onClose={() => setAddModalOpen(false)} title="Aggiungi Pizzeria">
         <form onSubmit={createPizzeria} className="space-y-4">
-          <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Nome" className="field-input" required />
+          <input value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Nome" className="field-input" required />
           <div className="space-y-2 rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs text-[var(--ink-soft)]">Suggerimenti Google Maps</p>
@@ -245,6 +281,17 @@ export default function PizzeriaManager() {
         {filteredPizzerias.length === 0 && <p className="page-subtitle">Nessuna pizzeria per questo filtro.</p>}
         {filteredPizzerias.map((pizzeria) => (
           <article key={pizzeria.id} className="surface-card px-3 py-3">
+            {pizzeria.google_photo_name && (
+              <div className="mb-3 overflow-hidden rounded-2xl border border-[var(--paper-border)]">
+                <Image
+                  src={`/api/places/photo?name=${encodeURIComponent(pizzeria.google_photo_name)}&w=800`}
+                  alt={pizzeria.name}
+                  width={800}
+                  height={450}
+                  className="h-36 w-full object-cover"
+                />
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <div className="text-lg font-semibold text-[var(--ink)]">{pizzeria.name}</div>
               {pizzeria.visited ? (
@@ -259,7 +306,7 @@ export default function PizzeriaManager() {
             </div>
             <div className="text-sm text-[var(--ink-soft)]">{pizzeria.city} · {pizzeria.location}</div>
             <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pizzeria.name} ${pizzeria.location}`)}`}
+              href={pizzeria.google_maps_uri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pizzeria.name} ${pizzeria.location}`)}`}
               target="_blank"
               rel="noreferrer"
               className="btn-secondary mt-2 inline-block px-3 py-1.5 text-xs"

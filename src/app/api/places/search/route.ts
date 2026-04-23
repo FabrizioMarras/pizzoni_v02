@@ -17,6 +17,14 @@ interface GooglePlace {
   formattedAddress?: string
   displayName?: { text?: string }
   addressComponents?: AddressComponent[]
+  location?: {
+    latitude?: number
+    longitude?: number
+  }
+  googleMapsUri?: string
+  photos?: Array<{
+    name?: string
+  }>
 }
 
 function extractCity(place: GooglePlace): string {
@@ -76,7 +84,8 @@ export async function POST(request: Request) {
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.addressComponents',
+      'X-Goog-FieldMask':
+        'places.id,places.displayName,places.formattedAddress,places.addressComponents,places.location,places.googleMapsUri,places.photos',
     },
     body: JSON.stringify(payload),
   })
@@ -92,6 +101,10 @@ export async function POST(request: Request) {
     name: place.displayName?.text ?? 'Senza nome',
     address: place.formattedAddress ?? '',
     city: extractCity(place),
+    latitude: place.location?.latitude ?? null,
+    longitude: place.location?.longitude ?? null,
+    mapsUri: place.googleMapsUri ?? null,
+    photoName: place.photos?.[0]?.name ?? null,
   }))
 
   return NextResponse.json({ places })

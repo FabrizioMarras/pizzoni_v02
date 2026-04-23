@@ -44,6 +44,11 @@ interface ExistingPizzeria {
   name: string
   location: string
   city: string
+  google_place_id: string | null
+  google_maps_uri: string | null
+  google_photo_name: string | null
+  latitude: number | null
+  longitude: number | null
 }
 
 interface PlannerBoardProps {
@@ -82,6 +87,11 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
   const [searchError, setSearchError] = useState('')
   const [geo, setGeo] = useState<{ latitude: number; longitude: number } | null>(null)
   const [geoLoading, setGeoLoading] = useState(false)
+  const [googlePlaceId, setGooglePlaceId] = useState('')
+  const [googleMapsUri, setGoogleMapsUri] = useState('')
+  const [googlePhotoName, setGooglePhotoName] = useState('')
+  const [latitude, setLatitude] = useState<number | null>(null)
+  const [longitude, setLongitude] = useState<number | null>(null)
 
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -100,7 +110,7 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
       supabase.from('agenda_polls').select('*').order('created_at', { ascending: false }),
       supabase.from('agenda_poll_date_options').select('id, poll_id, option_date').order('option_date', { ascending: true }),
       supabase.from('agenda_poll_date_votes').select('id, poll_id, date_option_id, user_id, availability'),
-      supabase.from('pizzerias').select('id, name, location, city').order('name', { ascending: true }),
+      supabase.from('pizzerias').select('id, name, location, city, google_place_id, google_maps_uri, google_photo_name, latitude, longitude').order('name', { ascending: true }),
     ])
 
     setProfile(profileData ?? null)
@@ -172,6 +182,11 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
   const onSelectExistingPizzeria = (pizzeriaId: string) => {
     setSelectedPizzeriaId(pizzeriaId)
     if (!pizzeriaId) {
+      setGooglePlaceId('')
+      setGoogleMapsUri('')
+      setGooglePhotoName('')
+      setLatitude(null)
+      setLongitude(null)
       setSearchResults([])
       return
     }
@@ -182,6 +197,11 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
     setPizzeriaName(selected.name)
     setLocation(selected.location)
     setCity(selected.city)
+    setGooglePlaceId(selected.google_place_id ?? '')
+    setGoogleMapsUri(selected.google_maps_uri ?? '')
+    setGooglePhotoName(selected.google_photo_name ?? '')
+    setLatitude(selected.latitude)
+    setLongitude(selected.longitude)
     setSearchResults([])
   }
 
@@ -204,7 +224,21 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
     setPizzeriaName(place.name)
     setLocation(place.address)
     setCity(place.city)
+    setGooglePlaceId(place.id)
+    setGoogleMapsUri(place.mapsUri ?? '')
+    setGooglePhotoName(place.photoName ?? '')
+    setLatitude(place.latitude)
+    setLongitude(place.longitude)
     setSearchResults([])
+  }
+
+  const onNameChange = (value: string) => {
+    setPizzeriaName(value)
+    setGooglePlaceId('')
+    setGoogleMapsUri('')
+    setGooglePhotoName('')
+    setLatitude(null)
+    setLongitude(null)
   }
 
   const createPoll = async (event: React.FormEvent) => {
@@ -242,9 +276,14 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
           name: normalizedName,
           location: normalizedLocation,
           city: normalizedCity,
+          google_place_id: googlePlaceId || null,
+          google_maps_uri: googleMapsUri || null,
+          google_photo_name: googlePhotoName || null,
+          latitude,
+          longitude,
           created_by: userId,
         })
-        .select('id, name, location, city')
+        .select('id, name, location, city, google_place_id, google_maps_uri, google_photo_name, latitude, longitude')
         .single<ExistingPizzeria>()
 
       if (pizzeriaError || !insertedPizzeria) {
@@ -295,6 +334,11 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
     setPizzeriaName('')
     setLocation('')
     setCity('')
+    setGooglePlaceId('')
+    setGoogleMapsUri('')
+    setGooglePhotoName('')
+    setLatitude(null)
+    setLongitude(null)
     setNotes('')
     setSelectedPizzeriaId('')
     setDateOptions([])
@@ -377,7 +421,7 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
             </select>
           </div>
 
-          <input value={pizzeriaName} onChange={(event) => setPizzeriaName(event.target.value)} placeholder="Nome pizzeria" className="field-input" required />
+          <input value={pizzeriaName} onChange={(event) => onNameChange(event.target.value)} placeholder="Nome pizzeria" className="field-input" required />
           {!selectedPizzeriaId && (
             <div className="space-y-2 rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">

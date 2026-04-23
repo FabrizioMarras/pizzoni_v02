@@ -3,6 +3,10 @@ export interface PlaceSuggestion {
   name: string
   address: string
   city: string
+  latitude: number | null
+  longitude: number | null
+  mapsUri: string | null
+  photoName: string | null
 }
 
 interface SearchPlacesParams {
