@@ -22,7 +22,7 @@ export default async function ProfilePage() {
       <Nav />
       <main className="page-wrap space-y-6">
         <h1 className="page-title">Profilo</h1>
-        <ProfileEditor name={profile.name ?? ''} avatarUrl={profile.avatar_url ?? ''} pizzaEmoji={profile.pizza_emoji ?? ''} />
+        <ProfileEditor name={profile.name ?? ''} avatarUrl={profile.avatar_url ?? ''} />
         {profile.is_admin && <InviteManager />}
       </main>
     </div>
