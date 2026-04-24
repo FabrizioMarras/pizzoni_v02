@@ -401,15 +401,16 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
           {photos.map((photo) => (
             <div key={photo.id} className="group relative overflow-hidden rounded-xl border border-[rgba(132,92,66,0.28)] bg-white">
               <a href={photo.url} target="_blank" rel="noreferrer">
-                <img src={photo.url} alt="Foto della visita" className="h-32 w-full object-cover transition duration-300 group-hover:scale-105" />
+                <img src={photo.url} alt="Foto della visita" className="h-64 w-full object-cover transition duration-300 group-hover:scale-105" />
                 {photo.is_pizza_of_night && (
-                  <span className="absolute left-1 top-1 rounded-full bg-[rgba(255,225,155,0.95)] px-2 py-1 text-xs font-medium text-[var(--ink)]">
+                  <span className="absolute left-1 top-1 rounded-full bg-[rgba(255,225,155,0.95)] px-2 py-1 text-xs font-medium text-[var(--ink)] flex items-center gap-1">
+                    <FiStar className="h-3 w-3" />
                     Foto della serata
                   </span>
                 )}
               </a>
               {photo.uploaded_by === userId && (
-                <div className="flex flex-wrap gap-1 border-t border-[var(--paper-border)] p-2">
+                <div className="absolute inset-x-0 bottom-0 flex flex-wrap gap-1 bg-gradient-to-t from-black/50 to-transparent p-2">
                   {!photo.is_pizza_of_night && (
                     <Button
                       type="button"
@@ -419,7 +420,7 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
                       className="px-2 py-1 text-[11px]"
                       icon={<FiStar className="h-3 w-3" />}
                     >
-                      Imposta foto della serata
+                      foto della serata
                     </Button>
                   )}
                   <label className="btn-secondary cursor-pointer px-2 py-1 text-[11px]">
