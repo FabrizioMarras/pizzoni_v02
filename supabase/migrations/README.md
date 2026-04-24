@@ -22,6 +22,11 @@ This project uses SQL migration files stored in `supabase/migrations/`.
 - `20260424113000_pizza_of_night_single_tag.sql`: single "foto della serata" per event + assignment RPC.
 - `20260424130000_visit_notes_multi_user.sql`: multi-note event model (one author per note) with RLS.
 - `20260424134500_reviews_allow_half_points.sql`: allows decimal review scores (e.g. `8.5`).
+- `20260424141000_pizzerias_custom_image.sql`: optional manual cover image URL for pizzerias.
+- `20260424144000_set_pizza_of_night_sync_pizzeria_cover.sql`: temporary sync of event "foto della serata" to pizzeria cover.
+- `20260424145000_set_pizza_of_night_event_only.sql`: restores event-only behavior for "foto della serata" (no pizzeria sync).
+- `20260424150000_cleanup_deleted_photo_references.sql`: clears stale DB references when a photo is deleted.
+- `20260424151000_cleanup_updated_photo_references.sql`: updates DB references when a photo URL is replaced.
 
 ## Which file should I run?
 
@@ -42,6 +47,11 @@ This project uses SQL migration files stored in `supabase/migrations/`.
   - `20260424113000_pizza_of_night_single_tag.sql`
   - `20260424130000_visit_notes_multi_user.sql`
   - `20260424134500_reviews_allow_half_points.sql`
+  - `20260424141000_pizzerias_custom_image.sql`
+  - `20260424144000_set_pizza_of_night_sync_pizzeria_cover.sql`
+  - `20260424145000_set_pizza_of_night_event_only.sql`
+  - `20260424150000_cleanup_deleted_photo_references.sql`
+  - `20260424151000_cleanup_updated_photo_references.sql`
 
 ## Naming convention
 

@@ -6,16 +6,23 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { FiArrowUpRight } from 'react-icons/fi'
 import { formatDateLabel, formatDateTimeLabel } from '@/lib/date-format'
+import { getEventImageSrc } from '@/lib/pizzeria-image'
 import { supabase } from '@/lib/supabase'
 
 interface Visit {
   id: string
   date: string
   scheduled_at: string | null
+  photos: {
+    url: string
+    is_pizza_of_night: boolean
+  }[] | null
   pizzerias: {
+    id: string
     name: string
     city: string
     google_photo_name: string | null
+    custom_image_url: string | null
   } | null
 }
 
@@ -30,7 +37,7 @@ export default function VisitsManager() {
   const loadData = async () => {
     const { data: visitsData } = await supabase
       .from('visits')
-      .select('id, date, scheduled_at, pizzerias(name, city, google_photo_name)')
+      .select('id, date, scheduled_at, photos(url, is_pizza_of_night), pizzerias(id, name, city, google_photo_name, custom_image_url)')
       .order('date', { ascending: false })
 
     const now = Date.now()
@@ -54,10 +61,18 @@ export default function VisitsManager() {
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {visits.map((visit) => (
             <article key={visit.id} className="surface-card flex h-full flex-col px-3 py-3">
-              {visit.pizzerias?.google_photo_name && (
+              {visit.pizzerias && (
                 <div className="mb-3 overflow-hidden rounded-2xl border border-[var(--paper-border)]">
                   <Image
-                    src={`/api/places/photo?name=${encodeURIComponent(visit.pizzerias.google_photo_name)}&w=900`}
+                    src={getEventImageSrc({
+                      photoOfNightUrl: (visit.photos ?? []).find((photo) => photo.is_pizza_of_night)?.url ?? null,
+                      id: visit.pizzerias.id,
+                      name: visit.pizzerias.name,
+                      city: visit.pizzerias.city,
+                      customImageUrl: visit.pizzerias.custom_image_url,
+                      googlePhotoName: visit.pizzerias.google_photo_name,
+                      width: 900,
+                    })}
                     alt={visit.pizzerias?.name ?? 'Pizzeria'}
                     width={900}
                     height={500}

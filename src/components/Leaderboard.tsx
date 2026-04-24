@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { FiList, FiMapPin } from 'react-icons/fi'
+import { getPizzeriaImageSrc } from '@/lib/pizzeria-image'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 interface Pizzeria {
@@ -9,6 +10,8 @@ interface Pizzeria {
   city: string
   location: string
   google_photo_name: string | null
+  custom_image_url: string | null
+  latest_event_photo_url: string | null
   avg_score: number
   latestVisitId: string | null
 }
@@ -19,12 +22,20 @@ interface PizzeriaRelation {
   city: string
   location: string
   google_photo_name: string | null
+  custom_image_url: string | null
 }
 
 interface VisitRelation {
   id: string
   date: string
   scheduled_at: string | null
+  photos:
+    | {
+        url: string
+        is_pizza_of_night: boolean
+        created_at: string
+      }[]
+    | null
   pizzerias: PizzeriaRelation | PizzeriaRelation[]
 }
 
@@ -37,6 +48,8 @@ interface GroupedPizzeria extends PizzeriaRelation {
   scores: number[]
   latestVisitId: string | null
   latestVisitTimestamp: number
+  latestEventPhotoUrl: string | null
+  latestEventPhotoTimestamp: number
 }
 
 interface LeaderboardProps {
@@ -157,7 +170,8 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
         id,
         date,
         scheduled_at,
-        pizzerias!inner(id, name, city, location, google_photo_name)
+        photos(url, is_pizza_of_night, created_at),
+        pizzerias!inner(id, name, city, location, google_photo_name, custom_image_url)
       )
     `
     )
@@ -186,10 +200,21 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
         scores: [],
         latestVisitId: visit.id,
         latestVisitTimestamp: Number.isNaN(visitTimestamp) ? 0 : visitTimestamp,
+        latestEventPhotoUrl: null,
+        latestEventPhotoTimestamp: 0,
       }
     } else if (!Number.isNaN(visitTimestamp) && visitTimestamp > grouped[pizzeria.id].latestVisitTimestamp) {
       grouped[pizzeria.id].latestVisitTimestamp = visitTimestamp
       grouped[pizzeria.id].latestVisitId = visit.id
+    }
+
+    const photoOfNight = (visit.photos ?? []).find((photo) => photo.is_pizza_of_night)
+    if (photoOfNight) {
+      const photoTimestamp = new Date(photoOfNight.created_at).getTime()
+      if (!Number.isNaN(photoTimestamp) && photoTimestamp >= grouped[pizzeria.id].latestEventPhotoTimestamp) {
+        grouped[pizzeria.id].latestEventPhotoTimestamp = photoTimestamp
+        grouped[pizzeria.id].latestEventPhotoUrl = photoOfNight.url
+      }
     }
 
     grouped[pizzeria.id].scores.push(row.final_score)
@@ -202,6 +227,8 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
       city: pizzeria.city,
       location: pizzeria.location,
       google_photo_name: pizzeria.google_photo_name,
+      custom_image_url: pizzeria.custom_image_url,
+      latest_event_photo_url: pizzeria.latestEventPhotoUrl,
       avg_score: pizzeria.scores.reduce((sum, score) => sum + score, 0) / pizzeria.scores.length,
       latestVisitId: pizzeria.latestVisitId,
     }))
@@ -240,20 +267,22 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
           <Link key={pizzeria.id} href={pizzeria.latestVisitId ? `/eventi/${pizzeria.latestVisitId}` : '/eventi'} className="block">
             <article className="glass-card flex items-center justify-between gap-3 p-4 transition hover:border-[var(--terracotta)] sm:p-5">
               <div className="flex items-center gap-4">
-                {pizzeria.google_photo_name ? (
-                  <Image
-                    src={`/api/places/photo?name=${encodeURIComponent(pizzeria.google_photo_name)}&w=220`}
-                    alt={pizzeria.name}
-                    width={72}
-                    height={72}
-                    unoptimized
-                    className="h-[72px] w-[72px] rounded-2xl object-cover"
-                  />
-                ) : (
-                  <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-[rgba(255,255,255,0.7)] text-xs text-[var(--ink-soft)]">
-                    N/A
-                  </div>
-                )}
+                <Image
+                  src={getPizzeriaImageSrc({
+                    id: pizzeria.id,
+                    name: pizzeria.name,
+                    city: pizzeria.city,
+                    customImageUrl: pizzeria.custom_image_url,
+                    latestEventPhotoUrl: pizzeria.latest_event_photo_url,
+                    googlePhotoName: pizzeria.google_photo_name,
+                    width: 220,
+                  })}
+                  alt={pizzeria.name}
+                  width={72}
+                  height={72}
+                  unoptimized
+                  className="h-[72px] w-[72px] rounded-2xl object-cover"
+                />
                 <div>
                   <h2 className="text-2xl">{pizzeria.name}</h2>
                   <p className="text-xs text-[var(--ink-soft)]">{pizzeria.location}</p>

@@ -7,6 +7,7 @@ import EventScheduleManager from '@/components/EventScheduleManager'
 import PhotoGalleryManager from '@/components/PhotoGalleryManager'
 import ReviewForm from '@/components/ReviewForm'
 import { formatDateLabel, formatDateTimeLabel } from '@/lib/date-format'
+import { getEventImageSrc } from '@/lib/pizzeria-image'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 interface VisitPageProps {
@@ -27,6 +28,7 @@ interface VisitDetails {
         location: string
         city: string
         google_photo_name: string | null
+        custom_image_url: string | null
         google_maps_uri: string | null
       }
     | {
@@ -35,6 +37,7 @@ interface VisitDetails {
         location: string
         city: string
         google_photo_name: string | null
+        custom_image_url: string | null
         google_maps_uri: string | null
       }[]
 }
@@ -51,6 +54,11 @@ interface ReviewSummary {
         name: string | null
         pizza_emoji: string | null
       }[]
+}
+
+interface PhotoSummary {
+  url: string
+  is_pizza_of_night: boolean
 }
 
 interface LeaderboardReviewRow {
@@ -181,10 +189,10 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
   const { id } = await params
   const supabase = await createSupabaseServerClient()
 
-  const [{ data: visit }, { data: reviewSummaries }, { data: leaderboardRows }] = await Promise.all([
+  const [{ data: visit }, { data: reviewSummaries }, { data: leaderboardRows }, { data: photos }] = await Promise.all([
     supabase
       .from('visits')
-      .select('id, date, scheduled_at, created_by, pizzerias(id, name, location, city, google_photo_name, google_maps_uri)')
+      .select('id, date, scheduled_at, created_by, pizzerias(id, name, location, city, google_photo_name, custom_image_url, google_maps_uri)')
       .eq('id', id)
       .single<VisitDetails>(),
     supabase.from('reviews').select('id, final_score, profiles(name, pizza_emoji)').eq('visit_id', id).returns<ReviewSummary[]>(),
@@ -199,6 +207,7 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
       `
       )
       .returns<LeaderboardReviewRow[]>(),
+    supabase.from('photos').select('url, is_pizza_of_night').eq('visit_id', id).returns<PhotoSummary[]>(),
   ])
 
   if (!visit) {
@@ -231,24 +240,31 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
 
   const rank = ranking.findIndex((entry) => entry.pizzeriaId === pizzeria.id) + 1
   const score = ranking.find((entry) => entry.pizzeriaId === pizzeria.id)?.avg ?? null
+  const photoOfNight = (photos ?? []).find((photo) => photo.is_pizza_of_night)?.url ?? null
 
   return (
     <div className="app-shell">
       <Nav />
       <main className="page-wrap space-y-6">
         <section className="glass-card relative p-6">
-          {pizzeria.google_photo_name && (
-            <div className="mb-4 overflow-hidden rounded-2xl border border-[var(--paper-border)]">
-              <Image
-                src={`/api/places/photo?name=${encodeURIComponent(pizzeria.google_photo_name)}&w=1200`}
-                alt={pizzeria.name}
-                width={1200}
-                height={680}
-                unoptimized
-                className="h-52 w-full object-cover sm:h-64"
-              />
-            </div>
-          )}
+          <div className="mb-4 overflow-hidden rounded-2xl border border-[var(--paper-border)]">
+            <Image
+              src={getEventImageSrc({
+                photoOfNightUrl: photoOfNight,
+                id: pizzeria.id,
+                name: pizzeria.name,
+                city: pizzeria.city,
+                customImageUrl: pizzeria.custom_image_url,
+                googlePhotoName: pizzeria.google_photo_name,
+                width: 1200,
+              })}
+              alt={pizzeria.name}
+              width={1200}
+              height={680}
+              unoptimized
+              className="h-52 w-full object-cover sm:h-64"
+            />
+          </div>
           {rank > 0 && (
             <div className="absolute right-3 top-3 z-10 flex items-center gap-2 md:bottom-4 md:right-4 md:top-auto">
               {score !== null && (

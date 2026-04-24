@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { FiCalendar, FiExternalLink } from 'react-icons/fi'
 import { formatDateLabel, formatDateTimeLabel } from '@/lib/date-format'
+import { getEventImageSrc } from '@/lib/pizzeria-image'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 interface VisitRow {
@@ -13,13 +14,21 @@ interface VisitRow {
         city: string
         location: string
         google_photo_name: string | null
+        custom_image_url: string | null
       }
     | {
         name: string
         city: string
         location: string
         google_photo_name: string | null
+        custom_image_url: string | null
       }[]
+  photos:
+    | {
+        url: string
+        is_pizza_of_night: boolean
+      }[]
+    | null
   visit_attendees:
     | {
         user_id: string
@@ -58,7 +67,7 @@ export default async function NextEventCard({ showCreateAction = true }: NextEve
 
   const { data } = await supabase
     .from('visits')
-    .select('id, date, scheduled_at, pizzerias(name, city, location, google_photo_name), visit_attendees(user_id, profiles(name, pizza_emoji, email))')
+    .select('id, date, scheduled_at, pizzerias(name, city, location, google_photo_name, custom_image_url), photos(url, is_pizza_of_night), visit_attendees(user_id, profiles(name, pizza_emoji, email))')
     .order('date', { ascending: true })
     .limit(100)
     .returns<VisitRow[]>()
@@ -85,6 +94,7 @@ export default async function NextEventCard({ showCreateAction = true }: NextEve
   }
 
   const pizzeria = getFirst(nextVisit.pizzerias)
+  const photoOfNight = (nextVisit.photos ?? []).find((photo) => photo.is_pizza_of_night)?.url ?? null
   const attendees = (nextVisit.visit_attendees ?? []).map((attendee) => {
     const profile = attendee.profiles ? getFirst(attendee.profiles) : null
     return {
@@ -96,17 +106,23 @@ export default async function NextEventCard({ showCreateAction = true }: NextEve
   return (
     <section className="glass-card p-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-stretch">
-        {pizzeria.google_photo_name && (
-          <div className="relative overflow-hidden rounded-2xl border border-[var(--paper-border)] md:w-[42%] md:shrink-0 md:self-stretch">
-            {/* Use plain img to keep this server component simple and avoid client wrappers for next/image */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`/api/places/photo?name=${encodeURIComponent(pizzeria.google_photo_name)}&w=1200`}
-              alt={pizzeria.name}
-              className="h-52 w-full object-cover sm:h-64 md:absolute md:inset-0 md:h-full md:w-full"
-            />
-          </div>
-        )}
+        <div className="relative overflow-hidden rounded-2xl border border-[var(--paper-border)] md:w-[42%] md:shrink-0 md:self-stretch">
+          {/* Use plain img to keep this server component simple and avoid client wrappers for next/image */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={getEventImageSrc({
+              photoOfNightUrl: photoOfNight,
+              id: nextVisit.id,
+              name: pizzeria.name,
+              city: pizzeria.city,
+              customImageUrl: pizzeria.custom_image_url,
+              googlePhotoName: pizzeria.google_photo_name,
+              width: 1200,
+            })}
+            alt={pizzeria.name}
+            className="h-52 w-full object-cover sm:h-64 md:absolute md:inset-0 md:h-full md:w-full"
+          />
+        </div>
 
         <div className="flex flex-1 flex-col">
           <h2 className="mb-1 text-2xl" style={{ fontFamily: 'var(--font-display)' }}>

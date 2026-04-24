@@ -248,23 +248,16 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
     setBusyPhotoId(photo.id)
 
     try {
-      // First, unmark all photos for this visit
-      await supabase
-        .from('photos')
-        .update({ is_pizza_of_night: false })
-        .eq('visit_id', visitId)
-
-      // Then mark only the selected photo
-      const { error } = await supabase
-        .from('photos')
-        .update({ is_pizza_of_night: true })
-        .eq('id', photo.id)
+      const { error } = await supabase.rpc('set_pizza_of_night', {
+        p_visit_id: visitId,
+        p_photo_id: photo.id,
+      })
 
       setBusyPhotoId('')
       if (error) {
         toast.error(error.message)
       } else {
-        toast.success('Tag foto della serata assegnato.')
+        toast.success('Foto della serata assegnata.')
       }
       void loadPhotos()
     } catch (err) {

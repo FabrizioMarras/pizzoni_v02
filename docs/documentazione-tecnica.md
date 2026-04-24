@@ -104,6 +104,7 @@ Metadati Google su `pizzerias`:
 - `google_photo_name`
 - `latitude`
 - `longitude`
+- `custom_image_url` (copertina manuale opzionale caricata da utente)
 
 Tabelle legacy rimosse:
 - `upcoming_visits`, `rsvps`, `poll_suggestions`, `poll_votes` (drop tramite migrazione dedicata).
@@ -143,6 +144,7 @@ Pagina: `/pizzerie` (`src/components/PizzeriaManager.tsx`).
 - Digitazione nome (e opzionale citta) -> suggerimenti Google.
 - Bottone geolocalizzazione -> bias dei risultati vicino all’utente.
 - Selezione risultato -> auto-popolamento nome/indirizzo/citta.
+- Per pizzerie manuali, e possibile caricare una copertina custom; se manca, il frontend usa placeholder automatico.
 
 ## 6.2 Nuovo evento (votazione-first)
 Pagina: `/eventi` (`src/components/PlannerBoard.tsx`).
@@ -168,6 +170,10 @@ Vincolo logico UI:
   - note evento multiutente (CRUD per autore nota);
   - foto (selezione file/scatto camera, upload manuale, tag unico "foto della serata", sostituzione, eliminazione per autore foto);
   - link Google Maps.
+
+Priorita immagini:
+- Pizzeria: Google photo -> custom_image_url -> placeholder.
+- Evento: foto della serata (se presente) -> immagine pizzeria.
 
 Transizione stato evento:
 - `upcoming`: `scheduled_at` nel futuro;
@@ -262,6 +268,7 @@ Ordine principale:
 10. `20260424113000_pizza_of_night_single_tag.sql`
 11. `20260424130000_visit_notes_multi_user.sql`
 12. `20260424134500_reviews_allow_half_points.sql`
+13. `20260424141000_pizzerias_custom_image.sql`
 
 Nota operativa Supabase Cloud:
 - le migrazioni si applicano via SQL Editor in ordine cronologico.

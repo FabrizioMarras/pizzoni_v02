@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="Pizzeria placeholder">
+  <defs>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2b4ecf"/>
+      <stop offset="100%" stop-color="#6aa3ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#g2)"/>
+  <path d="M0 510 C180 440 320 640 520 560 C760 460 900 640 1200 530 L1200 675 L0 675 Z" fill="#fff" fill-opacity="0.20"/>
+  <rect x="120" y="140" width="420" height="38" rx="19" fill="#fff" fill-opacity="0.28"/>
+  <rect x="120" y="200" width="260" height="24" rx="12" fill="#fff" fill-opacity="0.23"/>
+</svg>

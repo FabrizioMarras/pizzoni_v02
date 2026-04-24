@@ -8,6 +8,8 @@ App privata per gruppo chiuso: classifica pizzerie, organizzazione eventi, recen
 - Gestione inviti admin
 - Profilo utente (nome, avatar, emoji pizza)
 - Pizzerie: creazione, elenco, filtro visitate/non visitate
+  - supporto immagine custom caricata manualmente
+  - fallback automatico placeholder quando manca immagine Google/custom
 - Eventi:
   - votazione date per nuovo evento (votazione-first)
   - impostazione orario prenotazione evento (owner/admin)
@@ -70,6 +72,7 @@ Migrazioni chiave del flusso attuale:
 - `20260424113000_pizza_of_night_single_tag.sql`
 - `20260424130000_visit_notes_multi_user.sql`
 - `20260424134500_reviews_allow_half_points.sql`
+- `20260424141000_pizzerias_custom_image.sql`
 
 ### 4) Configurazione Supabase Auth
 
