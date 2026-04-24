@@ -342,10 +342,10 @@ export default function PizzeriaManager() {
                   href={pizzeria.google_maps_uri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pizzeria.name} ${pizzeria.location}`)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="btn-secondary mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
+                  className="btn-secondary mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm"
                 >
-                  <FiExternalLink className="h-3.5 w-3.5" />
-                  Apri su Google Maps
+                  <FiMapPin className="h-4 w-4" />
+                  Google Maps
                 </a>
               </article>
             ))}

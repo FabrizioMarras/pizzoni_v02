@@ -279,14 +279,8 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
             className="btn-secondary mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm"
           >
             <FiMapPin className="h-4 w-4" />
-            Apri in Google Maps
+            Google Maps
           </a>
-
-          {rank > 0 && (
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--paper-border)] bg-[rgba(255,255,255,0.72)] px-3 py-1.5 pr-4 text-sm font-semibold text-[var(--ink)]">
-              Posizione in classifica: #{rank}
-            </div>
-          )}
           {visit.notes && <p className="mt-3 text-[var(--ink)]">{visit.notes}</p>}
         </section>
 
