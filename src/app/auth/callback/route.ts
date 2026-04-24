@@ -1,6 +1,46 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
+function normalizeProfileText(value: string | null | undefined): string | null {
+  if (!value) return null
+  const normalized = value.trim()
+  return normalized.length > 0 ? normalized : null
+}
+
+function deriveGoogleName(user: { user_metadata?: Record<string, unknown> | null }): string | null {
+  const metadata = user.user_metadata ?? {}
+  const candidates = [
+    metadata.full_name,
+    metadata.name,
+    metadata.given_name,
+    metadata.preferred_username,
+    metadata.nickname,
+  ]
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string') {
+      const normalized = normalizeProfileText(candidate)
+      if (normalized) return normalized
+    }
+  }
+
+  return null
+}
+
+function deriveGoogleAvatarUrl(user: { user_metadata?: Record<string, unknown> | null }): string | null {
+  const metadata = user.user_metadata ?? {}
+  const candidates = [metadata.avatar_url, metadata.picture]
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string') {
+      const normalized = normalizeProfileText(candidate)
+      if (normalized) return normalized
+    }
+  }
+
+  return null
+}
+
 function normalizeNextPath(nextParam: string | null): string {
   if (!nextParam || !nextParam.startsWith('/') || nextParam.startsWith('//')) {
     return '/'
@@ -42,12 +82,19 @@ async function finalizeInviteOnlySignIn(nextPath: string, request: Request, orig
 
   const normalizedEmail = user.email.toLowerCase()
   const now = new Date().toISOString()
+  const derivedName = deriveGoogleName(user)
+  const derivedAvatarUrl = deriveGoogleAvatarUrl(user)
 
   const { data: ownProfile } = await supabase
     .from('profiles')
-    .select('id, is_member')
+    .select('id, is_member, name, avatar_url')
     .eq('id', user.id)
-    .maybeSingle<{ id: string; is_member: boolean }>()
+    .maybeSingle<{ id: string; is_member: boolean; name: string | null; avatar_url: string | null }>()
+
+  const profileName = normalizeProfileText(ownProfile?.name)
+  const profileAvatarUrl = normalizeProfileText(ownProfile?.avatar_url)
+  const shouldBackfillName = !profileName && !!derivedName
+  const shouldBackfillAvatarUrl = !profileAvatarUrl && !!derivedAvatarUrl
 
   const { data: invite } = await supabase
     .from('invites')
@@ -57,6 +104,17 @@ async function finalizeInviteOnlySignIn(nextPath: string, request: Request, orig
 
   if (!invite) {
     if (ownProfile?.is_member) {
+      if (shouldBackfillName || shouldBackfillAvatarUrl) {
+        await supabase
+          .from('profiles')
+          .update({
+            ...(shouldBackfillName ? { name: derivedName } : {}),
+            ...(shouldBackfillAvatarUrl ? { avatar_url: derivedAvatarUrl } : {}),
+            updated_at: now,
+          })
+          .eq('id', user.id)
+      }
+
       return NextResponse.redirect(`${redirectBaseUrl(request, origin)}${nextPath}`)
     }
 
@@ -70,6 +128,8 @@ async function finalizeInviteOnlySignIn(nextPath: string, request: Request, orig
         .from('profiles')
         .update({
           email: normalizedEmail,
+          ...(shouldBackfillName ? { name: derivedName } : {}),
+          ...(shouldBackfillAvatarUrl ? { avatar_url: derivedAvatarUrl } : {}),
           is_member: true,
           is_admin: true,
           updated_at: now,
@@ -98,6 +158,8 @@ async function finalizeInviteOnlySignIn(nextPath: string, request: Request, orig
     .from('profiles')
     .update({
       email: normalizedEmail,
+      ...(shouldBackfillName ? { name: derivedName } : {}),
+      ...(shouldBackfillAvatarUrl ? { avatar_url: derivedAvatarUrl } : {}),
       is_member: true,
       updated_at: now,
     })
