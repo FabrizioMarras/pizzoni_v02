@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { FiEdit2, FiPlus, FiSave, FiTrash2, FiX } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
 import Button from '@/components/ui/Button'
+import MemberIdentity from '@/components/ui/MemberIdentity'
 import { useToast } from '@/components/ui/ToastProvider'
 
 interface EventNotesManagerProps {
@@ -22,11 +23,13 @@ interface NoteRow {
     | {
         name: string | null
         pizza_emoji: string | null
+        avatar_url: string | null
         email: string | null
       }
     | {
         name: string | null
         pizza_emoji: string | null
+        avatar_url: string | null
         email: string | null
       }[]
     | null
@@ -63,7 +66,7 @@ export default function EventNotesManager({ visitId }: EventNotesManagerProps) {
   const loadNotes = async () => {
     const { data, error } = await supabase
       .from('visit_notes')
-      .select('id, visit_id, user_id, content, created_at, updated_at, profiles(name, pizza_emoji, email)')
+      .select('id, visit_id, user_id, content, created_at, updated_at, profiles(name, pizza_emoji, avatar_url, email)')
       .eq('visit_id', visitId)
       .order('created_at', { ascending: false })
 
@@ -202,12 +205,17 @@ export default function EventNotesManager({ visitId }: EventNotesManagerProps) {
           const author = getFirst(note.profiles)
           const isOwner = note.user_id === userId
           const isEditing = editingNoteId === note.id
-          const authorLabel = `${author?.pizza_emoji ?? '🍕'} ${author?.name ?? author?.email ?? 'Membro'}`
-
           return (
             <article key={note.id} className="surface-card space-y-2 px-3 py-3">
               <div className="text-xs text-[var(--ink-soft)]">
-                <span className="font-semibold text-[var(--ink)]">{authorLabel}</span>
+                <span className="font-semibold text-[var(--ink)]">
+                  <MemberIdentity
+                    name={author?.name}
+                    email={author?.email}
+                    emoji={author?.pizza_emoji}
+                    avatarUrl={author?.avatar_url}
+                  />
+                </span>
               </div>
 
               {isEditing ? (

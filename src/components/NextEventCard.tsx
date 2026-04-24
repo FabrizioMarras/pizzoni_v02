@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { FiCalendar, FiExternalLink } from 'react-icons/fi'
+import MemberIdentity from '@/components/ui/MemberIdentity'
 import { formatDateLabel, formatDateTimeLabel } from '@/lib/date-format'
 import { getEventImageSrc } from '@/lib/pizzeria-image'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
@@ -33,14 +34,16 @@ interface VisitRow {
     | {
         user_id: string
         profiles:
-          | {
+            | {
               name: string | null
               pizza_emoji: string | null
+              avatar_url: string | null
               email: string | null
             }
           | {
               name: string | null
               pizza_emoji: string | null
+              avatar_url: string | null
               email: string | null
             }[]
           | null
@@ -67,7 +70,7 @@ export default async function NextEventCard({ showCreateAction = true }: NextEve
 
   const { data } = await supabase
     .from('visits')
-    .select('id, date, scheduled_at, pizzerias(name, city, location, google_photo_name, custom_image_url), photos(url, is_pizza_of_night), visit_attendees(user_id, profiles(name, pizza_emoji, email))')
+    .select('id, date, scheduled_at, pizzerias(name, city, location, google_photo_name, custom_image_url), photos(url, is_pizza_of_night), visit_attendees(user_id, profiles(name, pizza_emoji, avatar_url, email))')
     .order('date', { ascending: true })
     .limit(100)
     .returns<VisitRow[]>()
@@ -99,7 +102,10 @@ export default async function NextEventCard({ showCreateAction = true }: NextEve
     const profile = attendee.profiles ? getFirst(attendee.profiles) : null
     return {
       id: attendee.user_id,
-      label: `${profile?.pizza_emoji ?? '🍕'} ${profile?.name ?? profile?.email ?? 'Membro'}`,
+      name: profile?.name ?? null,
+      email: profile?.email ?? null,
+      emoji: profile?.pizza_emoji ?? null,
+      avatarUrl: profile?.avatar_url ?? null,
     }
   })
 
@@ -143,7 +149,12 @@ export default async function NextEventCard({ showCreateAction = true }: NextEve
               <div className="mt-2 flex flex-wrap gap-2">
                 {attendees.map((attendee) => (
                   <span key={attendee.id} className="rounded-full bg-[rgba(255,255,255,0.75)] px-3 py-1 text-xs text-[var(--ink)]">
-                    {attendee.label}
+                    <MemberIdentity
+                      name={attendee.name}
+                      email={attendee.email}
+                      emoji={attendee.emoji}
+                      avatarUrl={attendee.avatarUrl}
+                    />
                   </span>
                 ))}
               </div>

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { FiPlus, FiUserMinus, FiUserPlus, FiX } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
 import Button from '@/components/ui/Button'
+import MemberIdentity from '@/components/ui/MemberIdentity'
 import { useToast } from '@/components/ui/ToastProvider'
 
 interface AttendeesManagerProps {
@@ -15,6 +16,7 @@ interface ProfileInfo {
   id: string
   name: string | null
   pizza_emoji: string | null
+  avatar_url: string | null
   email: string | null
 }
 
@@ -28,6 +30,7 @@ interface MemberRow {
   id: string
   name: string | null
   pizza_emoji: string | null
+  avatar_url: string | null
   email: string | null
 }
 
@@ -56,7 +59,7 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
 
     const [{ data: profileData }, { data: attendeesData }] = await Promise.all([
       supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle<{ is_admin: boolean }>(),
-      supabase.from('visit_attendees').select('id, user_id, profiles(id, name, pizza_emoji, email)').eq('visit_id', visitId),
+      supabase.from('visit_attendees').select('id, user_id, profiles(id, name, pizza_emoji, avatar_url, email)').eq('visit_id', visitId),
     ])
 
     const admin = Boolean(profileData?.is_admin)
@@ -67,7 +70,7 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
     if (admin) {
       const { data: membersData } = await supabase
         .from('profiles')
-        .select('id, name, pizza_emoji, email')
+        .select('id, name, pizza_emoji, avatar_url, email')
         .eq('is_member', true)
         .order('name', { ascending: true })
 
@@ -201,7 +204,14 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
           return (
             <div key={attendee.id} className="surface-card flex items-center justify-between gap-2 px-3 py-2 text-sm text-[var(--ink)]">
               <div>
-                <span className="font-medium">{profile?.pizza_emoji ?? '🍕'} {profile?.name ?? profile?.email ?? 'Membro'}</span>
+                <span className="font-medium">
+                  <MemberIdentity
+                    name={profile?.name}
+                    email={profile?.email}
+                    emoji={profile?.pizza_emoji}
+                    avatarUrl={profile?.avatar_url}
+                  />
+                </span>
               </div>
               {isAdmin && (
                 <Button

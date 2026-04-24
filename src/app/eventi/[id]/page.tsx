@@ -6,6 +6,7 @@ import EventNotesManager from '@/components/EventNotesManager'
 import EventScheduleManager from '@/components/EventScheduleManager'
 import PhotoGalleryManager from '@/components/PhotoGalleryManager'
 import ReviewForm from '@/components/ReviewForm'
+import MemberIdentity from '@/components/ui/MemberIdentity'
 import { formatDateLabel, formatDateTimeLabel } from '@/lib/date-format'
 import { getEventImageSrc } from '@/lib/pizzeria-image'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
@@ -49,10 +50,12 @@ interface ReviewSummary {
     | {
         name: string | null
         pizza_emoji: string | null
+        avatar_url: string | null
       }
     | {
         name: string | null
         pizza_emoji: string | null
+        avatar_url: string | null
       }[]
 }
 
@@ -195,7 +198,7 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
       .select('id, date, scheduled_at, created_by, pizzerias(id, name, location, city, google_photo_name, custom_image_url, google_maps_uri)')
       .eq('id', id)
       .single<VisitDetails>(),
-    supabase.from('reviews').select('id, final_score, profiles(name, pizza_emoji)').eq('visit_id', id).returns<ReviewSummary[]>(),
+    supabase.from('reviews').select('id, final_score, profiles(name, pizza_emoji, avatar_url)').eq('visit_id', id).returns<ReviewSummary[]>(),
     supabase
       .from('reviews')
       .select(
@@ -310,7 +313,9 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
             const profile = getFirst(review.profiles)
             return (
               <div key={review.id} className="surface-card px-3 py-2 text-sm text-[var(--ink)]">
-                <span className="font-medium">{profile.pizza_emoji ?? '🍕'} {profile.name ?? 'Membro'}</span>
+                <span className="font-medium">
+                  <MemberIdentity name={profile.name} emoji={profile.pizza_emoji} avatarUrl={profile.avatar_url} />
+                </span>
                 <span className="ml-2">Punteggio: {review.final_score?.toFixed(1) ?? '-'}</span>
               </div>
             )
