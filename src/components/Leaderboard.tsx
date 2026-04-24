@@ -7,6 +7,7 @@ interface Pizzeria {
   id: string
   name: string
   city: string
+  location: string
   google_photo_name: string | null
   avg_score: number
   latestVisitId: string | null
@@ -16,6 +17,7 @@ interface PizzeriaRelation {
   id: string
   name: string
   city: string
+  location: string
   google_photo_name: string | null
 }
 
@@ -155,7 +157,7 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
         id,
         date,
         scheduled_at,
-        pizzerias!inner(id, name, city, google_photo_name)
+        pizzerias!inner(id, name, city, location, google_photo_name)
       )
     `
     )
@@ -198,6 +200,7 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
       id: pizzeria.id,
       name: pizzeria.name,
       city: pizzeria.city,
+      location: pizzeria.location,
       google_photo_name: pizzeria.google_photo_name,
       avg_score: pizzeria.scores.reduce((sum, score) => sum + score, 0) / pizzeria.scores.length,
       latestVisitId: pizzeria.latestVisitId,
@@ -253,6 +256,7 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
                 )}
                 <div>
                   <h2 className="text-2xl">{pizzeria.name}</h2>
+                  <p className="text-xs text-[var(--ink-soft)]">{pizzeria.location}</p>
                   <p className="page-subtitle">{pizzeria.city}</p>
                 </div>
               </div>
