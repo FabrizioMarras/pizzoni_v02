@@ -247,18 +247,30 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
   const assignPizzaOfNight = async (photo: Photo) => {
     setBusyPhotoId(photo.id)
 
-    const { error } = await supabase.rpc('set_pizza_of_night', {
-      p_visit_id: visitId,
-      p_photo_id: photo.id,
-    })
+    try {
+      // First, unmark all photos for this visit
+      await supabase
+        .from('photos')
+        .update({ is_pizza_of_night: false })
+        .eq('visit_id', visitId)
 
-    setBusyPhotoId('')
-    if (error) {
-      toast.error(error.message)
-    } else {
-      toast.success('Tag foto della serata assegnato.')
+      // Then mark only the selected photo
+      const { error } = await supabase
+        .from('photos')
+        .update({ is_pizza_of_night: true })
+        .eq('id', photo.id)
+
+      setBusyPhotoId('')
+      if (error) {
+        toast.error(error.message)
+      } else {
+        toast.success('Tag foto della serata assegnato.')
+      }
+      void loadPhotos()
+    } catch (err) {
+      setBusyPhotoId('')
+      toast.error(err instanceof Error ? err.message : 'Errore assegnazione tag.')
     }
-    void loadPhotos()
   }
 
   const deletePhoto = async (photo: Photo) => {
