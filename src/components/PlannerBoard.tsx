@@ -406,7 +406,7 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
               className="px-4 py-2 text-sm"
               icon={<FiPlus className="h-4 w-4" />}
             >
-              + Aggiungi
+              Aggiungi
             </Button>
           </div>
         </section>
