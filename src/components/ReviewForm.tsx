@@ -110,6 +110,7 @@ export default function ReviewForm({ visitId }: ReviewFormProps) {
               type="range"
               min={0}
               max={10}
+              step={0.5}
               value={valueNumber as number}
               onChange={(event) => (setter as (v: number) => void)(Number(event.target.value))}
               className="w-full accent-[var(--terracotta)]"
