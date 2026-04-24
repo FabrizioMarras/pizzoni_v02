@@ -3,9 +3,12 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
+import { FiCalendar, FiCheck, FiExternalLink, FiMapPin, FiNavigation, FiPlus, FiX } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
 import Modal from '@/components/ui/Modal'
+import Button from '@/components/ui/Button'
 import { getCurrentPosition, searchPlaces, type PlaceSuggestion } from '@/lib/places'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface AgendaPoll {
   id: string
@@ -84,7 +87,6 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
   const [pollModalOpen, setPollModalOpen] = useState(false)
   const [searchResults, setSearchResults] = useState<PlaceSuggestion[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
-  const [searchError, setSearchError] = useState('')
   const [geo, setGeo] = useState<{ latitude: number; longitude: number } | null>(null)
   const [geoLoading, setGeoLoading] = useState(false)
   const [googlePlaceId, setGooglePlaceId] = useState('')
@@ -93,8 +95,8 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
   const [latitude, setLatitude] = useState<number | null>(null)
   const [longitude, setLongitude] = useState<number | null>(null)
 
-  const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const toast = useToast()
 
   const loadData = async () => {
     const {
@@ -130,14 +132,12 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
     const query = [pizzeriaName.trim(), city.trim()].filter(Boolean).join(' ')
     if (query.length < 2) {
       setSearchResults([])
-      setSearchError('')
       setSearchLoading(false)
       return
     }
 
     const timeout = window.setTimeout(() => {
       setSearchLoading(true)
-      setSearchError('')
 
       void searchPlaces({
         query,
@@ -147,14 +147,14 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
         .then((results) => setSearchResults(results))
         .catch((error: unknown) => {
           const nextError = error instanceof Error ? error.message : 'Ricerca Google non disponibile.'
-          setSearchError(nextError)
+          toast.error(nextError)
           setSearchResults([])
         })
         .finally(() => setSearchLoading(false))
     }, 300)
 
     return () => window.clearTimeout(timeout)
-  }, [pollModalOpen, selectedPizzeriaId, pizzeriaName, city, geo])
+  }, [pollModalOpen, selectedPizzeriaId, pizzeriaName, city, geo, toast])
 
   const openPoll = useMemo(() => polls.find((poll) => poll.status === 'open') ?? null, [polls])
   const closedPolls = useMemo(() => polls.filter((poll) => poll.status === 'closed'), [polls])
@@ -168,7 +168,7 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
     const normalized = dateDraft.trim()
     if (!normalized) return
     if (dateOptions.includes(normalized)) {
-      setMessage('Data gia aggiunta.')
+      toast.info('Data gia aggiunta.')
       return
     }
     setDateOptions((current) => [...current, normalized].sort())
@@ -207,14 +207,13 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
 
   const enableGeolocation = async () => {
     setGeoLoading(true)
-    setSearchError('')
     try {
       const current = await getCurrentPosition()
       setGeo(current)
-      setMessage('Geolocalizzazione attiva: suggerimenti ordinati vicino a te.')
+      toast.success('Geolocalizzazione attiva: suggerimenti ordinati vicino a te.')
     } catch (error) {
       const nextError = error instanceof Error ? error.message : 'Geolocalizzazione non disponibile.'
-      setSearchError(nextError)
+      toast.warning(nextError)
     } finally {
       setGeoLoading(false)
     }
@@ -246,11 +245,11 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
 
     if (!userId) return
     if (openPoll) {
-      setMessage("Esiste gia una votazione aperta. Chiudila prima di crearne una nuova.")
+      toast.warning("Esiste gia una votazione aperta. Chiudila prima di crearne una nuova.")
       return
     }
     if (dateOptions.length < 2) {
-      setMessage('Aggiungi almeno due opzioni data.')
+      toast.warning('Aggiungi almeno due opzioni data.')
       return
     }
 
@@ -287,7 +286,7 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
         .single<ExistingPizzeria>()
 
       if (pizzeriaError || !insertedPizzeria) {
-        setMessage(pizzeriaError?.message ?? 'Errore durante la creazione della pizzeria.')
+        toast.error(pizzeriaError?.message ?? 'Errore durante la creazione della pizzeria.')
         return
       }
 
@@ -296,7 +295,6 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
     }
 
     setSubmitting(true)
-    setMessage('')
 
     const { data: pollRow, error: pollError } = await supabase
       .from('agenda_polls')
@@ -312,7 +310,7 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
 
     if (pollError || !pollRow) {
       setSubmitting(false)
-      setMessage(pollError?.message ?? 'Errore durante la creazione della votazione.')
+      toast.error(pollError?.message ?? 'Errore durante la creazione della votazione.')
       return
     }
 
@@ -327,7 +325,7 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
     setSubmitting(false)
 
     if (optionError) {
-      setMessage(optionError.message)
+      toast.error(optionError.message)
       return
     }
 
@@ -344,9 +342,8 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
     setDateOptions([])
     setDateDraft('')
     setSearchResults([])
-    setSearchError('')
     setPollModalOpen(false)
-    setMessage('Nuovo evento creato: votazione avviata con successo.')
+    toast.success('Nuovo evento creato: votazione avviata con successo.')
     void loadData()
   }
 
@@ -363,7 +360,11 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
       { onConflict: 'date_option_id,user_id' }
     )
 
-    setMessage(error ? error.message : 'Voto salvato.')
+    if (error) {
+      toast.error(error.message)
+    } else {
+      toast.success('Voto salvato.')
+    }
     void loadData()
   }
 
@@ -376,11 +377,11 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
     })
 
     if (error) {
-      setMessage(error.message)
+      toast.error(error.message)
       return
     }
 
-    setMessage(`Data evento confermata. Evento creato: ${data}`)
+    toast.success(`Data evento confermata. Evento creato: ${data}`)
     void loadData()
   }
 
@@ -391,8 +392,6 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
 
   return (
     <div className="space-y-6">
-      {message && <p className="glass-card px-4 py-2 text-sm text-[var(--ink-soft)]">{message}</p>}
-
       {!openPoll && (
         <section className="glass-card space-y-4 p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -400,9 +399,15 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
               <h2 className="text-3xl">Nuovo Evento</h2>
               <p className="page-subtitle">Crea una nuova votazione per scegliere la prossima uscita.</p>
             </div>
-            <button type="button" onClick={() => setPollModalOpen(true)} className="btn-primary px-4 py-2 text-sm">
+            <Button
+              type="button"
+              onClick={() => setPollModalOpen(true)}
+              variant="primary"
+              className="px-4 py-2 text-sm"
+              icon={<FiPlus className="h-4 w-4" />}
+            >
               + Aggiungi
-            </button>
+            </Button>
           </div>
         </section>
       )}
@@ -426,24 +431,32 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
             <div className="space-y-2 rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-[var(--ink-soft)]">Suggerimenti Google Maps</p>
-                <button type="button" onClick={() => void enableGeolocation()} disabled={geoLoading} className="btn-secondary px-3 py-1 text-xs">
+                <Button
+                  type="button"
+                  onClick={() => void enableGeolocation()}
+                  disabled={geoLoading}
+                  variant="secondary"
+                  className="px-3 py-1 text-xs"
+                  icon={<FiNavigation className="h-3.5 w-3.5" />}
+                >
                   {geoLoading ? 'Attivo...' : geo ? 'Geolocalizzazione attiva' : 'Usa la mia posizione'}
-                </button>
+                </Button>
               </div>
               {searchLoading && <p className="text-xs text-[var(--ink-soft)]">Ricerca in corso...</p>}
-              {searchError && <p className="text-xs text-[var(--terracotta-deep)]">{searchError}</p>}
-              {!searchLoading && !searchError && searchResults.length > 0 && (
+              {!searchLoading && searchResults.length > 0 && (
                 <div className="max-h-48 space-y-2 overflow-auto pr-1">
                   {searchResults.map((place) => (
-                    <button
+                    <Button
                       key={place.id}
                       type="button"
-                      onClick={() => pickPlace(place)}
-                      className="block w-full rounded-xl bg-white px-3 py-2 text-left text-xs text-[var(--ink)]"
-                    >
+                    onClick={() => pickPlace(place)}
+                    variant="unstyled"
+                    className="block w-full rounded-xl bg-white px-3 py-2 text-left text-xs text-[var(--ink)]"
+                    icon={<FiMapPin className="mt-0.5 h-3.5 w-3.5" />}
+                  >
                       <div className="font-semibold">{place.name}</div>
                       <div className="text-[var(--ink-soft)]">{place.city} · {place.address}</div>
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -457,28 +470,43 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
             <p className="mb-2 text-sm font-semibold text-[var(--ink)]">Opzioni data</p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <input type="date" value={dateDraft} onChange={(event) => setDateDraft(event.target.value)} className="field-input" />
-              <button type="button" onClick={addDateOptionDraft} className="btn-secondary px-4 py-2 text-sm">
+              <Button
+                type="button"
+                onClick={addDateOptionDraft}
+                variant="secondary"
+                className="px-4 py-2 text-sm"
+                icon={<FiCalendar className="h-4 w-4" />}
+              >
                 Aggiungi data
-              </button>
+              </Button>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {dateOptions.length === 0 && <span className="text-xs text-[var(--ink-soft)]">Nessuna data aggiunta.</span>}
               {dateOptions.map((optionDate) => (
-                <button
+                <Button
                   key={optionDate}
                   type="button"
                   onClick={() => removeDateOptionDraft(optionDate)}
+                  variant="unstyled"
                   className="rounded-full bg-[rgba(178,74,47,0.14)] px-3 py-1 text-xs text-[var(--terracotta-deep)]"
+                  icon={<FiX className="h-3 w-3" />}
+                  iconPosition="right"
                 >
-                  {formatDate(optionDate)} ×
-                </button>
+                  {formatDate(optionDate)}
+                </Button>
               ))}
             </div>
           </div>
 
-          <button className="btn-primary px-4 py-2 text-sm" type="submit" disabled={submitting}>
+          <Button
+            variant="primary"
+            className="px-4 py-2 text-sm"
+            type="submit"
+            disabled={submitting}
+            icon={<FiCheck className="h-4 w-4" />}
+          >
             {submitting ? 'Creazione...' : 'Crea Evento'}
-          </button>
+          </Button>
         </form>
       </Modal>
 
@@ -500,24 +528,34 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
                     <div className="mb-2 text-sm font-semibold text-[var(--ink)]">{formatDate(option.option_date)}</div>
                     <div className="mb-2 text-xs text-[var(--ink-soft)]">Disponibili: {available} · Non disponibili: {notAvailable}</div>
                     <div className="flex flex-wrap gap-2">
-                      <button
+                      <Button
                         type="button"
                         onClick={() => void voteOnOption(option, 'available')}
+                        variant="unstyled"
                         className={`rounded-full px-3 py-1 text-xs ${mine === 'available' ? 'bg-[var(--olive)] text-white' : 'bg-[rgba(81,100,58,0.15)] text-[var(--olive)]'}`}
+                        icon={<FiCheck className="h-3.5 w-3.5" />}
                       >
                         Disponibile
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
                         onClick={() => void voteOnOption(option, 'not_available')}
+                        variant="unstyled"
                         className={`rounded-full px-3 py-1 text-xs ${mine === 'not_available' ? 'bg-[var(--terracotta)] text-white' : 'bg-[rgba(178,74,47,0.15)] text-[var(--terracotta-deep)]'}`}
+                        icon={<FiX className="h-3.5 w-3.5" />}
                       >
                         Non disponibile
-                      </button>
+                      </Button>
                       {canFinalizeOpenPoll && (
-                        <button type="button" onClick={() => void finalizePoll(option.id)} className="btn-primary px-3 py-1 text-xs">
+                        <Button
+                          type="button"
+                          onClick={() => void finalizePoll(option.id)}
+                          variant="primary"
+                          className="px-3 py-1 text-xs"
+                          icon={<FiCheck className="h-3.5 w-3.5" />}
+                        >
                           Conferma data evento
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -540,7 +578,8 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
                 {poll.visit_id && (
-                  <Link href={`/eventi/${poll.visit_id}`} className="btn-secondary px-3 py-1 text-xs">
+                  <Link href={`/eventi/${poll.visit_id}`} className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1 text-xs">
+                    <FiExternalLink className="h-3.5 w-3.5" />
                     Apri evento creato
                   </Link>
                 )}

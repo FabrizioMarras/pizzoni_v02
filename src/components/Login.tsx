@@ -1,15 +1,17 @@
 'use client'
 
 import { useState } from 'react'
+import { FiLogIn } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
+import Button from '@/components/ui/Button'
+import { useToast } from '@/components/ui/ToastProvider'
 
 export default function Login() {
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
+  const toast = useToast()
 
   const signInWithGoogle = async () => {
     setLoading(true)
-    setMessage('')
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -20,7 +22,7 @@ export default function Login() {
 
     if (error) {
       setLoading(false)
-      setMessage(error.message)
+      toast.error(error.message)
     }
   }
 
@@ -30,15 +32,16 @@ export default function Login() {
         <h1 className="mb-2 text-center text-4xl">Benvenuto a Pizzoni</h1>
         <p className="mb-6 text-center text-sm page-subtitle">Accedi con Google. Solo gli utenti invitati possono entrare.</p>
 
-        <button
+        <Button
           type="button"
           onClick={() => void signInWithGoogle()}
           disabled={loading}
-          className="btn-primary mb-2 flex w-full items-center justify-center px-4 py-2.5 text-sm"
+          variant="primary"
+          className="mb-2 flex w-full items-center justify-center px-4 py-2.5 text-sm"
+          icon={<FiLogIn className="h-4 w-4" />}
         >
           Continua con Google
-        </button>
-        {message && <p className="mt-4 rounded-xl bg-[rgba(255,255,255,0.7)] px-3 py-2 text-center text-sm text-[var(--ink-soft)]">{message}</p>}
+        </Button>
       </div>
     </div>
   )

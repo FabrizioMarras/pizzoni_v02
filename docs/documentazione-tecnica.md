@@ -1,6 +1,6 @@
 # Documentazione Tecnica Pizzoni
 
-Versione documento: 2026-04-23  
+Versione documento: 2026-04-24  
 Stack: Next.js 16 (App Router), React 19, TypeScript, Supabase, Tailwind CSS 4
 
 ## 1. Obiettivo applicazione
@@ -26,10 +26,12 @@ Punti chiave:
 - Supabase Postgres per dati applicativi.
 - RLS (Row Level Security) su tabelle pubbliche.
 - Funzioni SQL custom per finalizzazione votazioni.
+- Funzioni SQL custom per finalizzazione votazioni e gestione tag foto della serata.
 
 ### 2.3 API interne Next.js
 - `POST /api/places/search`: ricerca pizzerie via Google Places API (New).
 - `GET /api/calendar`: export ICS per calendario eventi.
+- `GET /api/places/photo`: proxy immagini Google Places.
 
 ## 3. Routing applicativo
 
@@ -88,7 +90,7 @@ Tabelle principali in `public`:
 - `profiles`: anagrafica membri estesa da `auth.users`.
 - `invites`: whitelist email invitabili + stato accettazione.
 - `pizzerias`: catalogo pizzerie.
-- `visits`: evento concreto (data/locale).
+- `visits`: evento concreto (data/locale) con `scheduled_at` per orario prenotazione.
 - `visit_attendees`: partecipanti evento.
 - `reviews`: recensioni per visita e utente.
 - `photos`: foto evento.
@@ -114,6 +116,13 @@ Tabelle legacy rimosse:
   - pre-popola partecipanti da voti `available`;
   - chiude votazione e aggancia `visit_id`.
 
+Note campo evento:
+- `date`: data logica evento.
+- `scheduled_at`: timestamp effettivo prenotazione; usato per transizione upcoming/concluso.
+- `public.set_pizza_of_night(p_visit_id uuid, p_photo_id uuid) -> void`
+  - assegna in modo atomico il tag "foto della serata";
+  - garantisce un solo tag per evento.
+
 ## 6. Flussi funzionali principali
 
 ## 6.1 Gestione pizzerie
@@ -121,6 +130,7 @@ Pagina: `/pizzerie` (`src/components/PizzeriaManager.tsx`).
 - Creazione pizzeria via modal.
 - Filtro elenco: tutte / visitate / da visitare.
 - Badge visitata in base a presenza record in `visits`.
+  - con fallback legacy: se manca `scheduled_at`, usa fine giornata della `date`.
 
 ### Ricerca Google Places integrata
 - Digitazione nome (e opzionale citta) -> suggerimenti Google.
@@ -143,17 +153,31 @@ Vincolo logico UI:
 
 ## 6.3 Eventi e dettaglio
 - Card prossimo evento (`NextEventCard`), inclusa in home e pagina eventi.
-- Storico eventi in lista.
+- Storico eventi in lista (solo eventi con orario passato).
 - Dettaglio evento:
+  - gestione orario prenotazione (owner/admin);
   - partecipanti;
   - recensioni;
-  - foto (upload, modifica tag "pizza della serata", sostituzione, eliminazione per autore foto);
+  - foto (selezione file/scatto camera, upload manuale, tag unico "foto della serata", sostituzione, eliminazione per autore foto);
   - link Google Maps.
+
+Transizione stato evento:
+- `upcoming`: `scheduled_at` nel futuro;
+- `concluso`: `scheduled_at <= now()`;
+- fallback legacy senza `scheduled_at`: confronto su fine giornata della `date`.
 
 ## 6.4 Inviti admin
 Pagina: `/profilo`.
 - Admin inserisce email in `invites`.
 - Solo email presenti in invite list possono completare login.
+
+## 6.5 Design System UI
+- `src/components/ui/Button.tsx`: componente bottone riusabile (`primary`, `secondary`, `unstyled`) usato in tutto il repo.
+  - API icone: `icon`, `iconPosition` (`left`/`right`), `iconClassName`.
+  - comportamento base centralizzato: `inline-flex`, allineamento contenuti, `cursor-pointer`, gestione `disabled`.
+  - tutte le azioni principali del prodotto usano il componente con icona esplicita per coerenza visiva.
+- `src/components/ui/Checkbox.tsx`: checkbox brandizzato riusabile.
+- `src/components/ui/ToastProvider.tsx`: sistema toast globale (success/warning/error/info).
 
 ## 7. API interne
 
@@ -188,7 +212,9 @@ Comportamento:
 - ritorna stream immagine con cache header.
 
 ## 7.3 `GET /api/calendar`
-- esporta prossimi eventi in formato ICS.
+- esporta evento in formato ICS.
+- se `scheduled_at` esiste: crea evento con orario.
+- se `scheduled_at` manca: crea evento all-day sulla sola data.
 
 ## 8. Configurazione ambiente
 
@@ -223,6 +249,9 @@ Ordine principale:
 5. `20260422213000_agenda_poll_first.sql`
 6. `20260422221000_drop_legacy_planner_tables.sql`
 7. `20260422224000_visit_attendees_admin_management.sql`
+8. `20260423182000_pizzerias_google_metadata.sql`
+9. `20260424102000_visits_scheduled_at_and_admin_update.sql`
+10. `20260424113000_pizza_of_night_single_tag.sql`
 
 Nota operativa Supabase Cloud:
 - le migrazioni si applicano via SQL Editor in ordine cronologico.
@@ -234,11 +263,13 @@ Pratiche applicate:
 - RLS su tabelle pubbliche;
 - policy granulari per owner/admin/self;
 - RPC di finalizzazione con controlli permessi.
+- vincolo DB di unicita tag "foto della serata" per evento.
 
 Attenzioni:
 - non esporre `GOOGLE_MAPS_API_KEY` nel client; resta server-side.
 - non committare `.env.local`.
 - proteggere API key Google con restrizioni.
+- usare upload preset Cloudinary corretto (case-sensitive).
 
 ## 11. Qualita e verifiche
 
@@ -263,11 +294,17 @@ Stato atteso:
 `relation already exists` su migrazione init
 - usare migrazione sync per DB esistente invece di rieseguire init.
 
+`Caricamento Cloudinary fallito (400)`
+- verificare `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` e `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`;
+- verificare che il preset esista e sia `unsigned`;
+- attenzione: nome preset case-sensitive.
+
 ## 13. Convenzioni di sviluppo
 
 - UI lingua italiana.
 - Nomenclatura business: “evento”, “votazione”, non “poll” nei testi utente.
 - Mobile-first su componenti interattivi (menu/modal full-screen mobile).
+- Usare componenti UI condivisi (`Button`, `Checkbox`, `ToastProvider`) invece di elementi nativi non stilizzati.
 - Tenere allineata questa documentazione quando cambia flusso o schema.
 Metadati Google su `pizzerias`:
 - `google_place_id`

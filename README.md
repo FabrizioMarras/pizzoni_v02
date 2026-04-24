@@ -10,10 +10,19 @@ App privata per gruppo chiuso: classifica pizzerie, organizzazione eventi, recen
 - Pizzerie: creazione, elenco, filtro visitate/non visitate
 - Eventi:
   - votazione date per nuovo evento (votazione-first)
+  - impostazione orario prenotazione evento (owner/admin)
   - finalizzazione evento con creazione automatica visita
+  - distinzione upcoming/storico basata su data+ora evento
   - storico eventi + dettaglio evento
 - Recensioni per evento con punteggio medio
-- Foto evento + tag "pizza della serata"
+- Foto evento:
+  - scelta file o scatto camera direttamente nell'app
+  - upload manuale con bottone `Aggiungi`
+  - tag unico "foto della serata" per evento
+- UI coerente con componenti condivisi:
+  - `Button` unico con supporto icona sinistra/destra
+  - `Checkbox` brandizzato
+  - toast globali per feedback utente
 - Classifica pizzerie con filtro citta
 - Ricerca pizzerie da Google Places API (New) con geolocalizzazione opzionale
 - Export calendario `.ics` (`/api/calendar`)
@@ -56,6 +65,9 @@ Migrazioni chiave del flusso attuale:
 - `20260422213000_agenda_poll_first.sql`
 - `20260422221000_drop_legacy_planner_tables.sql`
 - `20260422224000_visit_attendees_admin_management.sql`
+- `20260423182000_pizzerias_google_metadata.sql`
+- `20260424102000_visits_scheduled_at_and_admin_update.sql`
+- `20260424113000_pizza_of_night_single_tag.sql`
 
 ### 4) Configurazione Supabase Auth
 

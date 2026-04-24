@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { FiSave } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
+import Button from '@/components/ui/Button'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface ProfileEditorProps {
   name: string
@@ -14,12 +17,11 @@ export default function ProfileEditor({ name, avatarUrl, pizzaEmoji }: ProfileEd
   const [formAvatarUrl, setFormAvatarUrl] = useState(avatarUrl)
   const [formPizzaEmoji, setFormPizzaEmoji] = useState(pizzaEmoji)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
+  const toast = useToast()
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setSaving(true)
-    setMessage('')
 
     const {
       data: { user },
@@ -27,7 +29,7 @@ export default function ProfileEditor({ name, avatarUrl, pizzaEmoji }: ProfileEd
 
     if (!user) {
       setSaving(false)
-      setMessage('Non hai effettuato l’accesso.')
+      toast.error('Non hai effettuato l’accesso.')
       return
     }
 
@@ -42,7 +44,11 @@ export default function ProfileEditor({ name, avatarUrl, pizzaEmoji }: ProfileEd
       .eq('id', user.id)
 
     setSaving(false)
-    setMessage(error ? error.message : 'Profilo salvato.')
+    if (error) {
+      toast.error(error.message)
+    } else {
+      toast.success('Profilo salvato.')
+    }
   }
 
   return (
@@ -70,10 +76,15 @@ export default function ProfileEditor({ name, avatarUrl, pizzaEmoji }: ProfileEd
           placeholder="🍕"
         />
       </label>
-      <button type="submit" disabled={saving} className="btn-primary px-4 py-2 text-sm">
+      <Button
+        type="submit"
+        disabled={saving}
+        variant="primary"
+        className="px-4 py-2 text-sm"
+        icon={<FiSave className="h-4 w-4" />}
+      >
           {saving ? 'Salvataggio...' : 'Salva Profilo'}
-        </button>
-      {message && <p className="text-sm text-[var(--ink-soft)]">{message}</p>}
+      </Button>
     </form>
   )
 }

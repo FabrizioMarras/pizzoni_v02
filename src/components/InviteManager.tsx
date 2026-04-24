@@ -2,7 +2,10 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useState } from 'react'
+import { FiMail, FiSend } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
+import Button from '@/components/ui/Button'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface Invite {
   id: string
@@ -14,7 +17,7 @@ export default function InviteManager() {
   const [email, setEmail] = useState('')
   const [invites, setInvites] = useState<Invite[]>([])
   const [submitting, setSubmitting] = useState(false)
-  const [message, setMessage] = useState('')
+  const toast = useToast()
 
   const loadInvites = async () => {
     const { data, error } = await supabase.from('invites').select('id, email, accepted_at').order('created_at', { ascending: false })
@@ -28,7 +31,6 @@ export default function InviteManager() {
   const createInvite = async (event: React.FormEvent) => {
     event.preventDefault()
     setSubmitting(true)
-    setMessage('')
 
     const normalized = email.trim().toLowerCase()
 
@@ -37,12 +39,12 @@ export default function InviteManager() {
     setSubmitting(false)
 
     if (error) {
-      setMessage(error.message)
+      toast.error(error.message)
       return
     }
 
     setEmail('')
-    setMessage(`Invito preparato per ${normalized}`)
+    toast.success(`Invito preparato per ${normalized}`)
     void loadInvites()
   }
 
@@ -58,15 +60,20 @@ export default function InviteManager() {
           placeholder="member@example.com"
           required
         />
-        <button type="submit" disabled={submitting} className="btn-primary px-4 py-2 text-sm">
+        <Button
+          type="submit"
+          disabled={submitting}
+          variant="primary"
+          className="px-4 py-2 text-sm"
+          icon={<FiSend className="h-4 w-4" />}
+        >
           {submitting ? 'Aggiunta...' : 'Invita'}
-        </button>
+        </Button>
       </form>
-      {message && <p className="text-sm text-[var(--ink-soft)]">{message}</p>}
       <ul className="space-y-2">
         {invites.map((invite) => (
           <li key={invite.id} className="surface-card px-3 py-2 text-sm text-[var(--ink)]">
-            <div className="font-medium">{invite.email}</div>
+            <div className="font-medium"><FiMail className="mr-1 inline h-4 w-4" />{invite.email}</div>
             <div className="text-[var(--ink-soft)]">{invite.accepted_at ? `Accettato: ${new Date(invite.accepted_at).toLocaleString()}` : 'In attesa'}</div>
           </li>
         ))}

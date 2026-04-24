@@ -2,7 +2,10 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useMemo, useState } from 'react'
+import { FiPlus, FiUserMinus, FiUserPlus, FiX } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
+import Button from '@/components/ui/Button'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface AttendeesManagerProps {
   visitId: string
@@ -39,8 +42,8 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
   const [attendees, setAttendees] = useState<AttendeeRow[]>([])
   const [members, setMembers] = useState<MemberRow[]>([])
   const [memberToAdd, setMemberToAdd] = useState('')
-  const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const toast = useToast()
 
   const loadData = async () => {
     const {
@@ -88,7 +91,6 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
     if (!userId) return
 
     setSubmitting(true)
-    setMessage('')
     const { error } = await supabase.from('visit_attendees').insert({
       visit_id: visitId,
       user_id: userId,
@@ -97,14 +99,14 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
 
     if (error) {
       if (error.message.toLowerCase().includes('duplicate')) {
-        setMessage('Sei gia tra i partecipanti.')
+        toast.info('Sei gia tra i partecipanti.')
       } else {
-        setMessage(error.message)
+        toast.error(error.message)
       }
       return
     }
 
-    setMessage('Sei stato aggiunto ai partecipanti.')
+    toast.success('Sei stato aggiunto ai partecipanti.')
     void loadData()
   }
 
@@ -112,16 +114,15 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
     if (!userId) return
 
     setSubmitting(true)
-    setMessage('')
     const { error } = await supabase.from('visit_attendees').delete().eq('visit_id', visitId).eq('user_id', userId)
     setSubmitting(false)
 
     if (error) {
-      setMessage(error.message)
+      toast.error(error.message)
       return
     }
 
-    setMessage('Hai lasciato la lista partecipanti.')
+    toast.success('Hai lasciato la lista partecipanti.')
     void loadData()
   }
 
@@ -129,7 +130,6 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
     if (!memberToAdd) return
 
     setSubmitting(true)
-    setMessage('')
     const { error } = await supabase.from('visit_attendees').insert({
       visit_id: visitId,
       user_id: memberToAdd,
@@ -138,29 +138,28 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
 
     if (error) {
       if (error.message.toLowerCase().includes('duplicate')) {
-        setMessage('Membro gia presente tra i partecipanti.')
+        toast.info('Membro gia presente tra i partecipanti.')
       } else {
-        setMessage(error.message)
+        toast.error(error.message)
       }
       return
     }
 
-    setMessage('Partecipante aggiunto.')
+    toast.success('Partecipante aggiunto.')
     void loadData()
   }
 
   const removeMember = async (targetUserId: string) => {
     setSubmitting(true)
-    setMessage('')
     const { error } = await supabase.from('visit_attendees').delete().eq('visit_id', visitId).eq('user_id', targetUserId)
     setSubmitting(false)
 
     if (error) {
-      setMessage(error.message)
+      toast.error(error.message)
       return
     }
 
-    setMessage('Partecipante rimosso.')
+    toast.success('Partecipante rimosso.')
     void loadData()
   }
 
@@ -170,13 +169,27 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
 
       <div className="flex flex-wrap gap-2">
         {!isJoined ? (
-          <button type="button" onClick={() => void joinVisit()} disabled={submitting} className="btn-primary px-4 py-2 text-sm">
+          <Button
+            type="button"
+            onClick={() => void joinVisit()}
+            disabled={submitting}
+            variant="primary"
+            className="px-4 py-2 text-sm"
+            icon={<FiUserPlus className="h-4 w-4" />}
+          >
             Partecipo
-          </button>
+          </Button>
         ) : (
-          <button type="button" onClick={() => void leaveVisit()} disabled={submitting} className="btn-secondary px-4 py-2 text-sm">
+          <Button
+            type="button"
+            onClick={() => void leaveVisit()}
+            disabled={submitting}
+            variant="secondary"
+            className="px-4 py-2 text-sm"
+            icon={<FiUserMinus className="h-4 w-4" />}
+          >
             Non partecipo
-          </button>
+          </Button>
         )}
       </div>
 
@@ -191,13 +204,15 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
                 <span className="font-medium">{profile?.pizza_emoji ?? '🍕'} {profile?.name ?? profile?.email ?? 'Membro'}</span>
               </div>
               {isAdmin && (
-                <button
+                <Button
                   type="button"
                   onClick={() => void removeMember(attendee.user_id)}
+                  variant="unstyled"
                   className="rounded-full bg-[rgba(178,74,47,0.15)] px-3 py-1 text-xs text-[var(--terracotta-deep)]"
+                  icon={<FiX className="h-3.5 w-3.5" />}
                 >
                   Rimuovi
-                </button>
+                </Button>
               )}
             </div>
           )
@@ -216,14 +231,19 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
                 </option>
               ))}
             </select>
-            <button type="button" onClick={() => void addMember()} disabled={!memberToAdd || submitting} className="btn-primary px-4 py-2 text-sm">
+            <Button
+              type="button"
+              onClick={() => void addMember()}
+              disabled={!memberToAdd || submitting}
+              variant="primary"
+              className="px-4 py-2 text-sm"
+              icon={<FiPlus className="h-4 w-4" />}
+            >
               Aggiungi
-            </button>
+            </Button>
           </div>
         </div>
       )}
-
-      {message && <p className="text-sm text-[var(--ink-soft)]">{message}</p>}
     </section>
   )
 }

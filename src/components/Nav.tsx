@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import type { IconType } from 'react-icons'
 import { FiBookOpen, FiCalendar, FiHome, FiLogOut, FiMapPin, FiMenu, FiUser, FiX } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
+import Button from '@/components/ui/Button'
 
 const items = [
   { href: '/', label: 'Classifica', icon: FiHome },
@@ -48,15 +49,16 @@ export default function Nav() {
           <span className="ml-2 text-2xl" style={{ fontFamily: 'var(--font-display)' }}>Pizzoni</span>
         </Link>
 
-        <button
+        <Button
           type="button"
           onClick={() => setMobileOpen(true)}
-          className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 text-sm md:hidden"
+          variant="secondary"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm md:hidden"
           aria-label="Apri menu"
+          icon={<FiMenu className="h-4 w-4" />}
         >
-          <FiMenu className="h-4 w-4 shrink-0" />
           Menu
-        </button>
+        </Button>
 
         <div className="hidden flex-wrap items-center gap-2 text-sm md:flex">
           {items.map((item) => {
@@ -73,10 +75,14 @@ export default function Nav() {
               </Link>
             )
           })}
-          <button onClick={logout} className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 text-sm leading-none">
-            <FiLogOut className="h-4 w-4 shrink-0" />
+          <Button
+            onClick={logout}
+            variant="secondary"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm leading-none"
+            icon={<FiLogOut className="h-4 w-4" />}
+          >
             <span className="leading-none">Esci</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -87,15 +93,16 @@ export default function Nav() {
               <span className="text-xl">🍕</span>
               <span className="ml-2 text-2xl" style={{ fontFamily: 'var(--font-display)' }}>Pizzoni</span>
             </Link>
-            <button
+            <Button
               type="button"
               onClick={() => setMobileOpen(false)}
-              className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 text-sm"
+              variant="secondary"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm"
               aria-label="Chiudi menu"
+              icon={<FiX className="h-4 w-4" />}
             >
-              <FiX className="h-4 w-4 shrink-0" />
               Chiudi
-            </button>
+            </Button>
           </div>
 
           <div className="flex flex-1 flex-col gap-2">
@@ -118,10 +125,14 @@ export default function Nav() {
             })}
           </div>
 
-          <button onClick={logout} className="btn-primary mt-6 inline-flex items-center justify-center gap-2 px-4 py-3 text-base">
-            <FiLogOut className="h-5 w-5 shrink-0" />
+          <Button
+            onClick={logout}
+            variant="primary"
+            className="mt-6 inline-flex items-center justify-center gap-2 px-4 py-3 text-base"
+            icon={<FiLogOut className="h-5 w-5" />}
+          >
             Esci
-          </button>
+          </Button>
         </div>
       )}
     </nav>

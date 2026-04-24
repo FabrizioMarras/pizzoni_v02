@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
+import { ToastProvider } from '@/components/ui/ToastProvider'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -17,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="it" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
-        {children}
+        <ToastProvider>{children}</ToastProvider>
         {gaId && (
           <>
             <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />

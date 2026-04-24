@@ -2,7 +2,10 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useState } from 'react'
+import { FiSave } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
+import Button from '@/components/ui/Button'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface ReviewFormProps {
   visitId: string
@@ -23,8 +26,8 @@ export default function ReviewForm({ visitId }: ReviewFormProps) {
   const [service, setService] = useState(8)
   const [value, setValue] = useState(8)
   const [myReview, setMyReview] = useState<ReviewRow | null>(null)
-  const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
+  const toast = useToast()
 
   const loadMyReview = async () => {
     const {
@@ -57,7 +60,6 @@ export default function ReviewForm({ visitId }: ReviewFormProps) {
   const submitReview = async (event: React.FormEvent) => {
     event.preventDefault()
     setSaving(true)
-    setMessage('')
 
     const {
       data: { user },
@@ -65,7 +67,7 @@ export default function ReviewForm({ visitId }: ReviewFormProps) {
 
     if (!user) {
       setSaving(false)
-      setMessage('Non hai effettuato l’accesso.')
+      toast.error('Non hai effettuato l’accesso.')
       return
     }
 
@@ -81,7 +83,11 @@ export default function ReviewForm({ visitId }: ReviewFormProps) {
     const { error } = await supabase.from('reviews').upsert(payload, { onConflict: 'visit_id,user_id' })
 
     setSaving(false)
-    setMessage(error ? error.message : 'Recensione salvata.')
+    if (error) {
+      toast.error(error.message)
+    } else {
+      toast.success('Recensione salvata.')
+    }
     void loadMyReview()
   }
 
@@ -110,11 +116,16 @@ export default function ReviewForm({ visitId }: ReviewFormProps) {
             />
           </label>
         ))}
-        <button type="submit" disabled={saving} className="btn-primary px-4 py-2 text-sm">
+        <Button
+          type="submit"
+          disabled={saving}
+          variant="primary"
+          className="px-4 py-2 text-sm"
+          icon={<FiSave className="h-4 w-4" />}
+        >
           {saving ? 'Salvataggio...' : 'Salva Recensione'}
-        </button>
+        </Button>
       </form>
-      {message && <p className="text-sm text-[var(--ink-soft)]">{message}</p>}
     </section>
   )
 }

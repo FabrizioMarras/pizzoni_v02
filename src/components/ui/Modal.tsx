@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { FiX } from 'react-icons/fi'
+import Button from '@/components/ui/Button'
 
 interface ModalProps {
   open: boolean
@@ -38,10 +39,15 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
       >
         <div className="flex items-center justify-between border-b border-[var(--panel-border)] px-5 py-4">
           <h2 className="text-3xl">{title}</h2>
-          <button type="button" onClick={onClose} className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 text-sm">
-            <FiX className="h-4 w-4 shrink-0" />
+          <Button
+            type="button"
+            onClick={onClose}
+            variant="secondary"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm"
+            icon={<FiX className="h-4 w-4" />}
+          >
             Chiudi
-          </button>
+          </Button>
         </div>
 
         <div className="max-h-[calc(100vh-84px)] overflow-y-auto px-5 py-5 md:max-h-[calc(84vh-84px)]">

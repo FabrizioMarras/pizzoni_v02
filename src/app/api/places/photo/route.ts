@@ -18,7 +18,8 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url)
-  const photoName = searchParams.get('name')?.trim() ?? ''
+  const rawPhotoName = searchParams.get('name')?.trim() ?? ''
+  const photoName = rawPhotoName.replace(/^\/+/, '')
   const widthRaw = Number(searchParams.get('w') ?? '480')
   const maxWidthPx = Number.isFinite(widthRaw) ? Math.max(120, Math.min(1200, Math.floor(widthRaw))) : 480
 

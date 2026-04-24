@@ -9,7 +9,7 @@ export default function VisitsPage() {
       <Nav />
       <main className="page-wrap space-y-6">
         <h1 className="page-title mb-1">Eventi</h1>
-        <p className="page-subtitle">Archivio cronologico degli eventi Pizzoni, passati e futuri.</p>
+        <p className="page-subtitle">Prossimo evento in evidenza + storico degli eventi conclusi.</p>
         <PlannerBoard hideClosedPolls />
         <NextEventCard showCreateAction={false} />
         <VisitsManager />
