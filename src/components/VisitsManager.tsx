@@ -80,8 +80,8 @@ export default function VisitsManager() {
                     })
                   : visit.date}
               </div>
-              {visit.notes && <p className="mt-1 text-sm text-[var(--ink)]">{visit.notes}</p>}
-              <Link href={`/eventi/${visit.id}`} className="btn-secondary mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs">
+              {visit.notes && <p className="mt-1 pb-4 text-sm text-[var(--ink)]">{visit.notes}</p>}
+              <Link href={`/eventi/${visit.id}`} className="btn-secondary mt-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-xs">
                 <FiArrowUpRight className="h-3.5 w-3.5" />
                 Apri evento
               </Link>
