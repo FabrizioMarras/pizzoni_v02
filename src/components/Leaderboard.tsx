@@ -85,14 +85,14 @@ function getRankPalette(rank: number) {
   }
 
   return {
-    ribbonStart: '#B5BCC6',
-    ribbonEnd: '#D4DAE2',
-    rosetteStart: '#E2E6EC',
-    rosetteEnd: '#A9B0BB',
-    fold: '#8A929E',
-    centerFill: '#D9DEE5',
-    centerStroke: '#9CA5B2',
-    ringStroke: '#A9B0BB',
+    ribbonStart: '#1E3FAF',
+    ribbonEnd: '#2D5BFF',
+    rosetteStart: '#4B74FF',
+    rosetteEnd: '#1F4CCB',
+    fold: '#17378F',
+    centerFill: '#2D5BFF',
+    centerStroke: '#1A43B8',
+    ringStroke: '#1F4CCB',
   }
 }
 

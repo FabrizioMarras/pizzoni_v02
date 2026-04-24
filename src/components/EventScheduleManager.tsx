@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FiSave, FiTrash2 } from 'react-icons/fi'
+import { formatDateLabel, formatDateTimeLabel, parseTimeToIso } from '@/lib/date-format'
 import { supabase } from '@/lib/supabase'
 import Button from '@/components/ui/Button'
 import { useToast } from '@/components/ui/ToastProvider'
@@ -17,16 +18,16 @@ interface ProfileRow {
   is_admin: boolean
 }
 
-function toDateTimeLocalValue(value: string) {
+function toDateAndTimeValues(value: string) {
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
+  if (Number.isNaN(date.getTime())) return { date: '', time: '' }
   const pad = (num: number) => String(num).padStart(2, '0')
   const year = date.getFullYear()
   const month = pad(date.getMonth() + 1)
   const day = pad(date.getDate())
   const hour = pad(date.getHours())
   const minute = pad(date.getMinutes())
-  return `${year}-${month}-${day}T${hour}:${minute}`
+  return { date: `${year}-${month}-${day}`, time: `${hour}:${minute}` }
 }
 
 export default function EventScheduleManager({ visitId, visitOwnerId, initialDate, initialScheduledAt }: EventScheduleManagerProps) {
@@ -34,10 +35,11 @@ export default function EventScheduleManager({ visitId, visitOwnerId, initialDat
   const [isAdmin, setIsAdmin] = useState(false)
   const [canManage, setCanManage] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [scheduledAtValue, setScheduledAtValue] = useState(initialScheduledAt ? toDateTimeLocalValue(initialScheduledAt) : '')
+  const initialDateInput = initialScheduledAt ? toDateAndTimeValues(initialScheduledAt).date : initialDate
+  const initialTimeInput = initialScheduledAt ? toDateAndTimeValues(initialScheduledAt).time : ''
+  const [dateInput, setDateInput] = useState(initialDateInput)
+  const [timeInput, setTimeInput] = useState(initialTimeInput)
   const toast = useToast()
-
-  const fallbackDateTime = useMemo(() => `${initialDate}T20:30`, [initialDate])
 
   useEffect(() => {
     const loadUser = async () => {
@@ -69,19 +71,25 @@ export default function EventScheduleManager({ visitId, visitOwnerId, initialDat
       return
     }
 
-    if (!scheduledAtValue) {
-      toast.warning('Seleziona data e ora.')
+    if (!dateInput) {
+      toast.warning('Seleziona una data.')
       return
     }
 
-    const localDate = new Date(scheduledAtValue)
+    const isoTime = parseTimeToIso(timeInput)
+    if (!isoTime) {
+      toast.warning('Inserisci un orario valido nel formato HH:mm.')
+      return
+    }
+
+    const localDate = new Date(`${dateInput}T${isoTime}:00`)
     if (Number.isNaN(localDate.getTime())) {
       toast.error('Data/ora non valida.')
       return
     }
 
     const nextScheduledAt = localDate.toISOString()
-    const nextDate = scheduledAtValue.slice(0, 10)
+    const nextDate = dateInput
 
     setSaving(true)
     const { error } = await supabase
@@ -126,6 +134,12 @@ export default function EventScheduleManager({ visitId, visitOwnerId, initialDat
 
   if (!userId) return null
 
+  const selectedIsoTime = parseTimeToIso(timeInput)
+  const selectedDateTimeLabel = dateInput && selectedIsoTime
+    ? formatDateTimeLabel(new Date(`${dateInput}T${selectedIsoTime}:00`))
+    : null
+  const fallbackDateLabel = formatDateLabel(`${initialDate}T12:00:00`)
+
   return (
     <section className="glass-card space-y-3 p-6">
       <h2 className="text-3xl">Orario Evento</h2>
@@ -135,14 +149,20 @@ export default function EventScheduleManager({ visitId, visitOwnerId, initialDat
       {canManage && (
         <form onSubmit={saveSchedule} className="space-y-3">
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-[var(--ink)]">Data e ora prenotazione</span>
+            <span className="mb-1 block text-sm font-semibold text-[var(--ink)]">Data prenotazione</span>
             <input
-              type="datetime-local"
-              value={scheduledAtValue}
-              placeholder={fallbackDateTime}
-              onChange={(event) => setScheduledAtValue(event.target.value)}
+              type="date"
+              value={dateInput}
+              onChange={(event) => setDateInput(event.target.value)}
               className="field-input"
             />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-[var(--ink)]">Ora prenotazione</span>
+            <input type="time" value={timeInput} onChange={(event) => setTimeInput(event.target.value)} className="field-input" />
+            <span className="mt-1 block text-xs text-[var(--ink-soft)]">
+              {selectedDateTimeLabel ? `Formato evento: ${selectedDateTimeLabel}` : `Data evento attuale: ${fallbackDateLabel} · Orario da confermare`}
+            </span>
           </label>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -154,7 +174,7 @@ export default function EventScheduleManager({ visitId, visitOwnerId, initialDat
             >
               {saving ? 'Salvataggio...' : 'Salva orario'}
             </Button>
-            {scheduledAtValue && (
+            {(dateInput || timeInput) && (
               <Button
                 type="button"
                 onClick={() => void clearSchedule()}

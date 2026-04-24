@@ -4,6 +4,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { FiCalendar, FiCheck, FiExternalLink, FiMapPin, FiNavigation, FiPlus, FiX } from 'react-icons/fi'
+import { formatDateLabel } from '@/lib/date-format'
 import { supabase } from '@/lib/supabase'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
@@ -59,13 +60,7 @@ interface PlannerBoardProps {
 }
 
 function formatDate(dateValue: string) {
-  return new Date(`${dateValue}T12:00:00Z`).toLocaleDateString('it-IT', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  })
+  return formatDateLabel(`${dateValue}T12:00:00`)
 }
 
 export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardProps) {
@@ -165,13 +160,16 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
   )
 
   const addDateOptionDraft = () => {
-    const normalized = dateDraft.trim()
-    if (!normalized) return
-    if (dateOptions.includes(normalized)) {
+    if (!dateDraft) {
+      toast.warning('Seleziona una data.')
+      return
+    }
+
+    if (dateOptions.includes(dateDraft)) {
       toast.info('Data gia aggiunta.')
       return
     }
-    setDateOptions((current) => [...current, normalized].sort())
+    setDateOptions((current) => [...current, dateDraft].sort())
     setDateDraft('')
   }
 
@@ -469,7 +467,12 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
           <div className="rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
             <p className="mb-2 text-sm font-semibold text-[var(--ink)]">Opzioni data</p>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <input type="date" value={dateDraft} onChange={(event) => setDateDraft(event.target.value)} className="field-input" />
+              <input
+                type="date"
+                value={dateDraft}
+                onChange={(event) => setDateDraft(event.target.value)}
+                className="field-input"
+              />
               <Button
                 type="button"
                 onClick={addDateOptionDraft}

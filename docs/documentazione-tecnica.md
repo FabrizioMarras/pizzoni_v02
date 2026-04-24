@@ -25,7 +25,6 @@ Punti chiave:
 - Supabase Auth per autenticazione.
 - Supabase Postgres per dati applicativi.
 - RLS (Row Level Security) su tabelle pubbliche.
-- Funzioni SQL custom per finalizzazione votazioni.
 - Funzioni SQL custom per finalizzazione votazioni e gestione tag foto della serata.
 
 ### 2.3 API interne Next.js
@@ -92,18 +91,26 @@ Tabelle principali in `public`:
 - `pizzerias`: catalogo pizzerie.
 - `visits`: evento concreto (data/locale) con `scheduled_at` per orario prenotazione.
 - `visit_attendees`: partecipanti evento.
-- `reviews`: recensioni per visita e utente.
+- `reviews`: recensioni per visita e utente (supporto voti a mezzi punti, es. `8.5`).
+- `visit_notes`: note evento multiutente (autore per nota).
 - `photos`: foto evento.
 - `agenda_polls`: votazione aperta/chiusa per prossimo evento.
 - `agenda_poll_date_options`: opzioni data per votazione.
 - `agenda_poll_date_votes`: disponibilita utenti per opzione data.
+
+Metadati Google su `pizzerias`:
+- `google_place_id`
+- `google_maps_uri`
+- `google_photo_name`
+- `latitude`
+- `longitude`
 
 Tabelle legacy rimosse:
 - `upcoming_visits`, `rsvps`, `poll_suggestions`, `poll_votes` (drop tramite migrazione dedicata).
 
 ## 5.1 Relazioni chiave
 - `pizzerias.id` -> `visits.pizzeria_id`.
-- `visits.id` -> `reviews.visit_id`, `photos.visit_id`, `visit_attendees.visit_id`.
+- `visits.id` -> `reviews.visit_id`, `visit_notes.visit_id`, `photos.visit_id`, `visit_attendees.visit_id`.
 - `profiles.id` -> campi `created_by`, `user_id`, `uploaded_by`, `owner_id`.
 - `agenda_polls.id` -> `agenda_poll_date_options.poll_id`, `agenda_poll_date_votes.poll_id`.
 - `agenda_poll_date_options.id` -> `agenda_poll_date_votes.date_option_id`.
@@ -115,13 +122,13 @@ Tabelle legacy rimosse:
   - crea visita;
   - pre-popola partecipanti da voti `available`;
   - chiude votazione e aggancia `visit_id`.
+- `public.set_pizza_of_night(p_visit_id uuid, p_photo_id uuid) -> void`
+  - assegna in modo atomico il tag "foto della serata";
+  - garantisce un solo tag per evento.
 
 Note campo evento:
 - `date`: data logica evento.
 - `scheduled_at`: timestamp effettivo prenotazione; usato per transizione upcoming/concluso.
-- `public.set_pizza_of_night(p_visit_id uuid, p_photo_id uuid) -> void`
-  - assegna in modo atomico il tag "foto della serata";
-  - garantisce un solo tag per evento.
 
 ## 6. Flussi funzionali principali
 
@@ -158,6 +165,7 @@ Vincolo logico UI:
   - gestione orario prenotazione (owner/admin);
   - partecipanti;
   - recensioni;
+  - note evento multiutente (CRUD per autore nota);
   - foto (selezione file/scatto camera, upload manuale, tag unico "foto della serata", sostituzione, eliminazione per autore foto);
   - link Google Maps.
 
@@ -252,6 +260,8 @@ Ordine principale:
 8. `20260423182000_pizzerias_google_metadata.sql`
 9. `20260424102000_visits_scheduled_at_and_admin_update.sql`
 10. `20260424113000_pizza_of_night_single_tag.sql`
+11. `20260424130000_visit_notes_multi_user.sql`
+12. `20260424134500_reviews_allow_half_points.sql`
 
 Nota operativa Supabase Cloud:
 - le migrazioni si applicano via SQL Editor in ordine cronologico.
@@ -299,6 +309,10 @@ Stato atteso:
 - verificare che il preset esista e sia `unsigned`;
 - attenzione: nome preset case-sensitive.
 
+`Voti recensione con .5 falliscono`
+- applicare migrazione `20260424134500_reviews_allow_half_points.sql`;
+- verificare che `public.reviews` abbia colonne voto in `double precision`.
+
 ## 13. Convenzioni di sviluppo
 
 - UI lingua italiana.
@@ -306,9 +320,3 @@ Stato atteso:
 - Mobile-first su componenti interattivi (menu/modal full-screen mobile).
 - Usare componenti UI condivisi (`Button`, `Checkbox`, `ToastProvider`) invece di elementi nativi non stilizzati.
 - Tenere allineata questa documentazione quando cambia flusso o schema.
-Metadati Google su `pizzerias`:
-- `google_place_id`
-- `google_maps_uri`
-- `google_photo_name`
-- `latitude`
-- `longitude`

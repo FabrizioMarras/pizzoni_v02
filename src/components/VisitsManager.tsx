@@ -5,13 +5,13 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { FiArrowUpRight } from 'react-icons/fi'
+import { formatDateLabel, formatDateTimeLabel } from '@/lib/date-format'
 import { supabase } from '@/lib/supabase'
 
 interface Visit {
   id: string
   date: string
   scheduled_at: string | null
-  notes: string | null
   pizzerias: {
     name: string
     city: string
@@ -30,7 +30,7 @@ export default function VisitsManager() {
   const loadData = async () => {
     const { data: visitsData } = await supabase
       .from('visits')
-      .select('id, date, scheduled_at, notes, pizzerias(name, city, google_photo_name)')
+      .select('id, date, scheduled_at, pizzerias(name, city, google_photo_name)')
       .order('date', { ascending: false })
 
     const now = Date.now()
@@ -70,17 +70,10 @@ export default function VisitsManager() {
               <div className="text-sm text-[var(--ink-soft)]">
                 {visit.pizzerias?.city ?? '-'} ·{' '}
                 {visit.scheduled_at
-                  ? new Date(visit.scheduled_at).toLocaleString('it-IT', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      timeZone: 'Europe/Amsterdam',
-                    })
-                  : visit.date}
+                  ? formatDateTimeLabel(visit.scheduled_at)
+                  : formatDateLabel(`${visit.date}T12:00:00`)}
               </div>
-              {visit.notes && <p className="mt-1 pb-4 text-sm text-[var(--ink)]">{visit.notes}</p>}
+              <div className="pb-4" />
               <Link href={`/eventi/${visit.id}`} className="btn-secondary mt-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-xs">
                 <FiArrowUpRight className="h-3.5 w-3.5" />
                 Apri evento

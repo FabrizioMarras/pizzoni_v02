@@ -20,6 +20,8 @@ This project uses SQL migration files stored in `supabase/migrations/`.
 - `20260423182000_pizzerias_google_metadata.sql`: Google Places metadata on `pizzerias`.
 - `20260424102000_visits_scheduled_at_and_admin_update.sql`: event datetime (`scheduled_at`) + admin visit update policy.
 - `20260424113000_pizza_of_night_single_tag.sql`: single "foto della serata" per event + assignment RPC.
+- `20260424130000_visit_notes_multi_user.sql`: multi-note event model (one author per note) with RLS.
+- `20260424134500_reviews_allow_half_points.sql`: allows decimal review scores (e.g. `8.5`).
 
 ## Which file should I run?
 
@@ -38,6 +40,8 @@ This project uses SQL migration files stored in `supabase/migrations/`.
 - New migrations introduced after April 24, 2026:
   - `20260424102000_visits_scheduled_at_and_admin_update.sql`
   - `20260424113000_pizza_of_night_single_tag.sql`
+  - `20260424130000_visit_notes_multi_user.sql`
+  - `20260424134500_reviews_allow_half_points.sql`
 
 ## Naming convention
 

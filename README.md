@@ -68,6 +68,8 @@ Migrazioni chiave del flusso attuale:
 - `20260423182000_pizzerias_google_metadata.sql`
 - `20260424102000_visits_scheduled_at_and_admin_update.sql`
 - `20260424113000_pizza_of_night_single_tag.sql`
+- `20260424130000_visit_notes_multi_user.sql`
+- `20260424134500_reviews_allow_half_points.sql`
 
 ### 4) Configurazione Supabase Auth
 

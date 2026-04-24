@@ -2,9 +2,11 @@ import Image from 'next/image'
 import { FiMapPin } from 'react-icons/fi'
 import Nav from '@/components/Nav'
 import AttendeesManager from '@/components/AttendeesManager'
+import EventNotesManager from '@/components/EventNotesManager'
 import EventScheduleManager from '@/components/EventScheduleManager'
 import PhotoGalleryManager from '@/components/PhotoGalleryManager'
 import ReviewForm from '@/components/ReviewForm'
+import { formatDateLabel, formatDateTimeLabel } from '@/lib/date-format'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 interface VisitPageProps {
@@ -18,7 +20,6 @@ interface VisitDetails {
   date: string
   scheduled_at: string | null
   created_by: string
-  notes: string | null
   pizzerias:
     | {
         id: string
@@ -116,14 +117,14 @@ function getRankPalette(rank: number) {
   }
 
   return {
-    ribbonStart: '#B5BCC6',
-    ribbonEnd: '#D4DAE2',
-    rosetteStart: '#E2E6EC',
-    rosetteEnd: '#A9B0BB',
-    fold: '#8A929E',
-    centerFill: '#D9DEE5',
-    centerStroke: '#9CA5B2',
-    ringStroke: '#A9B0BB',
+    ribbonStart: '#1E3FAF',
+    ribbonEnd: '#2D5BFF',
+    rosetteStart: '#4B74FF',
+    rosetteEnd: '#1F4CCB',
+    fold: '#17378F',
+    centerFill: '#2D5BFF',
+    centerStroke: '#1A43B8',
+    ringStroke: '#1F4CCB',
   }
 }
 
@@ -183,7 +184,7 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
   const [{ data: visit }, { data: reviewSummaries }, { data: leaderboardRows }] = await Promise.all([
     supabase
       .from('visits')
-      .select('id, date, scheduled_at, created_by, notes, pizzerias(id, name, location, city, google_photo_name, google_maps_uri)')
+      .select('id, date, scheduled_at, created_by, pizzerias(id, name, location, city, google_photo_name, google_maps_uri)')
       .eq('id', id)
       .single<VisitDetails>(),
     supabase.from('reviews').select('id, final_score, profiles(name, pizza_emoji)').eq('visit_id', id).returns<ReviewSummary[]>(),
@@ -229,6 +230,7 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
     .sort((a, b) => b.avg - a.avg)
 
   const rank = ranking.findIndex((entry) => entry.pizzeriaId === pizzeria.id) + 1
+  const score = ranking.find((entry) => entry.pizzeriaId === pizzeria.id)?.avg ?? null
 
   return (
     <div className="app-shell">
@@ -248,7 +250,12 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
             </div>
           )}
           {rank > 0 && (
-            <div className="absolute right-3 top-3 z-10 md:bottom-4 md:right-4 md:top-auto">
+            <div className="absolute right-3 top-3 z-10 flex items-center gap-2 md:bottom-4 md:right-4 md:top-auto">
+              {score !== null && (
+                <div className="rounded-full border border-[var(--paper-border)] bg-[rgba(255,255,255,0.92)] px-3 py-1 text-sm font-semibold text-[var(--ink)]">
+                  {score.toFixed(1)}
+                </div>
+              )}
               <TopRankBadge rank={rank} />
             </div>
           )}
@@ -258,16 +265,8 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
 
           <p className="mt-2 page-subtitle">
             {visit.scheduled_at
-              ? new Date(visit.scheduled_at).toLocaleString('it-IT', {
-                  weekday: 'long',
-                  day: '2-digit',
-                  month: 'long',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  timeZone: 'Europe/Amsterdam',
-                })
-              : `${visit.date} · Orario da confermare`}
+              ? formatDateTimeLabel(visit.scheduled_at)
+              : `${formatDateLabel(`${visit.date}T12:00:00`)} · Orario da confermare`}
             {' · '}
             {pizzeria.city}
           </p>
@@ -279,13 +278,13 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
             className="btn-secondary mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm"
           >
             <FiMapPin className="h-4 w-4" />
-            Google Maps
+            Apri in Google Maps
           </a>
-          {visit.notes && <p className="mt-3 text-[var(--ink)]">{visit.notes}</p>}
         </section>
 
         <EventScheduleManager visitId={id} visitOwnerId={visit.created_by} initialDate={visit.date} initialScheduledAt={visit.scheduled_at} />
         <ReviewForm visitId={id} />
+        <EventNotesManager visitId={id} />
         <AttendeesManager visitId={id} />
 
         <section className="glass-card space-y-3 p-6">

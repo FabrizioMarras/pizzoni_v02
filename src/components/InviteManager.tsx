@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { FiMail, FiSend } from 'react-icons/fi'
+import { formatDateTimeLabel } from '@/lib/date-format'
 import { supabase } from '@/lib/supabase'
 import Button from '@/components/ui/Button'
 import { useToast } from '@/components/ui/ToastProvider'
@@ -74,7 +75,7 @@ export default function InviteManager() {
         {invites.map((invite) => (
           <li key={invite.id} className="surface-card px-3 py-2 text-sm text-[var(--ink)]">
             <div className="font-medium"><FiMail className="mr-1 inline h-4 w-4" />{invite.email}</div>
-            <div className="text-[var(--ink-soft)]">{invite.accepted_at ? `Accettato: ${new Date(invite.accepted_at).toLocaleString()}` : 'In attesa'}</div>
+            <div className="text-[var(--ink-soft)]">{invite.accepted_at ? `Accettato: ${formatDateTimeLabel(invite.accepted_at)}` : 'In attesa'}</div>
           </li>
         ))}
       </ul>

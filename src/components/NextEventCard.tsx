@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { FiCalendar, FiExternalLink } from 'react-icons/fi'
+import { formatDateLabel, formatDateTimeLabel } from '@/lib/date-format'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 interface VisitRow {
@@ -45,28 +46,6 @@ function getFirst<T>(value: T | T[]): T {
 function getVisitTimestamp(visit: Pick<VisitRow, 'date' | 'scheduled_at'>) {
   if (visit.scheduled_at) return new Date(visit.scheduled_at).getTime()
   return new Date(`${visit.date}T23:59:59`).getTime()
-}
-
-function formatDate(value: string) {
-  return new Date(`${value}T12:00:00`).toLocaleDateString('it-IT', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'Europe/Amsterdam',
-  })
-}
-
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString('it-IT', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Europe/Amsterdam',
-  })
 }
 
 interface NextEventCardProps {
@@ -134,7 +113,8 @@ export default async function NextEventCard({ showCreateAction = true }: NextEve
             Prossimo Evento Pizzoni
           </h2>
           <p className="text-sm text-[var(--ink)]">
-            <span className="font-semibold">{pizzeria.name}</span> · {nextVisit.scheduled_at ? formatDateTime(nextVisit.scheduled_at) : formatDate(nextVisit.date)}
+            <span className="font-semibold">{pizzeria.name}</span> ·{' '}
+            {nextVisit.scheduled_at ? formatDateTimeLabel(nextVisit.scheduled_at) : formatDateLabel(`${nextVisit.date}T12:00:00`)}
           </p>
           {!nextVisit.scheduled_at && <p className="text-xs text-[var(--ink-soft)]">Orario da confermare</p>}
           <p className="text-sm text-[var(--ink-soft)]">{pizzeria.city} · {pizzeria.location}</p>
