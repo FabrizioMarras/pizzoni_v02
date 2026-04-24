@@ -3,7 +3,7 @@
 
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
-import { FiCheck, FiExternalLink, FiFilter, FiList, FiMapPin, FiNavigation, FiPlus } from 'react-icons/fi'
+import { FiCheck, FiEye, FiEyeOff, FiList, FiMapPin, FiNavigation, FiPlus } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
@@ -218,7 +218,7 @@ export default function PizzeriaManager() {
             className="px-4 py-2 text-sm"
             icon={<FiPlus className="h-4 w-4" />}
           >
-            + Aggiungi
+            Aggiungi
           </Button>
         </div>
       </section>
@@ -291,7 +291,7 @@ export default function PizzeriaManager() {
               onClick={() => setFilter('visited')}
               variant={filter === 'visited' ? 'primary' : 'secondary'}
               className="px-3 py-1.5"
-              icon={<FiCheck className="h-3.5 w-3.5" />}
+              icon={<FiEyeOff className="h-3.5 w-3.5" />}
             >
               Visitate ({visitedCount})
             </Button>
@@ -300,7 +300,7 @@ export default function PizzeriaManager() {
               onClick={() => setFilter('not_visited')}
               variant={filter === 'not_visited' ? 'primary' : 'secondary'}
               className="px-3 py-1.5"
-              icon={<FiFilter className="h-3.5 w-3.5" />}
+              icon={<FiEye className="h-3.5 w-3.5" />}
             >
               Da visitare ({notVisitedCount})
             </Button>
