@@ -44,12 +44,21 @@ interface VisitRelation {
 }
 
 interface ReviewRow {
+  user_id: string
   final_score: number | null
+  profiles:
+    | {
+        name: string | null
+      }
+    | {
+        name: string | null
+      }[]
   visits: VisitRelation | VisitRelation[]
 }
 
 interface GroupedPizzeria extends PizzeriaRelation {
   scores: number[]
+  memberVotes: { reviewerName: string; score: number }[]
   latestVisitId: string | null
   latestVisitTimestamp: number
   latestEventPhotoUrl: string | null
@@ -61,6 +70,16 @@ interface LeaderboardProps {
   cities: string[]
 }
 
+interface MemberVote {
+  reviewerName: string
+  score: number
+}
+
+function formatMemberVote(value: number) {
+  if (!Number.isFinite(value)) return '-'
+  return value.toFixed(1)
+}
+
 export default async function Leaderboard({ city, cities }: LeaderboardProps) {
   const supabase = await createSupabaseServerClient()
 
@@ -68,7 +87,9 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
     .from('reviews')
     .select(
       `
+      user_id,
       final_score,
+      profiles(name),
       visits!inner(
         id,
         date,
@@ -99,6 +120,7 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
       grouped[pizzeria.id] = {
         ...pizzeria,
         scores: [],
+        memberVotes: [],
         latestVisitId: visit.id,
         latestVisitTimestamp: Number.isNaN(visitTimestamp) ? 0 : visitTimestamp,
         latestEventPhotoUrl: null,
@@ -118,6 +140,11 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
       }
     }
 
+    const reviewProfile = firstOrThrow(row.profiles)
+    grouped[pizzeria.id].memberVotes.push({
+      reviewerName: reviewProfile.name?.trim() || 'Membro',
+      score: row.final_score,
+    })
     grouped[pizzeria.id].scores.push(row.final_score)
   }
 
@@ -134,6 +161,10 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
       latestVisitId: pizzeria.latestVisitId,
     }))
     .sort((a, b) => b.avg_score - a.avg_score)
+
+  const votesByPizzeria = Object.fromEntries(
+    Object.values(grouped).map((entry) => [entry.id, entry.memberVotes])
+  ) as Record<string, MemberVote[]>
 
   return (
     <section className="glass-card space-y-4 p-5">
@@ -170,39 +201,54 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
       {pizzerias.length === 0 && <p className="page-subtitle">Nessuna recensione disponibile per la città selezionata.</p>}
       <div className="space-y-3">
         {pizzerias.map((pizzeria, index) => (
-          <Link key={pizzeria.id} href={pizzeria.latestVisitId ? `/eventi/${pizzeria.latestVisitId}` : '/eventi'} className="block">
-            <article className="glass-card flex items-center justify-between gap-3 p-4 transition hover:border-[var(--terracotta)] sm:p-5">
-              <div className="flex items-center gap-4">
-                <Image
-                  src={getPizzeriaImageSrc({
-                    id: pizzeria.id,
-                    name: pizzeria.name,
-                    city: pizzeria.city,
-                    customImageUrl: pizzeria.custom_image_url,
-                    latestEventPhotoUrl: pizzeria.latest_event_photo_url,
-                    googlePhotoName: pizzeria.google_photo_name,
-                    width: 220,
-                  })}
-                  alt={pizzeria.name}
-                  width={72}
-                  height={72}
-                  unoptimized
-                  className="h-[72px] w-[72px] rounded-2xl object-cover"
-                />
-                <div>
-                  <h2 className="text-2xl">{pizzeria.name}</h2>
-                  <p className="text-xs text-[var(--ink-soft)]">{pizzeria.location}</p>
-                  <p className="page-subtitle">{pizzeria.city}</p>
+          <article key={pizzeria.id} className="glass-card flex flex-col gap-3 p-4 transition hover:border-[var(--terracotta)] sm:p-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex-1">
+              <Link href={pizzeria.latestVisitId ? `/eventi/${pizzeria.latestVisitId}` : '/eventi'} className="block">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+                  <Image
+                    src={getPizzeriaImageSrc({
+                      id: pizzeria.id,
+                      name: pizzeria.name,
+                      city: pizzeria.city,
+                      customImageUrl: pizzeria.custom_image_url,
+                      latestEventPhotoUrl: pizzeria.latest_event_photo_url,
+                      googlePhotoName: pizzeria.google_photo_name,
+                      width: 220,
+                    })}
+                    alt={pizzeria.name}
+                    width={72}
+                    height={72}
+                    unoptimized
+                    className="h-40 w-full rounded-2xl object-cover md:h-[72px] md:w-[72px]"
+                  />
+                  <div>
+                    <h2 className="text-2xl">{pizzeria.name}</h2>
+                    <p className="text-xs text-[var(--ink-soft)]">{pizzeria.location}</p>
+                    <p className="page-subtitle">{pizzeria.city}</p>
+                  </div>
                 </div>
+              </Link>
+              <details name="leaderboard-votes" className="mt-1">
+                <summary className="cursor-pointer text-xs font-medium text-[var(--ink-soft)] hover:text-[var(--ink)]">
+                  {votesByPizzeria[pizzeria.id]?.length ?? 0} voti
+                </summary>
+                <ul className="mt-1 inline-flex w-auto flex-col space-y-1 text-xs text-[var(--ink)]">
+                  {(votesByPizzeria[pizzeria.id] ?? []).map((vote, voteIndex) => (
+                    <li key={`${vote.reviewerName}-${voteIndex}`} className="inline-flex w-auto items-center gap-2">
+                      <span>{vote.reviewerName}</span>
+                      <span className="shrink-0 font-semibold tabular-nums">{formatMemberVote(vote.score)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+            <div className="flex items-center gap-2 self-end md:self-auto">
+              <RankBadge rank={index + 1} size={38} />
+              <div className="rounded-full border border-[var(--paper-border)] bg-[rgba(255,255,255,0.86)] px-4 py-2 text-2xl font-bold text-[var(--ink)]">
+                {pizzeria.avg_score.toFixed(1)}
               </div>
-              <div className="flex items-center gap-2">
-                <RankBadge rank={index + 1} size={38} />
-                <div className="rounded-full border border-[var(--paper-border)] bg-[rgba(255,255,255,0.86)] px-4 py-2 text-2xl font-bold text-[var(--ink)]">
-                  {pizzeria.avg_score.toFixed(1)}
-                </div>
-              </div>
-            </article>
-          </Link>
+            </div>
+          </article>
         ))}
       </div>
     </section>

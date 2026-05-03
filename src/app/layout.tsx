@@ -19,6 +19,9 @@ export default function RootLayout({
     <html lang="it" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
         <ToastProvider>{children}</ToastProvider>
+        <footer className="mt-auto px-4 pb-5 pt-3 text-center text-xs text-[var(--ink-soft)]">
+          © {new Date().getFullYear()} FM Consulting
+        </footer>
         {gaId && (
           <>
             <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
