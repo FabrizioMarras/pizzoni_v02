@@ -1,17 +1,20 @@
-import Link from 'next/link'
 import { FiCalendar, FiExternalLink } from 'react-icons/fi'
 import MemberIdentity from '@/components/ui/MemberIdentity'
+import ButtonLink from '@/components/ui/ButtonLink'
 import { formatDateLabel, formatDateTimeLabel } from '@/lib/date-format'
 import { getEventImageSrc } from '@/lib/pizzeria-image'
+import { firstOrThrow } from '@/lib/supabase-relations'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { getVisitTimestamp } from '@/lib/visit-time'
 
-interface VisitRow {
+export interface VisitRow {
   id: string
   date: string
   scheduled_at: string | null
   pizzerias:
     | {
         name: string
+        id?: string
         city: string
         location: string
         google_photo_name: string | null
@@ -19,6 +22,7 @@ interface VisitRow {
       }
     | {
         name: string
+        id?: string
         city: string
         location: string
         google_photo_name: string | null
@@ -36,13 +40,11 @@ interface VisitRow {
         profiles:
             | {
               name: string | null
-              pizza_emoji: string | null
               avatar_url: string | null
               email: string | null
             }
           | {
               name: string | null
-              pizza_emoji: string | null
               avatar_url: string | null
               email: string | null
             }[]
@@ -51,33 +53,27 @@ interface VisitRow {
     | null
 }
 
-function getFirst<T>(value: T | T[]): T {
-  return Array.isArray(value) ? value[0] : value
-}
-
-function getVisitTimestamp(visit: Pick<VisitRow, 'date' | 'scheduled_at'>) {
-  if (visit.scheduled_at) return new Date(visit.scheduled_at).getTime()
-  return new Date(`${visit.date}T23:59:59`).getTime()
-}
-
 interface NextEventCardProps {
   showCreateAction?: boolean
+  visit?: VisitRow | null
 }
 
-export default async function NextEventCard({ showCreateAction = true }: NextEventCardProps) {
-  const supabase = await createSupabaseServerClient()
-  const now = new Date().getTime()
+export default async function NextEventCard({ showCreateAction = true, visit }: NextEventCardProps) {
+  let nextVisit = visit ?? null
+  if (!nextVisit) {
+    const supabase = await createSupabaseServerClient()
+    const now = new Date().getTime()
+    const { data } = await supabase
+      .from('visits')
+      .select('id, date, scheduled_at, pizzerias(name, city, location, google_photo_name, custom_image_url), photos(url, is_pizza_of_night), visit_attendees(user_id, profiles(name, avatar_url, email))')
+      .order('date', { ascending: true })
+      .limit(100)
+      .returns<VisitRow[]>()
 
-  const { data } = await supabase
-    .from('visits')
-    .select('id, date, scheduled_at, pizzerias(name, city, location, google_photo_name, custom_image_url), photos(url, is_pizza_of_night), visit_attendees(user_id, profiles(name, pizza_emoji, avatar_url, email))')
-    .order('date', { ascending: true })
-    .limit(100)
-    .returns<VisitRow[]>()
-
-  const nextVisit = (data ?? [])
-    .filter((visit) => getVisitTimestamp(visit) > now)
-    .sort((a, b) => getVisitTimestamp(a) - getVisitTimestamp(b))[0]
+    nextVisit = (data ?? [])
+      .filter((entry) => getVisitTimestamp(entry) > now)
+      .sort((a, b) => getVisitTimestamp(a) - getVisitTimestamp(b))[0] ?? null
+  }
 
   if (!nextVisit) {
     return (
@@ -87,24 +83,22 @@ export default async function NextEventCard({ showCreateAction = true }: NextEve
         </h2>
         <p className="page-subtitle">Nessun evento confermato al momento.</p>
         {showCreateAction && (
-          <Link href="/eventi" className="btn-secondary mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm">
-            <FiCalendar className="h-4 w-4" />
+          <ButtonLink href="/eventi" variant="secondary" className="mt-3 px-3 py-1.5 text-sm" icon={<FiCalendar className="h-4 w-4" />}>
             Crea nuovo evento
-          </Link>
+          </ButtonLink>
         )}
       </section>
     )
   }
 
-  const pizzeria = getFirst(nextVisit.pizzerias)
+  const pizzeria = firstOrThrow(nextVisit.pizzerias)
   const photoOfNight = (nextVisit.photos ?? []).find((photo) => photo.is_pizza_of_night)?.url ?? null
   const attendees = (nextVisit.visit_attendees ?? []).map((attendee) => {
-    const profile = attendee.profiles ? getFirst(attendee.profiles) : null
+    const profile = attendee.profiles ? firstOrThrow(attendee.profiles) : null
     return {
       id: attendee.user_id,
       name: profile?.name ?? null,
       email: profile?.email ?? null,
-      emoji: profile?.pizza_emoji ?? null,
       avatarUrl: profile?.avatar_url ?? null,
     }
   })
@@ -152,7 +146,6 @@ export default async function NextEventCard({ showCreateAction = true }: NextEve
                     <MemberIdentity
                       name={attendee.name}
                       email={attendee.email}
-                      emoji={attendee.emoji}
                       avatarUrl={attendee.avatarUrl}
                     />
                   </span>
@@ -161,13 +154,14 @@ export default async function NextEventCard({ showCreateAction = true }: NextEve
             )}
           </div>
 
-          <Link
+          <ButtonLink
             href={`/eventi/${nextVisit.id}`}
-            className="btn-primary mt-4 inline-flex w-full items-center justify-center gap-1.5 px-3 py-1.5 text-center text-sm md:mt-auto md:ml-auto md:w-auto"
+            variant="primary"
+            className="mt-4 w-full px-3 py-1.5 text-center text-sm md:mt-auto md:ml-auto md:w-auto"
+            icon={<FiExternalLink className="h-4 w-4" />}
           >
-            <FiExternalLink className="h-4 w-4" />
             Apri dettaglio evento
-          </Link>
+          </ButtonLink>
         </div>
       </div>
     </section>

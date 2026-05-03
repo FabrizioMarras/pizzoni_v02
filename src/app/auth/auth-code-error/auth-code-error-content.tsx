@@ -1,9 +1,9 @@
 'use client'
 
-import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { FiArrowLeft, FiRefreshCw } from 'react-icons/fi'
 import Button from '@/components/ui/Button'
+import ButtonLink from '@/components/ui/ButtonLink'
 
 function getErrorMessage(searchParams: URLSearchParams): string {
   const error = searchParams.get('error')
@@ -46,10 +46,9 @@ export default function AuthCodeErrorContent() {
         <h2 className="text-4xl">Errore di Autenticazione</h2>
         <p className="mt-3 page-subtitle">{errorMessage}</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <Link href="/accedi" className="btn-primary inline-flex items-center gap-1.5 px-5 py-2 text-sm">
-            <FiRefreshCw className="h-4 w-4" />
+          <ButtonLink href="/accedi" variant="primary" className="px-5 py-2 text-sm" icon={<FiRefreshCw className="h-4 w-4" />}>
             Riprova
-          </Link>
+          </ButtonLink>
           <Button
             onClick={() => router.back()}
             variant="secondary"

@@ -17,7 +17,8 @@ export default function GuidaPage() {
             <p><strong>2. Vota le date:</strong> indica per ogni data se sei disponibile o no.</p>
             <p><strong>3. Finalizzazione:</strong> owner/admin chiude la votazione e seleziona la data.</p>
             <p><strong>4. Evento creato:</strong> l&apos;evento viene creato automaticamente in <strong>Eventi</strong>.</p>
-            <p><strong>5. Serata completata:</strong> apri il dettaglio evento, aggiungi recensione e foto.</p>
+            <p><strong>5. Orario:</strong> owner/admin imposta data+ora prenotazione nel dettaglio evento.</p>
+            <p><strong>6. Serata completata:</strong> apri il dettaglio evento, aggiungi recensione, note e foto.</p>
           </div>
         </section>
 
@@ -25,10 +26,29 @@ export default function GuidaPage() {
           <h2 className="text-3xl">Cosa Fare In Ogni Pagina</h2>
           <div className="space-y-2 text-sm text-[var(--ink)]">
             <p><strong>Classifica:</strong> vedi le migliori pizzerie in base ai voti medi.</p>
-            <p><strong>Pizzerie:</strong> inserisci un locale nel catalogo del gruppo.</p>
-            <p><strong>Eventi:</strong> crea/vota una votazione e consulta lo storico delle serate confermate.</p>
-            <p><strong>Dettaglio evento:</strong> partecipa, recensisci, carica foto, vedi i punteggi.</p>
-            <p><strong>Profilo:</strong> aggiorna nome/avatar/emoji; gli admin gestiscono gli inviti.</p>
+            <p><strong>Pizzerie:</strong> inserisci un locale nel catalogo, filtra visitate/non visitate e apri Google Maps.</p>
+            <p><strong>Eventi:</strong> crea/vota una votazione, vedi prossimo evento e storico serate concluse.</p>
+            <p><strong>Dettaglio evento:</strong> partecipa, imposta orario (owner/admin), recensisci, aggiungi note, carica foto.</p>
+            <p><strong>Profilo:</strong> aggiorna nome/avatar; gli admin gestiscono gli inviti.</p>
+          </div>
+        </section>
+
+        <section className="glass-card space-y-3 p-6">
+          <h2 className="text-3xl">Regole Immagini</h2>
+          <div className="space-y-2 text-sm text-[var(--ink)]">
+            <p><strong>Card pizzeria:</strong> priorità <strong>Google</strong> → foto della serata più recente → immagine custom → placeholder.</p>
+            <p><strong>Card evento:</strong> se esiste, usa la <strong>foto della serata</strong>; altrimenti usa la logica immagine pizzeria.</p>
+            <p><strong>Foto della serata:</strong> è una sola per evento. Cambiandola, si aggiorna subito la copertina dell&apos;evento.</p>
+            <p><strong>Eliminazione/sostituzione:</strong> i riferimenti DB vengono ripuliti/aggiornati automaticamente.</p>
+          </div>
+        </section>
+
+        <section className="glass-card space-y-3 p-6">
+          <h2 className="text-3xl">Identità Membri</h2>
+          <div className="space-y-2 text-sm text-[var(--ink)]">
+            <p>Se disponibile, viene mostrato l&apos;<strong>avatar</strong> del membro.</p>
+            <p>Se manca avatar, l&apos;app mostra un fallback automatico.</p>
+            <p>Alla login Google, se il nome profilo è vuoto, viene compilato automaticamente dai dati Google.</p>
           </div>
         </section>
 
@@ -38,6 +58,7 @@ export default function GuidaPage() {
             <p><strong>Se non ho votato la votazione?</strong> Nel dettaglio evento puoi cliccare <strong>Partecipo</strong>.</p>
             <p><strong>Posso essere aggiunto manualmente?</strong> Si, un admin puo aggiungerti nei partecipanti.</p>
             <p><strong>Come entro nell&apos;app?</strong> Accesso solo con Google e solo per email invitate.</p>
+            <p><strong>Posso avere più eventi futuri?</strong> Sì, il sistema lo permette.</p>
           </div>
         </section>
       </main>

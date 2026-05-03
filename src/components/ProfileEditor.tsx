@@ -20,8 +20,11 @@ function getInitial(name: string) {
 export default function ProfileEditor({ name, avatarUrl }: ProfileEditorProps) {
   const [formName, setFormName] = useState(name)
   const [formAvatarUrl, setFormAvatarUrl] = useState(avatarUrl)
+  const [avatarFailed, setAvatarFailed] = useState(false)
   const [saving, setSaving] = useState(false)
   const toast = useToast()
+  const normalizedAvatarUrl = formAvatarUrl.trim()
+  const showAvatarImage = normalizedAvatarUrl.length > 0 && !avatarFailed
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -58,9 +61,14 @@ export default function ProfileEditor({ name, avatarUrl }: ProfileEditorProps) {
     <form onSubmit={onSubmit} className="glass-card space-y-4 p-6">
       <h2 className="text-3xl">Il Mio Profilo</h2>
       <div className="flex items-center gap-3 rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
-        {formAvatarUrl.trim() ? (
+        {showAvatarImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={formAvatarUrl.trim()} alt={formName || 'Avatar'} className="h-14 w-14 rounded-full object-cover" />
+          <img
+            src={normalizedAvatarUrl}
+            alt={formName || 'Avatar'}
+            className="h-14 w-14 rounded-full object-cover"
+            onError={() => setAvatarFailed(true)}
+          />
         ) : (
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[rgba(81,100,58,0.18)] text-lg font-semibold text-[var(--olive)]">
             {getInitial(formName)}
@@ -79,7 +87,10 @@ export default function ProfileEditor({ name, avatarUrl }: ProfileEditorProps) {
         <span className="label-text">URL Avatar (opzionale)</span>
         <input
           value={formAvatarUrl}
-          onChange={(event) => setFormAvatarUrl(event.target.value)}
+          onChange={(event) => {
+            setFormAvatarUrl(event.target.value)
+            setAvatarFailed(false)
+          }}
           className="field-input"
           placeholder="https://..."
         />

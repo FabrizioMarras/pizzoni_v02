@@ -4,23 +4,26 @@
 import { useEffect, useRef, useState } from 'react'
 import { FiCamera, FiImage, FiRefreshCw, FiStar, FiTrash2, FiUpload, FiX } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
+import { uploadImageToCloudinary } from '@/lib/cloudinary'
+import {
+  deleteVisitPhoto,
+  fetchVisitPhotos,
+  insertVisitPhoto,
+  setVisitPhotoAsFeatured,
+  type VisitPhoto,
+  updateVisitPhotoUrl,
+} from '@/lib/data/photos-client'
 import Button from '@/components/ui/Button'
 import Checkbox from '@/components/ui/Checkbox'
+import FileButton from '@/components/ui/FileButton'
 import { useToast } from '@/components/ui/ToastProvider'
-
-interface Photo {
-  id: string
-  url: string
-  is_pizza_of_night: boolean
-  uploaded_by: string
-}
 
 interface PhotoGalleryManagerProps {
   visitId: string
 }
 
 export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProps) {
-  const [photos, setPhotos] = useState<Photo[]>([])
+  const [photos, setPhotos] = useState<VisitPhoto[]>([])
   const [userId, setUserId] = useState('')
   const [uploading, setUploading] = useState(false)
   const [busyPhotoId, setBusyPhotoId] = useState('')
@@ -33,9 +36,6 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
   const streamRef = useRef<MediaStream | null>(null)
   const toast = useToast()
 
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
-
   const getCurrentUserId = async () => {
     const {
       data: { user },
@@ -45,46 +45,8 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
     return user?.id ?? ''
   }
 
-  const uploadToCloudinary = async (file: File) => {
-    if (!cloudName || !uploadPreset) {
-      throw new Error('Mancano le variabili Cloudinary: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME e NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET')
-    }
-
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('upload_preset', uploadPreset)
-    formData.append('folder', 'pizzoni')
-
-    const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-      method: 'POST',
-      body: formData,
-    })
-
-    if (!uploadResponse.ok) {
-      let detail = ''
-      try {
-        const errorBody = (await uploadResponse.json()) as { error?: { message?: string } }
-        detail = errorBody?.error?.message ?? ''
-      } catch {
-        detail = await uploadResponse.text()
-      }
-      throw new Error(detail ? `Caricamento Cloudinary fallito: ${detail}` : 'Caricamento Cloudinary fallito.')
-    }
-
-    const uploadResult = (await uploadResponse.json()) as { secure_url?: string }
-    if (!uploadResult.secure_url) {
-      throw new Error('Cloudinary non ha restituito alcun URL.')
-    }
-
-    return uploadResult.secure_url
-  }
-
   const loadPhotos = async () => {
-    const { data } = await supabase
-      .from('photos')
-      .select('id, url, is_pizza_of_night, uploaded_by')
-      .eq('visit_id', visitId)
-      .order('created_at', { ascending: false })
+    const { data } = await fetchVisitPhotos(supabase, visitId)
     setPhotos(data ?? [])
   }
 
@@ -197,7 +159,7 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
 
     let secureUrl = ''
     try {
-      secureUrl = await uploadToCloudinary(selectedFile)
+      secureUrl = await uploadImageToCloudinary(selectedFile)
     } catch (error) {
       setUploading(false)
       toast.error(error instanceof Error ? error.message : 'Errore caricamento immagine.')
@@ -212,25 +174,17 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
       return
     }
 
-    const { data: insertedPhoto, error } = await supabase
-      .from('photos')
-      .insert({
-        visit_id: visitId,
-        url: secureUrl,
-        uploaded_by: currentUserId,
-        is_pizza_of_night: false,
-      })
-      .select('id')
-      .single<{ id: string }>()
+    const { data: insertedPhoto, error } = await insertVisitPhoto(supabase, {
+      visit_id: visitId,
+      url: secureUrl,
+      uploaded_by: currentUserId,
+    })
 
     setUploading(false)
     if (error) {
       toast.error(error.message)
     } else if (pizzaOfNight && insertedPhoto?.id) {
-      const { error: tagError } = await supabase.rpc('set_pizza_of_night', {
-        p_visit_id: visitId,
-        p_photo_id: insertedPhoto.id,
-      })
+      const { error: tagError } = await setVisitPhotoAsFeatured(supabase, visitId, insertedPhoto.id)
       if (tagError) {
         toast.error(tagError.message)
       } else {
@@ -244,14 +198,11 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
     void loadPhotos()
   }
 
-  const assignPizzaOfNight = async (photo: Photo) => {
+  const assignPizzaOfNight = async (photo: VisitPhoto) => {
     setBusyPhotoId(photo.id)
 
     try {
-      const { error } = await supabase.rpc('set_pizza_of_night', {
-        p_visit_id: visitId,
-        p_photo_id: photo.id,
-      })
+      const { error } = await setVisitPhotoAsFeatured(supabase, visitId, photo.id)
 
       setBusyPhotoId('')
       if (error) {
@@ -266,10 +217,10 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
     }
   }
 
-  const deletePhoto = async (photo: Photo) => {
+  const deletePhoto = async (photo: VisitPhoto) => {
     setBusyPhotoId(photo.id)
 
-    const { error } = await supabase.from('photos').delete().eq('id', photo.id)
+    const { error } = await deleteVisitPhoto(supabase, photo.id)
 
     setBusyPhotoId('')
     if (error) {
@@ -280,7 +231,7 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
     void loadPhotos()
   }
 
-  const replacePhoto = async (photo: Photo, event: React.ChangeEvent<HTMLInputElement>) => {
+  const replacePhoto = async (photo: VisitPhoto, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
@@ -288,17 +239,14 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
 
     let secureUrl = ''
     try {
-      secureUrl = await uploadToCloudinary(file)
+      secureUrl = await uploadImageToCloudinary(file)
     } catch (error) {
       setBusyPhotoId('')
       toast.error(error instanceof Error ? error.message : 'Errore sostituzione immagine.')
       return
     }
 
-    const { error } = await supabase
-      .from('photos')
-      .update({ url: secureUrl })
-      .eq('id', photo.id)
+    const { error } = await updateVisitPhotoUrl(supabase, photo.id, secureUrl)
 
     setBusyPhotoId('')
     if (error) {
@@ -322,11 +270,14 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
         <div className="space-y-2 rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
           <Checkbox checked={pizzaOfNight} onChange={(event) => setPizzaOfNight(event.target.checked)} label="Segna come foto della serata" />
           <div className="flex flex-wrap gap-2">
-            <label className="btn-secondary cursor-pointer px-3 py-1.5 text-xs">
-              <FiImage className="mr-1 inline h-3.5 w-3.5" />
+            <FileButton
+              onChange={handleFileSelection}
+              disabled={uploading}
+              className="px-3 py-1.5 text-xs"
+              icon={<FiImage className="h-3.5 w-3.5" />}
+            >
               Scegli dalla galleria
-              <input type="file" accept="image/*" onChange={handleFileSelection} disabled={uploading} className="hidden" />
-            </label>
+            </FileButton>
             <Button
               type="button"
               onClick={() => void openCamera()}
@@ -428,17 +379,14 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
                       foto della serata
                     </Button>
                   )}
-                  <label className="btn-secondary cursor-pointer px-2 py-1 text-[11px]">
-                    <FiRefreshCw className="mr-1 inline h-3 w-3" />
+                  <FileButton
+                    onChange={(event) => void replacePhoto(photo, event)}
+                    disabled={busyPhotoId === photo.id}
+                    className="px-2 py-1 text-[11px]"
+                    icon={<FiRefreshCw className="h-3 w-3" />}
+                  >
                     Sostituisci
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(event) => void replacePhoto(photo, event)}
-                      disabled={busyPhotoId === photo.id}
-                    />
-                  </label>
+                  </FileButton>
                   <Button
                     type="button"
                     onClick={() => void deletePhoto(photo)}

@@ -6,10 +6,10 @@ App privata per gruppo chiuso: classifica pizzerie, organizzazione eventi, recen
 
 - Login con Google OAuth (invite-only)
 - Gestione inviti admin
-- Profilo utente (nome, avatar, emoji pizza)
+- Profilo utente (nome, avatar)
 - Pizzerie: creazione, elenco, filtro visitate/non visitate
   - supporto immagine custom caricata manualmente
-  - fallback automatico placeholder quando manca immagine Google/custom
+  - fallback automatico: Google -> foto evento recente -> custom -> placeholder
 - Eventi:
   - votazione date per nuovo evento (votazione-first)
   - impostazione orario prenotazione evento (owner/admin)
@@ -23,6 +23,8 @@ App privata per gruppo chiuso: classifica pizzerie, organizzazione eventi, recen
   - tag unico "foto della serata" per evento
 - UI coerente con componenti condivisi:
   - `Button` unico con supporto icona sinistra/destra
+  - `ButtonLink` unico per azioni di navigazione con stesso stile/API
+  - `FileButton` unico per upload file con stile consistente
   - `Checkbox` brandizzato
   - toast globali per feedback utente
 - Classifica pizzerie con filtro citta
@@ -73,6 +75,10 @@ Migrazioni chiave del flusso attuale:
 - `20260424130000_visit_notes_multi_user.sql`
 - `20260424134500_reviews_allow_half_points.sql`
 - `20260424141000_pizzerias_custom_image.sql`
+- `20260424144000_set_pizza_of_night_sync_pizzeria_cover.sql`
+- `20260424145000_set_pizza_of_night_event_only.sql`
+- `20260424150000_cleanup_deleted_photo_references.sql`
+- `20260424151000_cleanup_updated_photo_references.sql`
 
 ### 4) Configurazione Supabase Auth
 
@@ -81,6 +87,11 @@ Migrazioni chiave del flusso attuale:
 - Redirect URL locale: `http://localhost:3000/auth/callback`
 
 In produzione, aggiornare Site URL + Redirect URL con il dominio Vercel.
+
+Alias storici route sono gestiti in `next.config.ts` tramite `redirects` (es. `/pizzerias` -> `/pizzerie`, `/login` -> `/accedi`).
+
+Guard automatica path canonici:
+- `npm run check:routes` esegue uno script AST-based che blocca riferimenti ai path legacy nel codice sorgente.
 
 ### 5) Configurazione Google Cloud (Places)
 
@@ -100,8 +111,18 @@ npm run dev
 
 ```bash
 npm run lint
+npm run check:routes
 npm run build
 ```
+
+Smoke test e2e (Playwright):
+
+```bash
+npm run test:e2e
+```
+
+Note:
+- il comando usa `npx playwright`; alla prima esecuzione potrebbe richiedere installazione runtime/browser.
 
 ## Documentazione
 

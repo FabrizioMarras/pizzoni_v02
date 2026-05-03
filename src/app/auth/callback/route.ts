@@ -92,9 +92,8 @@ async function finalizeInviteOnlySignIn(nextPath: string, request: Request, orig
     .maybeSingle<{ id: string; is_member: boolean; name: string | null; avatar_url: string | null }>()
 
   const profileName = normalizeProfileText(ownProfile?.name)
-  const profileAvatarUrl = normalizeProfileText(ownProfile?.avatar_url)
   const shouldBackfillName = !profileName && !!derivedName
-  const shouldBackfillAvatarUrl = !profileAvatarUrl && !!derivedAvatarUrl
+  const shouldSyncAvatarUrl = !!derivedAvatarUrl
 
   const { data: invite } = await supabase
     .from('invites')
@@ -104,12 +103,12 @@ async function finalizeInviteOnlySignIn(nextPath: string, request: Request, orig
 
   if (!invite) {
     if (ownProfile?.is_member) {
-      if (shouldBackfillName || shouldBackfillAvatarUrl) {
+      if (shouldBackfillName || shouldSyncAvatarUrl) {
         await supabase
           .from('profiles')
           .update({
             ...(shouldBackfillName ? { name: derivedName } : {}),
-            ...(shouldBackfillAvatarUrl ? { avatar_url: derivedAvatarUrl } : {}),
+            ...(shouldSyncAvatarUrl ? { avatar_url: derivedAvatarUrl } : {}),
             updated_at: now,
           })
           .eq('id', user.id)
@@ -129,7 +128,7 @@ async function finalizeInviteOnlySignIn(nextPath: string, request: Request, orig
         .update({
           email: normalizedEmail,
           ...(shouldBackfillName ? { name: derivedName } : {}),
-          ...(shouldBackfillAvatarUrl ? { avatar_url: derivedAvatarUrl } : {}),
+          ...(shouldSyncAvatarUrl ? { avatar_url: derivedAvatarUrl } : {}),
           is_member: true,
           is_admin: true,
           updated_at: now,
@@ -159,7 +158,7 @@ async function finalizeInviteOnlySignIn(nextPath: string, request: Request, orig
     .update({
       email: normalizedEmail,
       ...(shouldBackfillName ? { name: derivedName } : {}),
-      ...(shouldBackfillAvatarUrl ? { avatar_url: derivedAvatarUrl } : {}),
+      ...(shouldSyncAvatarUrl ? { avatar_url: derivedAvatarUrl } : {}),
       is_member: true,
       updated_at: now,
     })

@@ -28,7 +28,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
-  const isAuthRoute = pathname.startsWith('/auth/') || pathname === '/accedi' || pathname === '/login'
+  const isAuthRoute = pathname.startsWith('/auth/') || pathname === '/accedi'
 
   if (!user && !isAuthRoute) {
     return NextResponse.redirect(new URL('/accedi', request.url))
@@ -45,7 +45,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth/auth-code-error?error_code=not_invited', request.url))
     }
 
-    if (profile?.is_member && (pathname === '/accedi' || pathname === '/login')) {
+    if (profile?.is_member && pathname === '/accedi') {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }

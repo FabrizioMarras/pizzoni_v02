@@ -1,75 +1,48 @@
 'use client'
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { FiCalendar, FiCheck, FiExternalLink, FiMapPin, FiNavigation, FiPlus, FiX } from 'react-icons/fi'
 import { formatDateLabel } from '@/lib/date-format'
 import { supabase } from '@/lib/supabase'
+import {
+  createEventVoteWithDates,
+  createPizzeria,
+  fetchPlannerSnapshot,
+  finalizeEventVote as finalizeEventVoteRpc,
+  type EventAvailabilityVote,
+  type EventDateOption,
+  type EventVote,
+  type ExistingPizzeria,
+  upsertAvailabilityVote,
+} from '@/lib/data/event-votes-client'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
+import ButtonLink from '@/components/ui/ButtonLink'
 import { getCurrentPosition, searchPlaces, type PlaceSuggestion } from '@/lib/places'
 import { useToast } from '@/components/ui/ToastProvider'
 
-interface AgendaPoll {
-  id: string
-  owner_id: string
-  status: 'open' | 'closed'
-  pizzeria_name: string
-  location: string
-  city: string
-  notes: string | null
-  final_date: string | null
-  visit_id: string | null
-  created_at: string
-}
-
-interface AgendaDateOption {
-  id: string
-  poll_id: string
-  option_date: string
-}
-
-interface AgendaVote {
-  id: string
-  poll_id: string
-  date_option_id: string
-  user_id: string
-  availability: 'available' | 'not_available'
-}
-
-interface CurrentProfile {
-  id: string
-  is_admin: boolean
-}
-
-interface ExistingPizzeria {
-  id: string
-  name: string
-  location: string
-  city: string
-  google_place_id: string | null
-  google_maps_uri: string | null
-  google_photo_name: string | null
-  latitude: number | null
-  longitude: number | null
-}
-
 interface PlannerBoardProps {
   hideClosedPolls?: boolean
+  hideCreateSection?: boolean
+  showTopAddButton?: boolean
 }
 
 function formatDate(dateValue: string) {
   return formatDateLabel(`${dateValue}T12:00:00`)
 }
 
-export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardProps) {
+export default function PlannerBoard({
+  hideClosedPolls = false,
+  hideCreateSection = false,
+  showTopAddButton = false,
+}: PlannerBoardProps) {
   const [userId, setUserId] = useState('')
-  const [profile, setProfile] = useState<CurrentProfile | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [existingPizzerias, setExistingPizzerias] = useState<ExistingPizzeria[]>([])
-  const [polls, setPolls] = useState<AgendaPoll[]>([])
-  const [options, setOptions] = useState<AgendaDateOption[]>([])
-  const [votes, setVotes] = useState<AgendaVote[]>([])
+  const [eventVotes, setEventVotes] = useState<EventVote[]>([])
+  const [dateChoices, setDateChoices] = useState<EventDateOption[]>([])
+  const [availabilityVotes, setAvailabilityVotes] = useState<EventAvailabilityVote[]>([])
   const [selectedPizzeriaId, setSelectedPizzeriaId] = useState('')
 
   const [pizzeriaName, setPizzeriaName] = useState('')
@@ -79,7 +52,7 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
 
   const [dateDraft, setDateDraft] = useState('')
   const [dateOptions, setDateOptions] = useState<string[]>([])
-  const [pollModalOpen, setPollModalOpen] = useState(false)
+  const [eventVoteModalOpen, setEventVoteModalOpen] = useState(false)
   const [searchResults, setSearchResults] = useState<PlaceSuggestion[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [geo, setGeo] = useState<{ latitude: number; longitude: number } | null>(null)
@@ -94,27 +67,14 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
   const toast = useToast()
 
   const loadData = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return
-
-    setUserId(user.id)
-
-    const [{ data: profileData }, { data: pollData }, { data: optionsData }, { data: voteData }, { data: pizzeriaData }] = await Promise.all([
-      supabase.from('profiles').select('id, is_admin').eq('id', user.id).maybeSingle<CurrentProfile>(),
-      supabase.from('agenda_polls').select('*').order('created_at', { ascending: false }),
-      supabase.from('agenda_poll_date_options').select('id, poll_id, option_date').order('option_date', { ascending: true }),
-      supabase.from('agenda_poll_date_votes').select('id, poll_id, date_option_id, user_id, availability'),
-      supabase.from('pizzerias').select('id, name, location, city, google_place_id, google_maps_uri, google_photo_name, latitude, longitude').order('name', { ascending: true }),
-    ])
-
-    setProfile(profileData ?? null)
-    setPolls((pollData as AgendaPoll[] | null) ?? [])
-    setOptions((optionsData as AgendaDateOption[] | null) ?? [])
-    setVotes((voteData as AgendaVote[] | null) ?? [])
-    setExistingPizzerias((pizzeriaData as ExistingPizzeria[] | null) ?? [])
+    const snapshot = await fetchPlannerSnapshot(supabase)
+    if (!snapshot) return
+    setUserId(snapshot.userId)
+    setIsAdmin(snapshot.isAdmin)
+    setEventVotes(snapshot.eventVotes)
+    setDateChoices(snapshot.dateChoices)
+    setAvailabilityVotes(snapshot.availabilityVotes)
+    setExistingPizzerias(snapshot.existingPizzerias)
   }
 
   useEffect(() => {
@@ -122,7 +82,7 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
   }, [])
 
   useEffect(() => {
-    if (!pollModalOpen || selectedPizzeriaId) return
+    if (!eventVoteModalOpen || selectedPizzeriaId) return
 
     const query = [pizzeriaName.trim(), city.trim()].filter(Boolean).join(' ')
     if (query.length < 2) {
@@ -149,14 +109,14 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
     }, 300)
 
     return () => window.clearTimeout(timeout)
-  }, [pollModalOpen, selectedPizzeriaId, pizzeriaName, city, geo, toast])
+  }, [eventVoteModalOpen, selectedPizzeriaId, pizzeriaName, city, geo, toast])
 
-  const openPoll = useMemo(() => polls.find((poll) => poll.status === 'open') ?? null, [polls])
-  const closedPolls = useMemo(() => polls.filter((poll) => poll.status === 'closed'), [polls])
-  const canFinalizeOpenPoll = Boolean(openPoll && (openPoll.owner_id === userId || profile?.is_admin))
-  const openPollOptions = useMemo(
-    () => (openPoll ? options.filter((option) => option.poll_id === openPoll.id) : []),
-    [openPoll, options]
+  const openEventVote = useMemo(() => eventVotes.find((poll) => poll.status === 'open') ?? null, [eventVotes])
+  const closedEventVotes = useMemo(() => eventVotes.filter((poll) => poll.status === 'closed'), [eventVotes])
+  const canFinalizeOpenEventVote = Boolean(openEventVote && (openEventVote.owner_id === userId || isAdmin))
+  const openEventDateChoices = useMemo(
+    () => (openEventVote ? dateChoices.filter((option) => option.poll_id === openEventVote.id) : []),
+    [openEventVote, dateChoices]
   )
 
   const addDateOptionDraft = () => {
@@ -238,11 +198,11 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
     setLongitude(null)
   }
 
-  const createPoll = async (event: React.FormEvent) => {
+  const createEventVote = async (event: React.FormEvent) => {
     event.preventDefault()
 
     if (!userId) return
-    if (openPoll) {
+    if (openEventVote) {
       toast.warning("Esiste gia una votazione aperta. Chiudila prima di crearne una nuova.")
       return
     }
@@ -267,21 +227,17 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
     }
 
     if (!ensuredPizzeria) {
-      const { data: insertedPizzeria, error: pizzeriaError } = await supabase
-        .from('pizzerias')
-        .insert({
-          name: normalizedName,
-          location: normalizedLocation,
-          city: normalizedCity,
-          google_place_id: googlePlaceId || null,
-          google_maps_uri: googleMapsUri || null,
-          google_photo_name: googlePhotoName || null,
-          latitude,
-          longitude,
-          created_by: userId,
-        })
-        .select('id, name, location, city, google_place_id, google_maps_uri, google_photo_name, latitude, longitude')
-        .single<ExistingPizzeria>()
+      const { data: insertedPizzeria, error: pizzeriaError } = await createPizzeria(supabase, {
+        name: normalizedName,
+        location: normalizedLocation,
+        city: normalizedCity,
+        google_place_id: googlePlaceId || null,
+        google_maps_uri: googleMapsUri || null,
+        google_photo_name: googlePhotoName || null,
+        latitude,
+        longitude,
+        created_by: userId,
+      })
 
       if (pizzeriaError || !insertedPizzeria) {
         toast.error(pizzeriaError?.message ?? 'Errore durante la creazione della pizzeria.')
@@ -294,36 +250,25 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
 
     setSubmitting(true)
 
-    const { data: pollRow, error: pollError } = await supabase
-      .from('agenda_polls')
-      .insert({
-        owner_id: userId,
-        pizzeria_name: ensuredPizzeria.name,
-        location: ensuredPizzeria.location,
-        city: ensuredPizzeria.city,
-        notes: notes.trim() || null,
-      })
-      .select('id')
-      .single<{ id: string }>()
+    const { eventVoteError, dateOptionsError } = await createEventVoteWithDates(supabase, {
+      owner_id: userId,
+      pizzeria_name: ensuredPizzeria.name,
+      location: ensuredPizzeria.location,
+      city: ensuredPizzeria.city,
+      notes: notes.trim() || null,
+      dateOptions,
+    })
 
-    if (pollError || !pollRow) {
+    if (eventVoteError) {
       setSubmitting(false)
-      toast.error(pollError?.message ?? 'Errore durante la creazione della votazione.')
+      toast.error(eventVoteError.message ?? 'Errore durante la creazione della votazione.')
       return
     }
 
-    const { error: optionError } = await supabase.from('agenda_poll_date_options').insert(
-      dateOptions.map((optionDate) => ({
-        poll_id: pollRow.id,
-        option_date: optionDate,
-        created_by: userId,
-      }))
-    )
-
     setSubmitting(false)
 
-    if (optionError) {
-      toast.error(optionError.message)
+    if (dateOptionsError) {
+      toast.error(dateOptionsError.message)
       return
     }
 
@@ -340,23 +285,20 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
     setDateOptions([])
     setDateDraft('')
     setSearchResults([])
-    setPollModalOpen(false)
+    setEventVoteModalOpen(false)
     toast.success('Nuovo evento creato: votazione avviata con successo.')
     void loadData()
   }
 
-  const voteOnOption = async (option: AgendaDateOption, availability: 'available' | 'not_available') => {
-    if (!userId || !openPoll) return
+  const voteOnOption = async (option: EventDateOption, availability: 'available' | 'not_available') => {
+    if (!userId || !openEventVote) return
 
-    const { error } = await supabase.from('agenda_poll_date_votes').upsert(
-      {
-        poll_id: openPoll.id,
-        date_option_id: option.id,
-        user_id: userId,
-        availability,
-      },
-      { onConflict: 'date_option_id,user_id' }
-    )
+    const { error } = await upsertAvailabilityVote(supabase, {
+      poll_id: openEventVote.id,
+      date_option_id: option.id,
+      user_id: userId,
+      availability,
+    })
 
     if (error) {
       toast.error(error.message)
@@ -366,13 +308,10 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
     void loadData()
   }
 
-  const finalizePoll = async (optionId: string) => {
-    if (!openPoll || !canFinalizeOpenPoll) return
+  const finalizeEventVote = async (optionId: string) => {
+    if (!openEventVote || !canFinalizeOpenEventVote) return
 
-    const { data, error } = await supabase.rpc('finalize_agenda_poll', {
-      p_poll_id: openPoll.id,
-      p_option_id: optionId,
-    })
+    const { data, error } = await finalizeEventVoteRpc(supabase, openEventVote.id, optionId)
 
     if (error) {
       toast.error(error.message)
@@ -384,13 +323,27 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
   }
 
   const countVotes = (optionId: string, availability: 'available' | 'not_available') =>
-    votes.filter((vote) => vote.date_option_id === optionId && vote.availability === availability).length
+    availabilityVotes.filter((vote) => vote.date_option_id === optionId && vote.availability === availability).length
 
-  const myVote = (optionId: string) => votes.find((vote) => vote.date_option_id === optionId && vote.user_id === userId)?.availability
+  const myVote = (optionId: string) => availabilityVotes.find((vote) => vote.date_option_id === optionId && vote.user_id === userId)?.availability
 
   return (
     <div className="space-y-6">
-      {!openPoll && (
+      {showTopAddButton && !openEventVote && (
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            onClick={() => setEventVoteModalOpen(true)}
+            variant="primary"
+            className="px-4 py-2 text-sm"
+            icon={<FiPlus className="h-4 w-4" />}
+          >
+            Aggiungi
+          </Button>
+        </div>
+      )}
+
+      {!openEventVote && !hideCreateSection && (
         <section className="glass-card space-y-4 p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -399,7 +352,7 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
             </div>
             <Button
               type="button"
-              onClick={() => setPollModalOpen(true)}
+              onClick={() => setEventVoteModalOpen(true)}
               variant="primary"
               className="px-4 py-2 text-sm"
               icon={<FiPlus className="h-4 w-4" />}
@@ -410,8 +363,8 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
         </section>
       )}
 
-      <Modal open={pollModalOpen} onClose={() => setPollModalOpen(false)} title="Nuovo Evento">
-        <form onSubmit={createPoll} className="space-y-3">
+      <Modal open={eventVoteModalOpen} onClose={() => setEventVoteModalOpen(false)} title="Nuovo Evento">
+        <form onSubmit={createEventVote} className="space-y-3">
           <div className="rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
             <label className="mb-1 block text-sm font-semibold text-[var(--ink)]">Pizzeria esistente (opzionale)</label>
             <select value={selectedPizzeriaId} onChange={(event) => onSelectExistingPizzeria(event.target.value)} className="field-input">
@@ -461,7 +414,7 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
             </div>
           )}
           <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Indirizzo" className="field-input" required />
-          <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="Citta" className="field-input" required />
+          <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="Città" className="field-input" required />
           <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Note (opzionale)" className="field-input min-h-[80px]" />
 
           <div className="rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
@@ -513,16 +466,16 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
         </form>
       </Modal>
 
-      {openPoll && (
+      {openEventVote && (
         <section className="glass-card space-y-3 p-6">
           <h2 className="text-3xl">Votazione Aperta</h2>
           <article className="surface-card space-y-3 px-4 py-4">
-            <div className="text-lg font-semibold text-[var(--ink)]">{openPoll.pizzeria_name}</div>
-            <div className="text-sm text-[var(--ink-soft)]">{openPoll.city} · {openPoll.location}</div>
-            {openPoll.notes && <p className="text-sm text-[var(--ink)]">{openPoll.notes}</p>}
+            <div className="text-lg font-semibold text-[var(--ink)]">{openEventVote.pizzeria_name}</div>
+            <div className="text-sm text-[var(--ink-soft)]">{openEventVote.city} · {openEventVote.location}</div>
+            {openEventVote.notes && <p className="text-sm text-[var(--ink)]">{openEventVote.notes}</p>}
 
             <div className="space-y-2">
-              {openPollOptions.map((option) => {
+              {openEventDateChoices.map((option) => {
                 const available = countVotes(option.id, 'available')
                 const notAvailable = countVotes(option.id, 'not_available')
                 const mine = myVote(option.id)
@@ -549,10 +502,10 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
                       >
                         Non disponibile
                       </Button>
-                      {canFinalizeOpenPoll && (
+                      {canFinalizeOpenEventVote && (
                         <Button
                           type="button"
-                          onClick={() => void finalizePoll(option.id)}
+                          onClick={() => void finalizeEventVote(option.id)}
                           variant="primary"
                           className="px-3 py-1 text-xs"
                           icon={<FiCheck className="h-3.5 w-3.5" />}
@@ -572,8 +525,8 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
       {!hideClosedPolls && (
         <section className="glass-card space-y-3 p-6">
           <h2 className="text-3xl">Votazioni Chiuse</h2>
-          {closedPolls.length === 0 && <p className="page-subtitle">Nessuna votazione chiusa.</p>}
-          {closedPolls.slice(0, 8).map((poll) => (
+          {closedEventVotes.length === 0 && <p className="page-subtitle">Nessuna votazione chiusa.</p>}
+          {closedEventVotes.slice(0, 8).map((poll) => (
             <article key={poll.id} className="surface-card px-4 py-3">
               <div className="font-semibold text-[var(--ink)]">{poll.pizzeria_name}</div>
               <div className="text-sm text-[var(--ink-soft)]">
@@ -581,10 +534,14 @@ export default function PlannerBoard({ hideClosedPolls = false }: PlannerBoardPr
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
                 {poll.visit_id && (
-                  <Link href={`/eventi/${poll.visit_id}`} className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1 text-xs">
-                    <FiExternalLink className="h-3.5 w-3.5" />
+                  <ButtonLink
+                    href={`/eventi/${poll.visit_id}`}
+                    variant="secondary"
+                    className="px-3 py-1 text-xs"
+                    icon={<FiExternalLink className="h-3.5 w-3.5" />}
+                  >
                     Apri evento creato
-                  </Link>
+                  </ButtonLink>
                 )}
               </div>
             </article>

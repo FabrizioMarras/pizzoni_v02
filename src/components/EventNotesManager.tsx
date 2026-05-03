@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { FiEdit2, FiPlus, FiSave, FiTrash2, FiX } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
+import { firstOrNull } from '@/lib/supabase-relations'
 import Button from '@/components/ui/Button'
 import MemberIdentity from '@/components/ui/MemberIdentity'
 import { useToast } from '@/components/ui/ToastProvider'
@@ -22,22 +23,15 @@ interface NoteRow {
   profiles:
     | {
         name: string | null
-        pizza_emoji: string | null
         avatar_url: string | null
         email: string | null
       }
     | {
         name: string | null
-        pizza_emoji: string | null
         avatar_url: string | null
         email: string | null
       }[]
     | null
-}
-
-function getFirst<T>(value: T | T[] | null): T | null {
-  if (!value) return null
-  return Array.isArray(value) ? value[0] ?? null : value
 }
 
 export default function EventNotesManager({ visitId }: EventNotesManagerProps) {
@@ -66,7 +60,7 @@ export default function EventNotesManager({ visitId }: EventNotesManagerProps) {
   const loadNotes = async () => {
     const { data, error } = await supabase
       .from('visit_notes')
-      .select('id, visit_id, user_id, content, created_at, updated_at, profiles(name, pizza_emoji, avatar_url, email)')
+      .select('id, visit_id, user_id, content, created_at, updated_at, profiles(name, avatar_url, email)')
       .eq('visit_id', visitId)
       .order('created_at', { ascending: false })
 
@@ -202,7 +196,7 @@ export default function EventNotesManager({ visitId }: EventNotesManagerProps) {
       <div className="space-y-2">
         {notes.length === 0 && <p className="page-subtitle">Nessuna nota ancora presente.</p>}
         {notes.map((note) => {
-          const author = getFirst(note.profiles)
+          const author = firstOrNull(note.profiles)
           const isOwner = note.user_id === userId
           const isEditing = editingNoteId === note.id
           return (
@@ -212,7 +206,6 @@ export default function EventNotesManager({ visitId }: EventNotesManagerProps) {
                   <MemberIdentity
                     name={author?.name}
                     email={author?.email}
-                    emoji={author?.pizza_emoji}
                     avatarUrl={author?.avatar_url}
                   />
                 </span>

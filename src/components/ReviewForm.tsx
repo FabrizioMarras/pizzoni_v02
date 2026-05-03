@@ -20,6 +20,12 @@ interface ReviewRow {
   final_score: number | null
 }
 
+interface ScoreField {
+  label: string
+  value: number
+  setValue: (value: number) => void
+}
+
 export default function ReviewForm({ visitId }: ReviewFormProps) {
   const [pizzaQuality, setPizzaQuality] = useState(8)
   const [ambience, setAmbience] = useState(8)
@@ -28,6 +34,12 @@ export default function ReviewForm({ visitId }: ReviewFormProps) {
   const [myReview, setMyReview] = useState<ReviewRow | null>(null)
   const [saving, setSaving] = useState(false)
   const toast = useToast()
+  const scoreFields: ScoreField[] = [
+    { label: 'Qualità pizza', value: pizzaQuality, setValue: setPizzaQuality },
+    { label: 'Atmosfera', value: ambience, setValue: setAmbience },
+    { label: 'Servizio', value: service, setValue: setService },
+    { label: 'Prezzo', value, setValue: setValue },
+  ]
 
   const loadMyReview = async () => {
     const {
@@ -98,21 +110,16 @@ export default function ReviewForm({ visitId }: ReviewFormProps) {
         <p className="page-subtitle">Punteggio finale attuale: {myReview.final_score.toFixed(1)}</p>
       )}
       <form onSubmit={submitReview} className="space-y-3">
-        {[
-          ['Qualità pizza', pizzaQuality, setPizzaQuality],
-          ['Atmosfera', ambience, setAmbience],
-          ['Servizio', service, setService],
-          ['Prezzo', value, setValue],
-        ].map(([label, valueNumber, setter]) => (
-          <label key={label as string} className="block rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
-            <span className="mb-1 block text-sm font-semibold text-[var(--ink)]">{label as string}: {valueNumber as number}</span>
+        {scoreFields.map((field) => (
+          <label key={field.label} className="block rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
+            <span className="mb-1 block text-sm font-semibold text-[var(--ink)]">{field.label}: {field.value}</span>
             <input
               type="range"
               min={0}
               max={10}
               step={0.5}
-              value={valueNumber as number}
-              onChange={(event) => (setter as (v: number) => void)(Number(event.target.value))}
+              value={field.value}
+              onChange={(event) => field.setValue(Number(event.target.value))}
               className="w-full accent-[var(--terracotta)]"
             />
           </label>

@@ -8,6 +8,8 @@ import { supabase } from '@/lib/supabase'
 import { getPizzeriaImageSrc } from '@/lib/pizzeria-image'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
+import ButtonLink from '@/components/ui/ButtonLink'
+import FileButton from '@/components/ui/FileButton'
 import { getCurrentPosition, searchPlaces, type PlaceSuggestion } from '@/lib/places'
 import { useToast } from '@/components/ui/ToastProvider'
 
@@ -306,23 +308,17 @@ export default function PizzeriaManager() {
 
   return (
     <div className="space-y-6">
-      <section className="glass-card p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-3xl">Gestione Pizzerie</h2>
-            <p className="mt-1 page-subtitle">Aggiungi nuovi locali e controlla cosa avete gia visitato.</p>
-          </div>
-          <Button
-            type="button"
-            onClick={() => setAddModalOpen(true)}
-            variant="primary"
-            className="px-4 py-2 text-sm"
-            icon={<FiPlus className="h-4 w-4" />}
-          >
-            Aggiungi
-          </Button>
-        </div>
-      </section>
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          onClick={() => setAddModalOpen(true)}
+          variant="primary"
+          className="px-4 py-2 text-sm"
+          icon={<FiPlus className="h-4 w-4" />}
+        >
+          Aggiungi
+        </Button>
+      </div>
 
       <Modal open={addModalOpen} onClose={() => setAddModalOpen(false)} title="Aggiungi Pizzeria">
         <form onSubmit={createPizzeria} className="space-y-4">
@@ -375,11 +371,14 @@ export default function PizzeriaManager() {
               />
             )}
             <div className="flex flex-wrap gap-2">
-              <label className="btn-secondary cursor-pointer px-3 py-1.5 text-xs">
-                <FiImage className="mr-1 inline h-3.5 w-3.5" />
+              <FileButton
+                onChange={onCustomImageChange}
+                disabled={saving}
+                className="px-3 py-1.5 text-xs"
+                icon={<FiImage className="h-3.5 w-3.5" />}
+              >
                 Scegli immagine
-                <input type="file" accept="image/*" onChange={onCustomImageChange} disabled={saving} className="hidden" />
-              </label>
+              </FileButton>
               {customImagePreview && (
                 <Button
                   type="button"
@@ -476,15 +475,17 @@ export default function PizzeriaManager() {
                   )}
                 </div>
                 <div className="text-sm text-[var(--ink-soft)]">{pizzeria.city} · {pizzeria.location}</div>
-                <a
+                <div className="pb-3" />
+                <ButtonLink
                   href={pizzeria.google_maps_uri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pizzeria.name} ${pizzeria.location}`)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="btn-secondary mt-auto inline-flex items-center gap-1.5 px-4 py-2 text-sm"
+                  variant="secondary"
+                  className="mt-auto px-4 py-2 text-sm"
+                  icon={<FiMapPin className="h-4 w-4" />}
                 >
-                  <FiMapPin className="h-4 w-4" />
                   Google Maps
-                </a>
+                </ButtonLink>
               </article>
             ))}
           </div>

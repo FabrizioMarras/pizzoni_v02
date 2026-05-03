@@ -16,13 +16,15 @@ Questo file verra aggiornato man mano che aggiungiamo nuove funzionalita.
 
 ## 3. Pizzerie (`/pizzerie`)
 - Aggiunta nuova pizzeria: nome, indirizzo, citta.
+- Upload immagine pizzeria opzionale in creazione.
 - Visualizzazione elenco pizzerie gia inserite.
 - Layout a card responsive (1 col mobile, 2 tablet, 3 desktop).
 - Link rapido a Google Maps per ogni locale.
 
 ## 4. Eventi (`/eventi`)
 - Pagina principale per pianificazione + storico eventi.
-- Creazione nuova votazione e scelta date direttamente nella stessa pagina.
+- Creazione nuova votazione tramite bottone `Aggiungi` (visibile quando non c'e una votazione aperta).
+- Blocco `Prossimo Evento Pizzoni` uguale alla home (nessun pulsante duplicato interno).
 - Elenco cronologico degli eventi registrati.
 - Link al dettaglio del singolo evento.
 - La creazione di nuovi eventi non avviene manualmente qui.
@@ -34,6 +36,7 @@ Questo file verra aggiornato man mano che aggiungiamo nuove funzionalita.
 - Link per apertura rapida in Google Maps.
 - Ogni membro puo inserire/modificare la propria recensione (0-10 per categoria).
 - Elenco di tutte le recensioni ricevute.
+- Ogni membro puo aggiungere note evento; solo autore puo modificare/eliminare la propria nota.
 - Caricamento foto della visita:
   - scelta da galleria o scatto camera;
   - upload manuale con bottone `Aggiungi`;
@@ -55,7 +58,7 @@ Questo file verra aggiornato man mano che aggiungiamo nuove funzionalita.
 - Dopo la chiusura, la votazione diventa sola lettura.
 
 ## 7. Profilo (`/profilo`)
-- Modifica profilo personale: nome, avatar, emoji pizza.
+- Modifica profilo personale: nome e avatar.
 - Se utente admin:
   - Sezione `Inviti Admin`.
   - Inserimento email da invitare.
@@ -84,6 +87,9 @@ Questo file verra aggiornato man mano che aggiungiamo nuove funzionalita.
 - Storico eventi basato su data/ora evento (`scheduled_at` se presente).
 - Creazione evento manuale rimossa da `Eventi`.
 - Azioni principali standardizzate con pulsanti coerenti (icona + testo).
+- Identita membri: avatar se presente, altrimenti fallback automatico.
+- Immagini pizzeria: Google -> foto della serata piu recente -> custom -> placeholder.
+- Immagini evento: foto della serata prioritaria; fallback su logica pizzeria.
 
 ## Sezione Aggiornamenti
 Aggiornare questo blocco ogni volta che viene aggiunta/modificata una funzionalita.
@@ -95,3 +101,4 @@ Aggiornare questo blocco ogni volta che viene aggiunta/modificata una funzionali
 - 2026-04-24: Flusso foto aggiornato (camera in-app + upload manuale) e tag unico `foto della serata`.
 - 2026-04-24: Introdotti componenti UI condivisi (`Button`, `Checkbox`, `ToastProvider`).
 - 2026-04-24: Aggiornato `Button` condiviso con supporto icone sinistra/destra e applicazione su tutti i pulsanti.
+- 2026-05-03: Guida aggiornata con regole immagini pizzeria/evento, note multiutente e fallback avatar.

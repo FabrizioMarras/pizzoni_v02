@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FiPlus, FiUserMinus, FiUserPlus, FiX } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
+import { firstOrNull } from '@/lib/supabase-relations'
 import Button from '@/components/ui/Button'
 import MemberIdentity from '@/components/ui/MemberIdentity'
 import { useToast } from '@/components/ui/ToastProvider'
@@ -15,7 +16,6 @@ interface AttendeesManagerProps {
 interface ProfileInfo {
   id: string
   name: string | null
-  pizza_emoji: string | null
   avatar_url: string | null
   email: string | null
 }
@@ -29,14 +29,8 @@ interface AttendeeRow {
 interface MemberRow {
   id: string
   name: string | null
-  pizza_emoji: string | null
   avatar_url: string | null
   email: string | null
-}
-
-function getFirst<T>(value: T | T[] | null): T | null {
-  if (!value) return null
-  return Array.isArray(value) ? value[0] ?? null : value
 }
 
 export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
@@ -59,7 +53,7 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
 
     const [{ data: profileData }, { data: attendeesData }] = await Promise.all([
       supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle<{ is_admin: boolean }>(),
-      supabase.from('visit_attendees').select('id, user_id, profiles(id, name, pizza_emoji, avatar_url, email)').eq('visit_id', visitId),
+      supabase.from('visit_attendees').select('id, user_id, profiles(id, name, avatar_url, email)').eq('visit_id', visitId),
     ])
 
     const admin = Boolean(profileData?.is_admin)
@@ -70,7 +64,7 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
     if (admin) {
       const { data: membersData } = await supabase
         .from('profiles')
-        .select('id, name, pizza_emoji, avatar_url, email')
+        .select('id, name, avatar_url, email')
         .eq('is_member', true)
         .order('name', { ascending: true })
 
@@ -200,7 +194,7 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
         <p className="text-sm text-[var(--ink-soft)]">Partecipanti: {attendees.length}</p>
         {attendees.length === 0 && <p className="page-subtitle">Ancora nessun partecipante.</p>}
         {attendees.map((attendee) => {
-          const profile = getFirst(attendee.profiles)
+          const profile = firstOrNull(attendee.profiles)
           return (
             <div key={attendee.id} className="surface-card flex items-center justify-between gap-2 px-3 py-2 text-sm text-[var(--ink)]">
               <div>
@@ -208,7 +202,6 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
                   <MemberIdentity
                     name={profile?.name}
                     email={profile?.email}
-                    emoji={profile?.pizza_emoji}
                     avatarUrl={profile?.avatar_url}
                   />
                 </span>
@@ -237,7 +230,7 @@ export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
               <option value="">Seleziona membro</option>
               {members.map((member) => (
                 <option key={member.id} value={member.id} disabled={attendeeIds.has(member.id)}>
-                  {(member.pizza_emoji ?? '🍕') + ' ' + (member.name ?? member.email ?? member.id)}
+                  {member.name ?? member.email ?? member.id}
                 </option>
               ))}
             </select>

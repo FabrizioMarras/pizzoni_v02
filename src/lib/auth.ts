@@ -5,7 +5,6 @@ export interface Profile {
   email: string | null
   name: string | null
   avatar_url: string | null
-  pizza_emoji: string | null
   is_admin: boolean
   is_member: boolean
 }
@@ -22,7 +21,7 @@ export async function getCurrentUserProfile() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, email, name, avatar_url, pizza_emoji, is_admin, is_member')
+    .select('id, email, name, avatar_url, is_admin, is_member')
     .eq('id', user.id)
     .maybeSingle<Profile>()
 

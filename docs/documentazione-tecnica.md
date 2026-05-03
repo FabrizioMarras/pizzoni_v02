@@ -32,6 +32,12 @@ Punti chiave:
 - `GET /api/calendar`: export ICS per calendario eventi.
 - `GET /api/places/photo`: proxy immagini Google Places.
 
+### 2.4 Data access layer (frontend)
+Per ridurre coupling UI-query, parte delle operazioni client e stata estratta in layer dati:
+- `src/lib/data/event-votes-client.ts` (snapshot, creazione votazione, voto disponibilita, finalizzazione).
+- `src/lib/data/photos-client.ts` (CRUD foto evento e tag foto della serata).
+- `src/lib/cloudinary.ts` (upload immagine centralizzato).
+
 ## 3. Routing applicativo
 
 Route principali:
@@ -44,12 +50,14 @@ Route principali:
 - `/guida` guida funzionale utenti.
 
 Route alias/compatibilita:
-- `/agenda` redirect a `/eventi`.
-- `/planner` redirect a `/eventi`.
-- `/pizzerias` alias storico della pagina pizzerie.
-- `/login` alias storico di accesso.
-- `/profile` alias storico profilo.
-- `/visits` e `/visits/[id]` alias storico eventi.
+- Alias storici centralizzati in `next.config.ts` (`redirects`):
+  - `/agenda` -> `/eventi`
+  - `/planner` -> `/eventi`
+  - `/visits` -> `/eventi`
+  - `/visits/:id` -> `/eventi/:id`
+  - `/pizzerias` -> `/pizzerie`
+  - `/login` -> `/accedi`
+  - `/profile` -> `/profilo`
 
 Route auth:
 - `/auth/callback` finalizzazione sessione OAuth + enforcement invite-only.
@@ -148,7 +156,8 @@ Pagina: `/pizzerie` (`src/components/PizzeriaManager.tsx`).
 
 ## 6.2 Nuovo evento (votazione-first)
 Pagina: `/eventi` (`src/components/PlannerBoard.tsx`).
-- Se non esiste votazione aperta, mostra blocco “Nuovo Evento”.
+- Se non esiste votazione aperta, mostra azione `Aggiungi` in alto pagina.
+- Il blocco `Prossimo Evento Pizzoni` in `/eventi` e lo stesso della home, senza CTA duplicata interna.
 - Creazione nuova votazione:
   - scelta pizzeria esistente o nuova;
   - opzioni data multiple;
@@ -162,6 +171,10 @@ Vincolo logico UI:
 
 ## 6.3 Eventi e dettaglio
 - Card prossimo evento (`NextEventCard`), inclusa in home e pagina eventi.
+- In `/eventi`, fetch visite consolidato lato server nella pagina:
+  - `NextEventCard` riceve `visit` opzionale pre-caricata;
+  - `VisitsManager` riceve lista eventi conclusi gia filtrata;
+  - riduzione query duplicate rispetto al caricamento separato componente-per-componente.
 - Storico eventi in lista (solo eventi con orario passato).
 - Dettaglio evento:
   - gestione orario prenotazione (owner/admin);
@@ -172,7 +185,7 @@ Vincolo logico UI:
   - link Google Maps.
 
 Priorita immagini:
-- Pizzeria: Google photo -> custom_image_url -> placeholder.
+- Pizzeria: Google photo -> foto della serata piu recente della pizzeria -> custom_image_url -> placeholder.
 - Evento: foto della serata (se presente) -> immagine pizzeria.
 
 Transizione stato evento:
@@ -191,7 +204,31 @@ Pagina: `/profilo`.
   - comportamento base centralizzato: `inline-flex`, allineamento contenuti, `cursor-pointer`, gestione `disabled`.
   - tutte le azioni principali del prodotto usano il componente con icona esplicita per coerenza visiva.
 - `src/components/ui/Checkbox.tsx`: checkbox brandizzato riusabile.
+- `src/components/ui/ButtonLink.tsx`: variante link del bottone con API coerente (`variant`, `icon`, `iconPosition`).
+- `src/components/ui/FileButton.tsx`: bottone upload file riusabile con stile coerente (`btn-secondary`) e input hidden incapsulato.
 - `src/components/ui/ToastProvider.tsx`: sistema toast globale (success/warning/error/info).
+
+## 6.6 Utility condivise
+- `src/lib/visit-time.ts`: logica unica per timestamp e stato evento:
+  - `getVisitTimestamp`
+  - `isUpcomingVisit`
+  - `isDoneVisit`
+- usata in classifica/home/eventi/storico per evitare divergenze di comportamento.
+- `src/lib/supabase-relations.ts`: normalizzazione relazioni Supabase (`T | T[]`):
+  - `firstOrNull`
+  - `firstOrThrow`
+
+## 6.8 Guard routing canonico
+- Script: `scripts/check-canonical-routes.mjs`.
+- Controllo AST-based su `src` per individuare riferimenti ai path legacy in:
+  - `href` JSX
+  - `redirect(...)`/`permanentRedirect(...)`
+  - `router.push(...)`/`router.replace(...)`
+- Comando: `npm run check:routes`.
+
+## 6.7 Convenzioni identita membro
+- Rendering identita utente allineato su `name` + `avatar_url`.
+- `pizza_emoji` mantenuto a livello DB legacy, ma non e piu una dipendenza del rendering principale.
 
 ## 7. API interne
 
@@ -269,6 +306,10 @@ Ordine principale:
 11. `20260424130000_visit_notes_multi_user.sql`
 12. `20260424134500_reviews_allow_half_points.sql`
 13. `20260424141000_pizzerias_custom_image.sql`
+14. `20260424144000_set_pizza_of_night_sync_pizzeria_cover.sql`
+15. `20260424145000_set_pizza_of_night_event_only.sql`
+16. `20260424150000_cleanup_deleted_photo_references.sql`
+17. `20260424151000_cleanup_updated_photo_references.sql`
 
 Nota operativa Supabase Cloud:
 - le migrazioni si applicano via SQL Editor in ordine cronologico.
@@ -292,11 +333,22 @@ Attenzioni:
 
 Comandi:
 - `npm run lint`
+- `npm run check:routes`
 - `npm run build`
+- `npm run test:e2e` (smoke e2e con Playwright via `npx`)
 
 Stato atteso:
 - lint senza errori;
+- guard route canoniche senza violazioni;
 - build Next.js completa.
+
+## 11.1 CI
+- Workflow: `.github/workflows/ci.yml`
+- Step automatici su push/PR:
+  - `npm ci`
+  - `npm run lint`
+  - `npm run check:routes`
+  - `npm run build`
 
 ## 12. Troubleshooting rapido
 
