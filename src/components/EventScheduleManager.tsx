@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { FiSave, FiTrash2 } from 'react-icons/fi'
 import { formatDateLabel, formatDateTimeLabel, parseTimeToIso } from '@/lib/date-format'
 import { supabase } from '@/lib/supabase'
@@ -9,13 +9,10 @@ import { useToast } from '@/components/ui/ToastProvider'
 
 interface EventScheduleManagerProps {
   visitId: string
-  visitOwnerId: string
   initialDate: string
   initialScheduledAt: string | null
-}
-
-interface ProfileRow {
-  is_admin: boolean
+  canManage: boolean
+  isAdmin: boolean
 }
 
 function toDateAndTimeValues(value: string) {
@@ -30,39 +27,13 @@ function toDateAndTimeValues(value: string) {
   return { date: `${year}-${month}-${day}`, time: `${hour}:${minute}` }
 }
 
-export default function EventScheduleManager({ visitId, visitOwnerId, initialDate, initialScheduledAt }: EventScheduleManagerProps) {
-  const [userId, setUserId] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [canManage, setCanManage] = useState(false)
+export default function EventScheduleManager({ visitId, initialDate, initialScheduledAt, canManage, isAdmin }: EventScheduleManagerProps) {
   const [saving, setSaving] = useState(false)
   const initialDateInput = initialScheduledAt ? toDateAndTimeValues(initialScheduledAt).date : initialDate
   const initialTimeInput = initialScheduledAt ? toDateAndTimeValues(initialScheduledAt).time : ''
   const [dateInput, setDateInput] = useState(initialDateInput)
   const [timeInput, setTimeInput] = useState(initialTimeInput)
   const toast = useToast()
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) return
-
-      setUserId(user.id)
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .maybeSingle<ProfileRow>()
-
-      const admin = Boolean(profile?.is_admin)
-      setIsAdmin(admin)
-      setCanManage(admin || user.id === visitOwnerId)
-    }
-
-    void loadUser()
-  }, [visitOwnerId])
 
   const saveSchedule = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -131,8 +102,6 @@ export default function EventScheduleManager({ visitId, visitOwnerId, initialDat
     toast.success('Orario rimosso. Evento in attesa di conferma orario.')
     window.location.reload()
   }
-
-  if (!userId) return null
 
   const selectedIsoTime = parseTimeToIso(timeInput)
   const selectedDateTimeLabel = dateInput && selectedIsoTime

@@ -50,15 +50,8 @@ export interface PlannerSnapshot {
 
 type SB = SupabaseClient
 
-export async function fetchPlannerSnapshot(supabase: SB): Promise<PlannerSnapshot | null> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) return null
-
-  const [{ data: profileData }, { data: eventVotes }, { data: dateChoices }, { data: availabilityVotes }, { data: existingPizzerias }] = await Promise.all([
-    supabase.from('profiles').select('id, is_admin').eq('id', user.id).maybeSingle<{ id: string; is_admin: boolean }>(),
+export async function fetchPlannerData(supabase: SB) {
+  const [{ data: eventVotes }, { data: dateChoices }, { data: availabilityVotes }, { data: existingPizzerias }] = await Promise.all([
     supabase.from('agenda_polls').select('*').order('created_at', { ascending: false }).returns<EventVote[]>(),
     supabase.from('agenda_poll_date_options').select('id, poll_id, option_date').order('option_date', { ascending: true }).returns<EventDateOption[]>(),
     supabase.from('agenda_poll_date_votes').select('id, poll_id, date_option_id, user_id, availability').returns<EventAvailabilityVote[]>(),
@@ -66,12 +59,32 @@ export async function fetchPlannerSnapshot(supabase: SB): Promise<PlannerSnapsho
   ])
 
   return {
-    userId: user.id,
-    isAdmin: Boolean(profileData?.is_admin),
     eventVotes: eventVotes ?? [],
     dateChoices: dateChoices ?? [],
     availabilityVotes: availabilityVotes ?? [],
     existingPizzerias: existingPizzerias ?? [],
+  }
+}
+
+export async function fetchPlannerSnapshot(supabase: SB): Promise<PlannerSnapshot | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return null
+
+  const [{ data: profileData }, plannerData] = await Promise.all([
+    supabase.from('profiles').select('id, is_admin').eq('id', user.id).maybeSingle<{ id: string; is_admin: boolean }>(),
+    fetchPlannerData(supabase),
+  ])
+
+  return {
+    userId: user.id,
+    isAdmin: Boolean(profileData?.is_admin),
+    eventVotes: plannerData.eventVotes,
+    dateChoices: plannerData.dateChoices,
+    availabilityVotes: plannerData.availabilityVotes,
+    existingPizzerias: plannerData.existingPizzerias,
   }
 }
 

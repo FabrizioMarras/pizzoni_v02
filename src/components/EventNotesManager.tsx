@@ -1,7 +1,6 @@
 'use client'
-/* eslint-disable react-hooks/set-state-in-effect */
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { FiEdit2, FiPlus, FiSave, FiTrash2, FiX } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
 import { firstOrNull } from '@/lib/supabase-relations'
@@ -11,6 +10,8 @@ import { useToast } from '@/components/ui/ToastProvider'
 
 interface EventNotesManagerProps {
   visitId: string
+  userId: string
+  initialNotes: NoteRow[]
 }
 
 interface NoteRow {
@@ -34,28 +35,13 @@ interface NoteRow {
     | null
 }
 
-export default function EventNotesManager({ visitId }: EventNotesManagerProps) {
-  const [userId, setUserId] = useState('')
+export default function EventNotesManager({ visitId, userId, initialNotes }: EventNotesManagerProps) {
   const [saving, setSaving] = useState(false)
-  const [notes, setNotes] = useState<NoteRow[]>([])
+  const [notes, setNotes] = useState<NoteRow[]>(initialNotes)
   const [newNote, setNewNote] = useState('')
   const [editingNoteId, setEditingNoteId] = useState('')
   const [editingContent, setEditingContent] = useState('')
   const toast = useToast()
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) return
-
-      setUserId(user.id)
-    }
-
-    void loadUser()
-  }, [])
 
   const loadNotes = async () => {
     const { data, error } = await supabase
@@ -63,19 +49,15 @@ export default function EventNotesManager({ visitId }: EventNotesManagerProps) {
       .select('id, visit_id, user_id, content, created_at, updated_at, profiles(name, avatar_url, email)')
       .eq('visit_id', visitId)
       .order('created_at', { ascending: false })
+      .returns<NoteRow[]>()
 
     if (error) {
       toast.error(error.message)
       return
     }
 
-    setNotes((data as NoteRow[] | null) ?? [])
+    setNotes(data ?? [])
   }
-
-  useEffect(() => {
-    void loadNotes()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visitId])
 
   const addNote = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -164,8 +146,6 @@ export default function EventNotesManager({ visitId }: EventNotesManagerProps) {
     toast.success('Nota eliminata.')
     void loadNotes()
   }
-
-  if (!userId) return null
 
   return (
     <section className="glass-card space-y-3 p-6">

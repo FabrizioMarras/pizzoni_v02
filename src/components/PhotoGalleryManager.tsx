@@ -1,6 +1,6 @@
 'use client'
-/* eslint-disable react-hooks/set-state-in-effect, @next/next/no-img-element */
 
+import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { FiCamera, FiImage, FiRefreshCw, FiStar, FiTrash2, FiUpload, FiX } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
@@ -20,11 +20,12 @@ import { useToast } from '@/components/ui/ToastProvider'
 
 interface PhotoGalleryManagerProps {
   visitId: string
+  userId: string
+  initialPhotos: VisitPhoto[]
 }
 
-export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProps) {
-  const [photos, setPhotos] = useState<VisitPhoto[]>([])
-  const [userId, setUserId] = useState('')
+export default function PhotoGalleryManager({ visitId, userId, initialPhotos }: PhotoGalleryManagerProps) {
+  const [photos, setPhotos] = useState<VisitPhoto[]>(initialPhotos)
   const [uploading, setUploading] = useState(false)
   const [busyPhotoId, setBusyPhotoId] = useState('')
   const [pizzaOfNight, setPizzaOfNight] = useState(false)
@@ -36,25 +37,10 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
   const streamRef = useRef<MediaStream | null>(null)
   const toast = useToast()
 
-  const getCurrentUserId = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    setUserId(user?.id ?? '')
-    return user?.id ?? ''
-  }
-
   const loadPhotos = async () => {
     const { data } = await fetchVisitPhotos(supabase, visitId)
     setPhotos(data ?? [])
   }
-
-  useEffect(() => {
-    void getCurrentUserId()
-    void loadPhotos()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visitId])
 
   useEffect(() => {
     const video = videoRef.current
@@ -166,9 +152,7 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
       return
     }
 
-    const currentUserId = userId || (await getCurrentUserId())
-
-    if (!currentUserId) {
+    if (!userId) {
       setUploading(false)
       toast.error('Non hai effettuato l’accesso.')
       return
@@ -177,7 +161,7 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
     const { data: insertedPhoto, error } = await insertVisitPhoto(supabase, {
       visit_id: visitId,
       url: secureUrl,
-      uploaded_by: currentUserId,
+      uploaded_by: userId,
     })
 
     setUploading(false)
@@ -357,7 +341,14 @@ export default function PhotoGalleryManager({ visitId }: PhotoGalleryManagerProp
           {photos.map((photo) => (
             <div key={photo.id} className="group relative overflow-hidden rounded-xl border border-[rgba(132,92,66,0.28)] bg-white">
               <a href={photo.url} target="_blank" rel="noreferrer">
-                <img src={photo.url} alt="Foto della visita" className="h-64 w-full object-cover transition duration-300 group-hover:scale-105" />
+                <Image
+                  src={photo.url}
+                  alt="Foto della visita"
+                  width={900}
+                  height={900}
+                  unoptimized
+                  className="h-64 w-full object-cover transition duration-300 group-hover:scale-105"
+                />
                 {photo.is_pizza_of_night && (
                   <span className="absolute left-1 top-1 rounded-full bg-[rgba(255,225,155,0.95)] px-2 py-1 text-xs font-medium text-[var(--ink)] flex items-center gap-1">
                     <FiStar className="h-3 w-3" />

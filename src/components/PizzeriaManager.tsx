@@ -1,11 +1,13 @@
 'use client'
-/* eslint-disable react-hooks/set-state-in-effect */
 
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { FiCheck, FiEye, FiEyeOff, FiImage, FiList, FiMapPin, FiNavigation, FiPlus } from 'react-icons/fi'
+import { mapRowsToPizzerias } from '@/lib/data/pizzeria-mapper'
+import { PIZZERIA_WITH_VISITS_SELECT } from '@/lib/data/pizzeria-queries'
 import { supabase } from '@/lib/supabase'
 import { getPizzeriaImageSrc } from '@/lib/pizzeria-image'
+import type { Pizzeria, PizzeriaRow } from '@/lib/types/pizzeria'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import ButtonLink from '@/components/ui/ButtonLink'
@@ -13,48 +15,15 @@ import FileButton from '@/components/ui/FileButton'
 import { getCurrentPosition, searchPlaces, type PlaceSuggestion } from '@/lib/places'
 import { useToast } from '@/components/ui/ToastProvider'
 
-interface Pizzeria {
-  id: string
-  name: string
-  location: string
-  city: string
-  google_maps_uri: string | null
-  google_photo_name: string | null
-  custom_image_url: string | null
-  latest_event_photo_url: string | null
-  visited: boolean
-  visitsCount: number
+interface PizzeriaManagerProps {
+  initialPizzerias: Pizzeria[]
 }
 
-interface PizzeriaRow {
-  id: string
-  name: string
-  location: string
-  city: string
-  google_maps_uri: string | null
-  google_photo_name: string | null
-  custom_image_url: string | null
-  visits:
-    | {
-        id: string
-        date: string
-        scheduled_at: string | null
-        photos:
-          | {
-              url: string
-              is_pizza_of_night: boolean
-              created_at: string
-            }[]
-          | null
-      }[]
-    | null
-}
-
-export default function PizzeriaManager() {
+export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerProps) {
   const [name, setName] = useState('')
   const [location, setLocation] = useState('')
   const [city, setCity] = useState('')
-  const [pizzerias, setPizzerias] = useState<Pizzeria[]>([])
+  const [pizzerias, setPizzerias] = useState<Pizzeria[]>(initialPizzerias)
   const [filter, setFilter] = useState<'all' | 'visited' | 'not_visited'>('all')
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [searchResults, setSearchResults] = useState<PlaceSuggestion[]>([])
@@ -72,6 +41,11 @@ export default function PizzeriaManager() {
   const toast = useToast()
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+  const closeAddModal = () => {
+    setAddModalOpen(false)
+    setSearchResults([])
+    setSearchLoading(false)
+  }
 
   const uploadToCloudinary = async (file: File) => {
     if (!cloudName || !uploadPreset) {
@@ -112,47 +86,18 @@ export default function PizzeriaManager() {
 
     const { data } = await supabase
       .from('pizzerias')
-      .select('id, name, location, city, google_maps_uri, google_photo_name, custom_image_url, visits(id, date, scheduled_at, photos(url, is_pizza_of_night, created_at))')
+      .select(PIZZERIA_WITH_VISITS_SELECT)
       .order('created_at', { ascending: false })
+      .returns<PizzeriaRow[]>()
 
-    const normalized = ((data as PizzeriaRow[] | null) ?? []).map((row) => {
-      const pastVisits = (row.visits ?? []).filter((visit) => {
-        const visitTimestamp = visit.scheduled_at ? new Date(visit.scheduled_at).getTime() : new Date(`${visit.date}T23:59:59`).getTime()
-        return visitTimestamp <= now
-      })
-      const count = pastVisits.length
-      const latestPhotoOfNight = (row.visits ?? [])
-        .flatMap((visit) => (visit.photos ?? []).filter((photo) => photo.is_pizza_of_night))
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
-
-      return {
-        id: row.id,
-        name: row.name,
-        location: row.location,
-        city: row.city,
-        google_maps_uri: row.google_maps_uri,
-        google_photo_name: row.google_photo_name,
-        custom_image_url: row.custom_image_url,
-        latest_event_photo_url: latestPhotoOfNight?.url ?? null,
-        visited: count > 0,
-        visitsCount: count,
-      }
-    })
-
-    setPizzerias(normalized)
+    setPizzerias(mapRowsToPizzerias(data ?? [], { visitMode: 'past', now }))
   }
-
-  useEffect(() => {
-    void loadPizzerias()
-  }, [])
 
   useEffect(() => {
     if (!addModalOpen) return
 
     const query = [name.trim(), city.trim()].filter(Boolean).join(' ')
     if (query.length < 2) {
-      setSearchResults([])
-      setSearchLoading(false)
       return
     }
 
@@ -295,6 +240,8 @@ export default function PizzeriaManager() {
     setGooglePhotoName('')
     setLatitude(null)
     setLongitude(null)
+    setSearchResults([])
+    setSearchLoading(false)
   }
 
   const filteredPizzerias = pizzerias.filter((pizzeria) => {
@@ -320,7 +267,7 @@ export default function PizzeriaManager() {
         </Button>
       </div>
 
-      <Modal open={addModalOpen} onClose={() => setAddModalOpen(false)} title="Aggiungi Pizzeria">
+      <Modal open={addModalOpen} onClose={closeAddModal} title="Aggiungi Pizzeria">
         <form onSubmit={createPizzeria} className="space-y-4">
           <input value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Nome" className="field-input" required />
           <div className="space-y-2 rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
@@ -357,7 +304,17 @@ export default function PizzeriaManager() {
             )}
           </div>
           <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Indirizzo" className="field-input" required />
-          <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="Città" className="field-input" required />
+          <input
+            value={city}
+            onChange={(event) => {
+              setCity(event.target.value)
+              setSearchResults([])
+              setSearchLoading(false)
+            }}
+            placeholder="Città"
+            className="field-input"
+            required
+          />
           <div className="space-y-2 rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
             <p className="text-xs text-[var(--ink-soft)]">Immagine pizzeria (opzionale)</p>
             {customImagePreview && (

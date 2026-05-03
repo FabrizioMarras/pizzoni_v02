@@ -1,7 +1,6 @@
 'use client'
-/* eslint-disable react-hooks/set-state-in-effect */
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { FiSave } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
 import Button from '@/components/ui/Button'
@@ -9,6 +8,8 @@ import { useToast } from '@/components/ui/ToastProvider'
 
 interface ReviewFormProps {
   visitId: string
+  userId: string
+  initialReview: ReviewRow | null
 }
 
 interface ReviewRow {
@@ -26,12 +27,12 @@ interface ScoreField {
   setValue: (value: number) => void
 }
 
-export default function ReviewForm({ visitId }: ReviewFormProps) {
-  const [pizzaQuality, setPizzaQuality] = useState(8)
-  const [ambience, setAmbience] = useState(8)
-  const [service, setService] = useState(8)
-  const [value, setValue] = useState(8)
-  const [myReview, setMyReview] = useState<ReviewRow | null>(null)
+export default function ReviewForm({ visitId, userId, initialReview }: ReviewFormProps) {
+  const [pizzaQuality, setPizzaQuality] = useState(initialReview?.pizza_quality ?? 8)
+  const [ambience, setAmbience] = useState(initialReview?.ambience ?? 8)
+  const [service, setService] = useState(initialReview?.service ?? 8)
+  const [value, setValue] = useState(initialReview?.value ?? 8)
+  const [myReview, setMyReview] = useState<ReviewRow | null>(initialReview)
   const [saving, setSaving] = useState(false)
   const toast = useToast()
   const scoreFields: ScoreField[] = [
@@ -42,20 +43,17 @@ export default function ReviewForm({ visitId }: ReviewFormProps) {
   ]
 
   const loadMyReview = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return
-
     const { data } = await supabase
       .from('reviews')
       .select('id, pizza_quality, ambience, service, value, final_score')
       .eq('visit_id', visitId)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle<ReviewRow>()
 
-    if (!data) return
+    if (!data) {
+      setMyReview(null)
+      return
+    }
 
     setMyReview(data)
     setPizzaQuality(data.pizza_quality ?? 8)
@@ -64,28 +62,13 @@ export default function ReviewForm({ visitId }: ReviewFormProps) {
     setValue(data.value ?? 8)
   }
 
-  useEffect(() => {
-    void loadMyReview()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visitId])
-
   const submitReview = async (event: React.FormEvent) => {
     event.preventDefault()
     setSaving(true)
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      setSaving(false)
-      toast.error('Non hai effettuato l’accesso.')
-      return
-    }
-
     const payload = {
       visit_id: visitId,
-      user_id: user.id,
+      user_id: userId,
       pizza_quality: pizzaQuality,
       ambience,
       service,

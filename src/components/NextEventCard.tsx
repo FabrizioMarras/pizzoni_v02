@@ -1,6 +1,8 @@
+import Image from 'next/image'
 import { FiCalendar, FiExternalLink } from 'react-icons/fi'
 import MemberIdentity from '@/components/ui/MemberIdentity'
 import ButtonLink from '@/components/ui/ButtonLink'
+import { VISIT_NEXT_EVENT_SELECT } from '@/lib/data/visit-queries'
 import { formatDateLabel, formatDateTimeLabel } from '@/lib/date-format'
 import { getEventImageSrc } from '@/lib/pizzeria-image'
 import { firstOrThrow } from '@/lib/supabase-relations'
@@ -65,7 +67,7 @@ export default async function NextEventCard({ showCreateAction = true, visit }: 
     const now = new Date().getTime()
     const { data } = await supabase
       .from('visits')
-      .select('id, date, scheduled_at, pizzerias(name, city, location, google_photo_name, custom_image_url), photos(url, is_pizza_of_night), visit_attendees(user_id, profiles(name, avatar_url, email))')
+      .select(VISIT_NEXT_EVENT_SELECT)
       .order('date', { ascending: true })
       .limit(100)
       .returns<VisitRow[]>()
@@ -107,9 +109,7 @@ export default async function NextEventCard({ showCreateAction = true, visit }: 
     <section className="glass-card p-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-stretch">
         <div className="relative overflow-hidden rounded-2xl border border-[var(--paper-border)] md:w-[42%] md:shrink-0 md:self-stretch">
-          {/* Use plain img to keep this server component simple and avoid client wrappers for next/image */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={getEventImageSrc({
               photoOfNightUrl: photoOfNight,
               id: nextVisit.id,
@@ -120,6 +120,9 @@ export default async function NextEventCard({ showCreateAction = true, visit }: 
               width: 1200,
             })}
             alt={pizzeria.name}
+            width={1200}
+            height={700}
+            unoptimized
             className="h-52 w-full object-cover sm:h-64 md:absolute md:inset-0 md:h-full md:w-full"
           />
         </div>

@@ -2,18 +2,21 @@ import Nav from '@/components/Nav'
 import NextEventCard, { type VisitRow } from '@/components/NextEventCard'
 import PlannerBoard from '@/components/PlannerBoard'
 import VisitsManager from '@/components/VisitsManager'
+import { fetchPlannerData } from '@/lib/data/event-votes-client'
+import { VISIT_EVENTS_PAGE_SELECT } from '@/lib/data/visit-queries'
+import type { EventAvailabilityVote, EventDateOption, EventVote, ExistingPizzeria } from '@/lib/data/event-votes-client'
+import { getProfileMembershipFlags } from '@/lib/profile-flags'
 import { firstOrThrow } from '@/lib/supabase-relations'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import { getVisitTimestamp, isDoneVisit, isUpcomingVisit } from '@/lib/visit-time'
+import { getNowTimestamp, getVisitTimestamp, isDoneVisit, isUpcomingVisit } from '@/lib/visit-time'
 
 export default async function VisitsPage() {
   const supabase = await createSupabaseServerClient()
-  // eslint-disable-next-line react-hooks/purity
-  const now = Date.now()
+  const now = getNowTimestamp()
 
   const { data } = await supabase
     .from('visits')
-    .select('id, date, scheduled_at, pizzerias(id, name, city, location, google_photo_name, custom_image_url), photos(url, is_pizza_of_night), visit_attendees(user_id, profiles(name, avatar_url, email))')
+    .select(VISIT_EVENTS_PAGE_SELECT)
     .order('date', { ascending: true })
     .limit(120)
     .returns<VisitRow[]>()
@@ -43,6 +46,30 @@ export default async function VisitsPage() {
       }
     })
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const currentUserId = user?.id ?? ''
+  let isAdmin = false
+  let eventVotes: EventVote[] = []
+  let dateChoices: EventDateOption[] = []
+  let availabilityVotes: EventAvailabilityVote[] = []
+  let existingPizzerias: ExistingPizzeria[] = []
+
+  if (currentUserId) {
+    const [{ isAdmin: profileIsAdmin }, plannerData] = await Promise.all([
+      getProfileMembershipFlags(supabase, currentUserId),
+      fetchPlannerData(supabase),
+    ])
+
+    isAdmin = profileIsAdmin
+    eventVotes = plannerData.eventVotes
+    dateChoices = plannerData.dateChoices
+    availabilityVotes = plannerData.availabilityVotes
+    existingPizzerias = plannerData.existingPizzerias
+  }
+
   return (
     <div className="app-shell">
       <Nav />
@@ -50,7 +77,17 @@ export default async function VisitsPage() {
         <h1 className="page-title mb-1">Eventi</h1>
         <p className="page-subtitle">Prossimo evento in evidenza + storico degli eventi conclusi.</p>
         <NextEventCard showCreateAction={false} visit={nextVisit} />
-        <PlannerBoard hideClosedPolls hideCreateSection showTopAddButton />
+        <PlannerBoard
+          userId={currentUserId}
+          isAdmin={isAdmin}
+          initialEventVotes={eventVotes}
+          initialDateChoices={dateChoices}
+          initialAvailabilityVotes={availabilityVotes}
+          initialPizzerias={existingPizzerias}
+          hideClosedPolls
+          hideCreateSection
+          showTopAddButton
+        />
         <VisitsManager visits={doneVisits} />
       </main>
     </div>

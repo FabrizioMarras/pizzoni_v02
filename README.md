@@ -26,6 +26,7 @@ App privata per gruppo chiuso: classifica pizzerie, organizzazione eventi, recen
   - `ButtonLink` unico per azioni di navigazione con stesso stile/API
   - `FileButton` unico per upload file con stile consistente
   - `Checkbox` brandizzato
+  - `Avatar` unico con fallback automatico alle iniziali se URL non valido
   - toast globali per feedback utente
 - Classifica pizzerie con filtro citta
 - Ricerca pizzerie da Google Places API (New) con geolocalizzazione opzionale
@@ -55,7 +56,6 @@ Crea `.env.local` (vedi anche `env.example`):
 - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`
 - `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`
 - `GOOGLE_MAPS_API_KEY`
-- `NEXT_PUBLIC_GA_ID` (opzionale)
 
 ### 3) Database migrations (Supabase Cloud, no CLI)
 

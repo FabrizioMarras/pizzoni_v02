@@ -1,7 +1,6 @@
 'use client'
-/* eslint-disable react-hooks/set-state-in-effect */
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { FiMail, FiSend } from 'react-icons/fi'
 import { formatDateTimeLabel } from '@/lib/date-format'
 import { supabase } from '@/lib/supabase'
@@ -14,9 +13,13 @@ interface Invite {
   accepted_at: string | null
 }
 
-export default function InviteManager() {
+interface InviteManagerProps {
+  initialInvites: Invite[]
+}
+
+export default function InviteManager({ initialInvites }: InviteManagerProps) {
   const [email, setEmail] = useState('')
-  const [invites, setInvites] = useState<Invite[]>([])
+  const [invites, setInvites] = useState<Invite[]>(initialInvites)
   const [submitting, setSubmitting] = useState(false)
   const toast = useToast()
 
@@ -24,10 +27,6 @@ export default function InviteManager() {
     const { data, error } = await supabase.from('invites').select('id, email, accepted_at').order('created_at', { ascending: false })
     if (!error) setInvites(data ?? [])
   }
-
-  useEffect(() => {
-    void loadInvites()
-  }, [])
 
   const createInvite = async (event: React.FormEvent) => {
     event.preventDefault()

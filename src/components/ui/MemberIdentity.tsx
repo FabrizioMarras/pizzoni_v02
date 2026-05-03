@@ -1,3 +1,5 @@
+import Avatar from '@/components/ui/Avatar'
+
 interface MemberIdentityProps {
   name?: string | null
   email?: string | null
@@ -21,7 +23,6 @@ export default function MemberIdentity({
 }: MemberIdentityProps) {
   const label = name?.trim() || email?.trim() || 'Membro'
   const iconSize = size === 'md' ? 'h-8 w-8 text-base' : 'h-6 w-6 text-sm'
-  const normalizedAvatarUrl = avatarUrl?.trim() ?? ''
 
   return (
     <span className={joinClasses('inline-flex items-center gap-2', className)}>
@@ -29,17 +30,13 @@ export default function MemberIdentity({
         <span className={joinClasses('inline-flex items-center justify-center rounded-full', iconSize)}>
           {emoji?.trim() || '🍕'}
         </span>
-        {normalizedAvatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={normalizedAvatarUrl}
-            alt={label}
-            className={joinClasses('absolute inset-0 rounded-full object-cover', iconSize)}
-            onError={(event) => {
-              event.currentTarget.style.display = 'none'
-            }}
-          />
-        ) : null}
+        <Avatar
+          name={name}
+          email={email}
+          avatarUrl={avatarUrl}
+          size={size}
+          className={joinClasses('absolute inset-0', iconSize)}
+        />
       </span>
       <span>{label}</span>
     </span>

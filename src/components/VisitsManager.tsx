@@ -1,10 +1,11 @@
 import Image from 'next/image'
 import ButtonLink from '@/components/ui/ButtonLink'
 import { FiArrowUpRight } from 'react-icons/fi'
+import { VISIT_HISTORY_CARD_SELECT } from '@/lib/data/visit-queries'
 import { formatDateLabel, formatDateTimeLabel } from '@/lib/date-format'
 import { getEventImageSrc } from '@/lib/pizzeria-image'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import { getVisitTimestamp, isDoneVisit } from '@/lib/visit-time'
+import { getNowTimestamp, getVisitTimestamp, isDoneVisit } from '@/lib/visit-time'
 
 interface Visit {
   id: string
@@ -33,12 +34,12 @@ export default async function VisitsManager({ visits }: VisitsManagerProps) {
     const supabase = await createSupabaseServerClient()
     const { data: visitsData } = await supabase
       .from('visits')
-      .select('id, date, scheduled_at, photos(url, is_pizza_of_night), pizzerias(id, name, city, google_photo_name, custom_image_url)')
+      .select(VISIT_HISTORY_CARD_SELECT)
       .order('date', { ascending: false })
+      .returns<Visit[]>()
 
-    // eslint-disable-next-line react-hooks/purity
-    const now = Date.now()
-    doneVisits = ((visitsData as Visit[] | null) ?? [])
+    const now = getNowTimestamp()
+    doneVisits = (visitsData ?? [])
       .filter((visit) => isDoneVisit(visit, now))
       .sort((a, b) => getVisitTimestamp(b) - getVisitTimestamp(a))
   }

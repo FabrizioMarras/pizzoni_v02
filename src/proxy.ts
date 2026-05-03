@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getProfileMembershipFlags } from '@/lib/profile-flags'
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -35,17 +36,13 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_member')
-      .eq('id', user.id)
-      .maybeSingle<{ is_member: boolean }>()
+    const profile = await getProfileMembershipFlags(supabase, user.id)
 
-    if (!profile?.is_member && !isAuthRoute) {
+    if (!profile.isMember && !isAuthRoute) {
       return NextResponse.redirect(new URL('/auth/auth-code-error?error_code=not_invited', request.url))
     }
 
-    if (profile?.is_member && pathname === '/accedi') {
+    if (profile.isMember && pathname === '/accedi') {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }

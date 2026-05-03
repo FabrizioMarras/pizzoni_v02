@@ -36,6 +36,9 @@ Punti chiave:
 Per ridurre coupling UI-query, parte delle operazioni client e stata estratta in layer dati:
 - `src/lib/data/event-votes-client.ts` (snapshot, creazione votazione, voto disponibilita, finalizzazione).
 - `src/lib/data/photos-client.ts` (CRUD foto evento e tag foto della serata).
+- `src/lib/data/pizzeria-mapper.ts` (normalizzazione dati pizzerie + conteggio visitate con modalita `all/past`).
+- `src/lib/data/pizzeria-queries.ts` (selector condivisi query pizzerie).
+- `src/lib/data/visit-queries.ts` (selector condivisi query visite per card/eventi).
 - `src/lib/cloudinary.ts` (upload immagine centralizzato).
 
 ## 3. Routing applicativo
@@ -206,6 +209,7 @@ Pagina: `/profilo`.
 - `src/components/ui/Checkbox.tsx`: checkbox brandizzato riusabile.
 - `src/components/ui/ButtonLink.tsx`: variante link del bottone con API coerente (`variant`, `icon`, `iconPosition`).
 - `src/components/ui/FileButton.tsx`: bottone upload file riusabile con stile coerente (`btn-secondary`) e input hidden incapsulato.
+- `src/components/ui/Avatar.tsx`: avatar unificato con fallback iniziali (URL non valido/non presente).
 - `src/components/ui/ToastProvider.tsx`: sistema toast globale (success/warning/error/info).
 
 ## 6.6 Utility condivise
@@ -213,10 +217,12 @@ Pagina: `/profilo`.
   - `getVisitTimestamp`
   - `isUpcomingVisit`
   - `isDoneVisit`
+  - `getNowTimestamp`
 - usata in classifica/home/eventi/storico per evitare divergenze di comportamento.
 - `src/lib/supabase-relations.ts`: normalizzazione relazioni Supabase (`T | T[]`):
   - `firstOrNull`
   - `firstOrThrow`
+- `src/lib/profile-flags.ts`: lettura centralizzata flag membership (`is_admin`, `is_member`) su profilo.
 
 ## 6.8 Guard routing canonico
 - Script: `scripts/check-canonical-routes.mjs`.
@@ -274,9 +280,6 @@ Variabili richieste:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`
 - `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`
-
-Variabili opzionali:
-- `NEXT_PUBLIC_GA_ID`
 
 Variabile server richiesta per Places:
 - `GOOGLE_MAPS_API_KEY`

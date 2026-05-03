@@ -1,5 +1,4 @@
 'use client'
-/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useMemo, useState } from 'react'
 import { FiCalendar, FiCheck, FiExternalLink, FiMapPin, FiNavigation, FiPlus, FiX } from 'react-icons/fi'
@@ -23,6 +22,12 @@ import { getCurrentPosition, searchPlaces, type PlaceSuggestion } from '@/lib/pl
 import { useToast } from '@/components/ui/ToastProvider'
 
 interface PlannerBoardProps {
+  userId: string
+  isAdmin: boolean
+  initialEventVotes: EventVote[]
+  initialDateChoices: EventDateOption[]
+  initialAvailabilityVotes: EventAvailabilityVote[]
+  initialPizzerias: ExistingPizzeria[]
   hideClosedPolls?: boolean
   hideCreateSection?: boolean
   showTopAddButton?: boolean
@@ -33,16 +38,20 @@ function formatDate(dateValue: string) {
 }
 
 export default function PlannerBoard({
+  userId,
+  isAdmin,
+  initialEventVotes,
+  initialDateChoices,
+  initialAvailabilityVotes,
+  initialPizzerias,
   hideClosedPolls = false,
   hideCreateSection = false,
   showTopAddButton = false,
 }: PlannerBoardProps) {
-  const [userId, setUserId] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [existingPizzerias, setExistingPizzerias] = useState<ExistingPizzeria[]>([])
-  const [eventVotes, setEventVotes] = useState<EventVote[]>([])
-  const [dateChoices, setDateChoices] = useState<EventDateOption[]>([])
-  const [availabilityVotes, setAvailabilityVotes] = useState<EventAvailabilityVote[]>([])
+  const [existingPizzerias, setExistingPizzerias] = useState<ExistingPizzeria[]>(initialPizzerias)
+  const [eventVotes, setEventVotes] = useState<EventVote[]>(initialEventVotes)
+  const [dateChoices, setDateChoices] = useState<EventDateOption[]>(initialDateChoices)
+  const [availabilityVotes, setAvailabilityVotes] = useState<EventAvailabilityVote[]>(initialAvailabilityVotes)
   const [selectedPizzeriaId, setSelectedPizzeriaId] = useState('')
 
   const [pizzeriaName, setPizzeriaName] = useState('')
@@ -69,8 +78,6 @@ export default function PlannerBoard({
   const loadData = async () => {
     const snapshot = await fetchPlannerSnapshot(supabase)
     if (!snapshot) return
-    setUserId(snapshot.userId)
-    setIsAdmin(snapshot.isAdmin)
     setEventVotes(snapshot.eventVotes)
     setDateChoices(snapshot.dateChoices)
     setAvailabilityVotes(snapshot.availabilityVotes)
@@ -78,16 +85,10 @@ export default function PlannerBoard({
   }
 
   useEffect(() => {
-    void loadData()
-  }, [])
-
-  useEffect(() => {
     if (!eventVoteModalOpen || selectedPizzeriaId) return
 
     const query = [pizzeriaName.trim(), city.trim()].filter(Boolean).join(' ')
     if (query.length < 2) {
-      setSearchResults([])
-      setSearchLoading(false)
       return
     }
 
@@ -196,6 +197,14 @@ export default function PlannerBoard({
     setGooglePhotoName('')
     setLatitude(null)
     setLongitude(null)
+    setSearchResults([])
+    setSearchLoading(false)
+  }
+
+  const onCityChange = (value: string) => {
+    setCity(value)
+    setSearchResults([])
+    setSearchLoading(false)
   }
 
   const createEventVote = async (event: React.FormEvent) => {
@@ -414,7 +423,7 @@ export default function PlannerBoard({
             </div>
           )}
           <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Indirizzo" className="field-input" required />
-          <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="Città" className="field-input" required />
+          <input value={city} onChange={(event) => onCityChange(event.target.value)} placeholder="Città" className="field-input" required />
           <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Note (opzionale)" className="field-input min-h-[80px]" />
 
           <div className="rounded-xl bg-[rgba(255,255,255,0.66)] p-3">

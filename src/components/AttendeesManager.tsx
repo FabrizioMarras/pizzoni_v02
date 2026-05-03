@@ -1,7 +1,6 @@
 'use client'
-/* eslint-disable react-hooks/set-state-in-effect */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { FiPlus, FiUserMinus, FiUserPlus, FiX } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
 import { firstOrNull } from '@/lib/supabase-relations'
@@ -11,6 +10,10 @@ import { useToast } from '@/components/ui/ToastProvider'
 
 interface AttendeesManagerProps {
   visitId: string
+  userId: string
+  isAdmin: boolean
+  initialAttendees: AttendeeRow[]
+  initialMembers: MemberRow[]
 }
 
 interface ProfileInfo {
@@ -33,53 +36,44 @@ interface MemberRow {
   email: string | null
 }
 
-export default function AttendeesManager({ visitId }: AttendeesManagerProps) {
-  const [userId, setUserId] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [attendees, setAttendees] = useState<AttendeeRow[]>([])
-  const [members, setMembers] = useState<MemberRow[]>([])
-  const [memberToAdd, setMemberToAdd] = useState('')
+export default function AttendeesManager({ visitId, userId, isAdmin, initialAttendees, initialMembers }: AttendeesManagerProps) {
+  const [attendees, setAttendees] = useState<AttendeeRow[]>(initialAttendees)
+  const [members, setMembers] = useState<MemberRow[]>(initialMembers)
+  const [memberToAdd, setMemberToAdd] = useState(() => {
+    const attendeeSet = new Set(initialAttendees.map((row) => row.user_id))
+    const firstAvailable = initialMembers.find((member) => !attendeeSet.has(member.id))
+    return firstAvailable?.id ?? ''
+  })
   const [submitting, setSubmitting] = useState(false)
   const toast = useToast()
 
   const loadData = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return
-
-    setUserId(user.id)
-
-    const [{ data: profileData }, { data: attendeesData }] = await Promise.all([
-      supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle<{ is_admin: boolean }>(),
-      supabase.from('visit_attendees').select('id, user_id, profiles(id, name, avatar_url, email)').eq('visit_id', visitId),
+    const [{ data: attendeesData }] = await Promise.all([
+      supabase
+        .from('visit_attendees')
+        .select('id, user_id, profiles(id, name, avatar_url, email)')
+        .eq('visit_id', visitId)
+        .returns<AttendeeRow[]>(),
     ])
 
-    const admin = Boolean(profileData?.is_admin)
-    setIsAdmin(admin)
-    const attendeeRows = (attendeesData as AttendeeRow[] | null) ?? []
+    const attendeeRows = attendeesData ?? []
     setAttendees(attendeeRows)
 
-    if (admin) {
+    if (isAdmin) {
       const { data: membersData } = await supabase
         .from('profiles')
         .select('id, name, avatar_url, email')
         .eq('is_member', true)
         .order('name', { ascending: true })
+        .returns<MemberRow[]>()
 
-      const memberRows = (membersData as MemberRow[] | null) ?? []
+      const memberRows = membersData ?? []
       setMembers(memberRows)
       const attendeeSet = new Set(attendeeRows.map((row) => row.user_id))
       const firstAvailable = memberRows.find((member) => !attendeeSet.has(member.id))
       setMemberToAdd(firstAvailable?.id ?? '')
     }
   }
-
-  useEffect(() => {
-    void loadData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visitId])
 
   const attendeeIds = useMemo(() => new Set(attendees.map((attendee) => attendee.user_id)), [attendees])
   const isJoined = attendeeIds.has(userId)

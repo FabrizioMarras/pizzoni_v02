@@ -6,6 +6,8 @@ import EventNotesManager from '@/components/EventNotesManager'
 import EventScheduleManager from '@/components/EventScheduleManager'
 import PhotoGalleryManager from '@/components/PhotoGalleryManager'
 import ReviewForm from '@/components/ReviewForm'
+import { getProfileMembershipFlags } from '@/lib/profile-flags'
+import type { VisitPhoto } from '@/lib/data/photos-client'
 import ButtonLink from '@/components/ui/ButtonLink'
 import MemberIdentity from '@/components/ui/MemberIdentity'
 import RankBadge from '@/components/ui/RankBadge'
@@ -60,9 +62,65 @@ interface ReviewSummary {
       }[]
 }
 
+interface MyReviewRow {
+  id: string
+  pizza_quality: number | null
+  ambience: number | null
+  service: number | null
+  value: number | null
+  final_score: number | null
+}
+
 interface PhotoSummary {
   url: string
   is_pizza_of_night: boolean
+}
+
+interface EventNoteRow {
+  id: string
+  visit_id: string
+  user_id: string
+  content: string
+  created_at: string
+  updated_at: string
+  profiles:
+    | {
+        name: string | null
+        avatar_url: string | null
+        email: string | null
+      }
+    | {
+        name: string | null
+        avatar_url: string | null
+        email: string | null
+      }[]
+    | null
+}
+
+interface AttendeeRow {
+  id: string
+  user_id: string
+  profiles:
+    | {
+        id: string
+        name: string | null
+        avatar_url: string | null
+        email: string | null
+      }
+    | {
+        id: string
+        name: string | null
+        avatar_url: string | null
+        email: string | null
+      }[]
+    | null
+}
+
+interface MemberRow {
+  id: string
+  name: string | null
+  avatar_url: string | null
+  email: string | null
 }
 
 interface LeaderboardReviewRow {
@@ -91,8 +149,12 @@ interface LeaderboardReviewRow {
 export default async function VisitDetailsPage({ params }: VisitPageProps) {
   const { id } = await params
   const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const userId = user?.id ?? ''
 
-  const [{ data: visit }, { data: reviewSummaries }, { data: leaderboardRows }, { data: photos }] = await Promise.all([
+  const [{ data: visit }, { data: reviewSummaries }, { data: leaderboardRows }, { data: photos }, { data: notesData }, { data: attendeesData }, { data: galleryPhotosData }] = await Promise.all([
     supabase
       .from('visits')
       .select('id, date, scheduled_at, created_by, pizzerias(id, name, location, city, google_photo_name, custom_image_url, google_maps_uri)')
@@ -111,6 +173,23 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
       )
       .returns<LeaderboardReviewRow[]>(),
     supabase.from('photos').select('url, is_pizza_of_night').eq('visit_id', id).returns<PhotoSummary[]>(),
+    supabase
+      .from('visit_notes')
+      .select('id, visit_id, user_id, content, created_at, updated_at, profiles(name, avatar_url, email)')
+      .eq('visit_id', id)
+      .order('created_at', { ascending: false })
+      .returns<EventNoteRow[]>(),
+    supabase
+      .from('visit_attendees')
+      .select('id, user_id, profiles(id, name, avatar_url, email)')
+      .eq('visit_id', id)
+      .returns<AttendeeRow[]>(),
+    supabase
+      .from('photos')
+      .select('id, url, is_pizza_of_night, uploaded_by')
+      .eq('visit_id', id)
+      .order('created_at', { ascending: false })
+      .returns<VisitPhoto[]>(),
   ])
 
   if (!visit) {
@@ -144,6 +223,26 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
   const rank = ranking.findIndex((entry) => entry.pizzeriaId === pizzeria.id) + 1
   const score = ranking.find((entry) => entry.pizzeriaId === pizzeria.id)?.avg ?? null
   const photoOfNight = (photos ?? []).find((photo) => photo.is_pizza_of_night)?.url ?? null
+  const { data: myReviewData } = userId
+    ? await supabase
+        .from('reviews')
+        .select('id, pizza_quality, ambience, service, value, final_score')
+        .eq('visit_id', id)
+        .eq('user_id', userId)
+        .maybeSingle<MyReviewRow>()
+    : { data: null }
+  const isAdmin = userId ? (await getProfileMembershipFlags(supabase, userId)).isAdmin : false
+  const canManageSchedule = Boolean(userId) && (isAdmin || userId === visit.created_by)
+  let initialMembers: MemberRow[] = []
+  if (isAdmin) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, name, avatar_url, email')
+      .eq('is_member', true)
+      .order('name', { ascending: true })
+      .returns<MemberRow[]>()
+    initialMembers = data ?? []
+  }
 
   return (
     <div className="app-shell">
@@ -202,10 +301,24 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
           </ButtonLink>
         </section>
 
-        <EventScheduleManager visitId={id} visitOwnerId={visit.created_by} initialDate={visit.date} initialScheduledAt={visit.scheduled_at} />
-        <ReviewForm visitId={id} />
-        <EventNotesManager visitId={id} />
-        <AttendeesManager visitId={id} />
+        <EventScheduleManager
+          visitId={id}
+          initialDate={visit.date}
+          initialScheduledAt={visit.scheduled_at}
+          canManage={canManageSchedule}
+          isAdmin={isAdmin}
+        />
+        {userId && <ReviewForm visitId={id} userId={userId} initialReview={myReviewData ?? null} />}
+        {userId && <EventNotesManager visitId={id} userId={userId} initialNotes={notesData ?? []} />}
+        {userId && (
+          <AttendeesManager
+            visitId={id}
+            userId={userId}
+            isAdmin={isAdmin}
+            initialAttendees={attendeesData ?? []}
+            initialMembers={initialMembers}
+          />
+        )}
 
         <section className="glass-card space-y-3 p-6">
           <h2 className="text-3xl">Tutte le Recensioni</h2>
@@ -223,7 +336,7 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
           })}
         </section>
 
-        <PhotoGalleryManager visitId={id} />
+        {userId && <PhotoGalleryManager visitId={id} userId={userId} initialPhotos={galleryPhotosData ?? []} />}
       </main>
     </div>
   )
