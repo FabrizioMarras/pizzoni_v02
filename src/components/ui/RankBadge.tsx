@@ -119,7 +119,13 @@ export default function RankBadge({ rank, size = 38, idPrefix = 'rank', classNam
       </svg>
       <span
         className="absolute font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]"
-        style={{ fontSize: fontSizeFor(size), lineHeight: 1 }}
+        style={{
+          fontSize: fontSizeFor(size),
+          lineHeight: 1,
+          left: '50%',
+          top: `${(230 / 512) * 100}%`,
+          transform: 'translate(-50%, -50%)',
+        }}
       >
         {rank}
       </span>
