@@ -18,6 +18,9 @@ Questo file verra aggiornato man mano che aggiungiamo nuove funzionalita.
 - Aggiunta nuova pizzeria: nome, indirizzo, citta.
 - Upload immagine pizzeria opzionale in creazione.
 - Visualizzazione elenco pizzerie gia inserite.
+- Ricerca nell'elenco per nome, citta o indirizzo.
+- Filtri rapidi: tutte, visitate, da visitare.
+- L'elenco mostra le prime card e carica altri elementi scorrendo la pagina.
 - Layout a card responsive (1 col mobile, 2 tablet, 3 desktop).
 - Link rapido a Google Maps per ogni locale.
 
@@ -26,6 +29,8 @@ Questo file verra aggiornato man mano che aggiungiamo nuove funzionalita.
 - Creazione nuova votazione tramite bottone `Aggiungi` (visibile quando non c'e una votazione aperta).
 - Blocco `Prossimo Evento Pizzoni` uguale alla home (nessun pulsante duplicato interno).
 - Elenco cronologico degli eventi registrati.
+- Ricerca nello storico per pizzeria, citta o data.
+- Lo storico mostra le prime card e carica altri eventi scorrendo la pagina.
 - Link al dettaglio del singolo evento.
 - La creazione di nuovi eventi non avviene manualmente qui.
   - L'evento viene generato automaticamente quando una votazione viene chiusa con data vincente.
@@ -90,6 +95,7 @@ Questo file verra aggiornato man mano che aggiungiamo nuove funzionalita.
 - Identita membri: avatar se presente, altrimenti fallback automatico.
 - Immagini pizzeria: Google -> foto della serata piu recente -> custom -> placeholder.
 - Immagini evento: foto della serata prioritaria; fallback su logica pizzeria.
+- Ricerca e paginazione incrementale sono disponibili in `Pizzerie` e nello storico `Eventi`.
 
 ## Sezione Aggiornamenti
 Aggiornare questo blocco ogni volta che viene aggiunta/modificata una funzionalita.
@@ -102,3 +108,4 @@ Aggiornare questo blocco ogni volta che viene aggiunta/modificata una funzionali
 - 2026-04-24: Introdotti componenti UI condivisi (`Button`, `Checkbox`, `ToastProvider`).
 - 2026-04-24: Aggiornato `Button` condiviso con supporto icone sinistra/destra e applicazione su tutti i pulsanti.
 - 2026-05-03: Guida aggiornata con regole immagini pizzeria/evento, note multiutente e fallback avatar.
+- 2026-05-04: Aggiunta ricerca riusabile e paginazione incrementale su `Pizzerie` e storico `Eventi`.

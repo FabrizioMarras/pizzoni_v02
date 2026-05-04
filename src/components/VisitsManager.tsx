@@ -1,31 +1,10 @@
-import Image from 'next/image'
-import ButtonLink from '@/components/ui/ButtonLink'
-import { FiArrowUpRight } from 'react-icons/fi'
 import { VISIT_HISTORY_CARD_SELECT } from '@/lib/data/visit-queries'
-import { formatDateLabel, formatDateTimeLabel } from '@/lib/date-format'
-import { getEventImageSrc } from '@/lib/pizzeria-image'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { getNowTimestamp, getVisitTimestamp, isDoneVisit } from '@/lib/visit-time'
-
-interface Visit {
-  id: string
-  date: string
-  scheduled_at: string | null
-  photos: {
-    url: string
-    is_pizza_of_night: boolean
-  }[] | null
-  pizzerias: {
-    id: string
-    name: string
-    city: string
-    google_photo_name: string | null
-    custom_image_url: string | null
-  } | null
-}
+import VisitHistoryList, { type VisitHistoryItem } from '@/components/VisitHistoryList'
 
 interface VisitsManagerProps {
-  visits?: Visit[]
+  visits?: VisitHistoryItem[]
 }
 
 export default async function VisitsManager({ visits }: VisitsManagerProps) {
@@ -36,7 +15,7 @@ export default async function VisitsManager({ visits }: VisitsManagerProps) {
       .from('visits')
       .select(VISIT_HISTORY_CARD_SELECT)
       .order('date', { ascending: false })
-      .returns<Visit[]>()
+      .returns<VisitHistoryItem[]>()
 
     const now = getNowTimestamp()
     doneVisits = (visitsData ?? [])
@@ -48,44 +27,7 @@ export default async function VisitsManager({ visits }: VisitsManagerProps) {
     <div className="space-y-6">
       <section className="glass-card space-y-3 p-6">
         <h2 className="text-3xl">Storico Eventi</h2>
-        {doneVisits.length === 0 && <p className="page-subtitle">Nessun evento concluso disponibile.</p>}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {doneVisits.map((visit) => (
-            <article key={visit.id} className="surface-card flex h-full flex-col px-3 py-3">
-              {visit.pizzerias && (
-                <div className="mb-3 overflow-hidden rounded-2xl border border-[var(--paper-border)]">
-                  <Image
-                    src={getEventImageSrc({
-                      photoOfNightUrl: (visit.photos ?? []).find((photo) => photo.is_pizza_of_night)?.url ?? null,
-                      id: visit.pizzerias.id,
-                      name: visit.pizzerias.name,
-                      city: visit.pizzerias.city,
-                      customImageUrl: visit.pizzerias.custom_image_url,
-                      googlePhotoName: visit.pizzerias.google_photo_name,
-                      width: 900,
-                    })}
-                    alt={visit.pizzerias?.name ?? 'Pizzeria'}
-                    width={900}
-                    height={500}
-                    unoptimized
-                    className="h-36 w-full object-cover"
-                  />
-                </div>
-              )}
-              <div className="text-lg font-semibold text-[var(--ink)]">{visit.pizzerias?.name ?? 'Pizzeria sconosciuta'}</div>
-              <div className="text-sm text-[var(--ink-soft)]">
-                {visit.pizzerias?.city ?? '-'} ·{' '}
-                {visit.scheduled_at
-                  ? formatDateTimeLabel(visit.scheduled_at)
-                  : formatDateLabel(`${visit.date}T12:00:00`)}
-              </div>
-              <div className="pb-4" />
-              <ButtonLink href={`/eventi/${visit.id}`} variant="secondary" className="mt-auto px-3 py-1.5 text-xs" icon={<FiArrowUpRight className="h-3.5 w-3.5" />}>
-                Apri evento
-              </ButtonLink>
-            </article>
-          ))}
-        </div>
+        <VisitHistoryList visits={doneVisits} />
       </section>
     </div>
   )

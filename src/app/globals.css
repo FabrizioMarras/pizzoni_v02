@@ -184,3 +184,34 @@ h4 {
   background: rgba(178, 74, 47, 0.12);
   color: var(--ink);
 }
+
+.scroll-loader-dot {
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 999px;
+  background: var(--terracotta);
+  animation: scroll-loader-dot 1.25s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.scroll-loader-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.scroll-loader-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes scroll-loader-dot {
+  0%,
+  70%,
+  100% {
+    transform: scale(0.72);
+    opacity: 0.55;
+  }
+
+  35% {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+}

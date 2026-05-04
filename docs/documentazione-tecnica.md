@@ -1,6 +1,6 @@
 # Documentazione Tecnica Pizzoni
 
-Versione documento: 2026-04-24  
+Versione documento: 2026-05-04  
 Stack: Next.js 16 (App Router), React 19, TypeScript, Supabase, Tailwind CSS 4
 
 ## 1. Obiettivo applicazione
@@ -148,6 +148,8 @@ Note campo evento:
 Pagina: `/pizzerie` (`src/components/PizzeriaManager.tsx`).
 - Creazione pizzeria via modal.
 - Filtro elenco: tutte / visitate / da visitare.
+- Ricerca client-side su nome, citta e indirizzo tramite `SearchBar`.
+- Paginazione incrementale client-side: prima batch da 9 card, poi ulteriori batch da 9 al raggiungimento del trigger scroll.
 - Badge visitata in base a presenza record in `visits`.
   - con fallback legacy: se manca `scheduled_at`, usa fine giornata della `date`.
 
@@ -179,6 +181,10 @@ Vincolo logico UI:
   - `VisitsManager` riceve lista eventi conclusi gia filtrata;
   - riduzione query duplicate rispetto al caricamento separato componente-per-componente.
 - Storico eventi in lista (solo eventi con orario passato).
+- Storico eventi renderizzato da `VisitHistoryList`:
+  - ricerca client-side su pizzeria, citta e data;
+  - paginazione incrementale client-side da 9 elementi per batch;
+  - ordine logico: dataset gia caricato -> ricerca/filtro -> slice visibile.
 - Dettaglio evento:
   - gestione orario prenotazione (owner/admin);
   - partecipanti;
@@ -211,6 +217,12 @@ Pagina: `/profilo`.
 - `src/components/ui/FileButton.tsx`: bottone upload file riusabile con stile coerente (`btn-secondary`) e input hidden incapsulato.
 - `src/components/ui/Avatar.tsx`: avatar unificato con fallback iniziali (URL non valido/non presente).
 - `src/components/ui/ToastProvider.tsx`: sistema toast globale (success/warning/error/info).
+- `src/components/ui/SearchBar.tsx`: barra ricerca controllata riusabile con label, placeholder, conteggio risultati opzionale, icona ricerca a destra e azione clear.
+  - Il componente gestisce solo UI/input; ogni pagina mantiene la propria logica di matching.
+- `src/components/ui/ScrollPagination.tsx`: trigger scroll riusabile basato su `IntersectionObserver`.
+  - Renderizza solo un loader a tre puntini mentre scatta il caricamento della batch successiva.
+  - Per evitare preload immediato al mount, il trigger si arma solo dopo una interazione di scroll/wheel/touchmove o tasto di navigazione.
+  - La paginazione resta client-side e presuppone che il dataset sia gia caricato nella pagina/componente padre.
 
 ## 6.6 Utility condivise
 - `src/lib/visit-time.ts`: logica unica per timestamp e stato evento:

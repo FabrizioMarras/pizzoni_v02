@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FiCheck, FiEye, FiEyeOff, FiImage, FiList, FiMapPin, FiNavigation, FiPlus } from 'react-icons/fi'
 import { mapRowsToPizzerias } from '@/lib/data/pizzeria-mapper'
 import { PIZZERIA_WITH_VISITS_SELECT } from '@/lib/data/pizzeria-queries'
@@ -12,6 +12,8 @@ import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import ButtonLink from '@/components/ui/ButtonLink'
 import FileButton from '@/components/ui/FileButton'
+import ScrollPagination from '@/components/ui/ScrollPagination'
+import SearchBar from '@/components/ui/SearchBar'
 import { getCurrentPosition, searchPlaces, type PlaceSuggestion } from '@/lib/places'
 import { useToast } from '@/components/ui/ToastProvider'
 
@@ -19,12 +21,16 @@ interface PizzeriaManagerProps {
   initialPizzerias: Pizzeria[]
 }
 
+const PIZZERIA_BATCH_SIZE = 9
+
 export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerProps) {
   const [name, setName] = useState('')
   const [location, setLocation] = useState('')
   const [city, setCity] = useState('')
   const [pizzerias, setPizzerias] = useState<Pizzeria[]>(initialPizzerias)
   const [filter, setFilter] = useState<'all' | 'visited' | 'not_visited'>('all')
+  const [listSearch, setListSearch] = useState('')
+  const [visibleCount, setVisibleCount] = useState(PIZZERIA_BATCH_SIZE)
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [searchResults, setSearchResults] = useState<PlaceSuggestion[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
@@ -244,11 +250,36 @@ export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerPro
     setSearchLoading(false)
   }
 
-  const filteredPizzerias = pizzerias.filter((pizzeria) => {
-    if (filter === 'visited') return pizzeria.visited
-    if (filter === 'not_visited') return !pizzeria.visited
-    return true
-  })
+  const filteredPizzerias = useMemo(() => {
+    const query = listSearch.trim().toLocaleLowerCase('it-IT')
+
+    return pizzerias.filter((pizzeria) => {
+      if (filter === 'visited' && !pizzeria.visited) return false
+      if (filter === 'not_visited' && pizzeria.visited) return false
+      if (!query) return true
+
+      return [pizzeria.name, pizzeria.city, pizzeria.location]
+        .join(' ')
+        .toLocaleLowerCase('it-IT')
+        .includes(query)
+    })
+  }, [filter, listSearch, pizzerias])
+  const visiblePizzerias = filteredPizzerias.slice(0, visibleCount)
+  const hasMorePizzerias = visibleCount < filteredPizzerias.length
+
+  const onListSearchChange = useCallback((value: string) => {
+    setListSearch(value)
+    setVisibleCount(PIZZERIA_BATCH_SIZE)
+  }, [])
+
+  const onFilterChange = useCallback((value: 'all' | 'visited' | 'not_visited') => {
+    setFilter(value)
+    setVisibleCount(PIZZERIA_BATCH_SIZE)
+  }, [])
+
+  const loadMorePizzerias = useCallback(() => {
+    setVisibleCount((current) => Math.min(current + PIZZERIA_BATCH_SIZE, filteredPizzerias.length))
+  }, [filteredPizzerias.length])
 
   const visitedCount = pizzerias.filter((pizzeria) => pizzeria.visited).length
   const notVisitedCount = pizzerias.length - visitedCount
@@ -367,7 +398,7 @@ export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerPro
           <div className="flex flex-wrap gap-2 text-xs">
             <Button
               type="button"
-              onClick={() => setFilter('all')}
+              onClick={() => onFilterChange('all')}
               variant={filter === 'all' ? 'primary' : 'secondary'}
               className="px-3 py-1.5"
               icon={<FiList className="h-3.5 w-3.5" />}
@@ -376,7 +407,7 @@ export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerPro
             </Button>
             <Button
               type="button"
-              onClick={() => setFilter('visited')}
+              onClick={() => onFilterChange('visited')}
               variant={filter === 'visited' ? 'primary' : 'secondary'}
               className="px-3 py-1.5"
               icon={<FiEyeOff className="h-3.5 w-3.5" />}
@@ -385,7 +416,7 @@ export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerPro
             </Button>
             <Button
               type="button"
-              onClick={() => setFilter('not_visited')}
+              onClick={() => onFilterChange('not_visited')}
               variant={filter === 'not_visited' ? 'primary' : 'secondary'}
               className="px-3 py-1.5"
               icon={<FiEye className="h-3.5 w-3.5" />}
@@ -395,57 +426,73 @@ export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerPro
           </div>
         </div>
 
-        {filteredPizzerias.length === 0 && <p className="page-subtitle">Nessuna pizzeria per questo filtro.</p>}
+        <SearchBar
+          value={listSearch}
+          onChange={onListSearchChange}
+          label="Cerca nella lista"
+          placeholder="Cerca per nome, citta o indirizzo"
+          resultCount={filteredPizzerias.length}
+          totalCount={pizzerias.length}
+        />
+
+        {filteredPizzerias.length === 0 && (
+          <p className="page-subtitle">
+            {listSearch.trim() ? 'Nessuna pizzeria corrisponde alla ricerca.' : 'Nessuna pizzeria per questo filtro.'}
+          </p>
+        )}
         {filteredPizzerias.length > 0 && (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {filteredPizzerias.map((pizzeria, index) => (
-              <article key={pizzeria.id} className="surface-card flex h-full flex-col px-3 py-3">
-                <div className="mb-3 overflow-hidden rounded-2xl border border-[var(--paper-border)]">
-                  <Image
-                    src={getPizzeriaImageSrc({
-                      id: pizzeria.id,
-                      name: pizzeria.name,
-                      city: pizzeria.city,
-                      customImageUrl: pizzeria.custom_image_url,
-                      latestEventPhotoUrl: pizzeria.latest_event_photo_url,
-                      googlePhotoName: pizzeria.google_photo_name,
-                      width: 800,
-                    })}
-                    alt={pizzeria.name}
-                    width={800}
-                    height={450}
-                    unoptimized
-                    loading={index === 0 ? 'eager' : 'lazy'}
-                    className="h-36 w-full object-cover"
-                  />
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="text-lg font-semibold text-[var(--ink)]">{pizzeria.name}</div>
-                  {pizzeria.visited ? (
-                    <span className="rounded-full bg-[rgba(81,100,58,0.15)] px-2 py-1 text-xs text-[var(--olive)]">
-                      Visitata ({pizzeria.visitsCount})
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-[rgba(178,74,47,0.15)] px-2 py-1 text-xs text-[var(--terracotta-deep)]">
-                      Da visitare
-                    </span>
-                  )}
-                </div>
-                <div className="text-sm text-[var(--ink-soft)]">{pizzeria.city} · {pizzeria.location}</div>
-                <div className="pb-3" />
-                <ButtonLink
-                  href={pizzeria.google_maps_uri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pizzeria.name} ${pizzeria.location}`)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  variant="secondary"
-                  className="mt-auto px-4 py-2 text-sm"
-                  icon={<FiMapPin className="h-4 w-4" />}
-                >
-                  Google Maps
-                </ButtonLink>
-              </article>
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {visiblePizzerias.map((pizzeria, index) => (
+                <article key={pizzeria.id} className="surface-card flex h-full flex-col px-3 py-3">
+                  <div className="mb-3 overflow-hidden rounded-2xl border border-[var(--paper-border)]">
+                    <Image
+                      src={getPizzeriaImageSrc({
+                        id: pizzeria.id,
+                        name: pizzeria.name,
+                        city: pizzeria.city,
+                        customImageUrl: pizzeria.custom_image_url,
+                        latestEventPhotoUrl: pizzeria.latest_event_photo_url,
+                        googlePhotoName: pizzeria.google_photo_name,
+                        width: 800,
+                      })}
+                      alt={pizzeria.name}
+                      width={800}
+                      height={450}
+                      unoptimized
+                      loading={index === 0 ? 'eager' : 'lazy'}
+                      className="h-36 w-full object-cover"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="text-lg font-semibold text-[var(--ink)]">{pizzeria.name}</div>
+                    {pizzeria.visited ? (
+                      <span className="rounded-full bg-[rgba(81,100,58,0.15)] px-2 py-1 text-xs text-[var(--olive)]">
+                        Visitata ({pizzeria.visitsCount})
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-[rgba(178,74,47,0.15)] px-2 py-1 text-xs text-[var(--terracotta-deep)]">
+                        Da visitare
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm text-[var(--ink-soft)]">{pizzeria.city} · {pizzeria.location}</div>
+                  <div className="pb-3" />
+                  <ButtonLink
+                    href={pizzeria.google_maps_uri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pizzeria.name} ${pizzeria.location}`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    variant="secondary"
+                    className="mt-auto px-4 py-2 text-sm"
+                    icon={<FiMapPin className="h-4 w-4" />}
+                  >
+                    Google Maps
+                  </ButtonLink>
+                </article>
+              ))}
+            </div>
+            <ScrollPagination key={`${filter}:${listSearch}`} hasMore={hasMorePizzerias} onLoadMore={loadMorePizzerias} />
+          </>
         )}
       </section>
     </div>
