@@ -200,56 +200,66 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
 
       {pizzerias.length === 0 && <p className="page-subtitle">Nessuna recensione disponibile per la città selezionata.</p>}
       <div className="space-y-3">
-        {pizzerias.map((pizzeria, index) => (
-          <article key={pizzeria.id} className="glass-card flex flex-col gap-3 p-4 transition hover:border-[var(--terracotta)] sm:p-5 md:flex-row md:items-center md:justify-between">
-            <div className="flex-1">
-              <Link href={pizzeria.latestVisitId ? `/eventi/${pizzeria.latestVisitId}` : '/eventi'} className="block">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-                  <Image
-                    src={getPizzeriaImageSrc({
-                      id: pizzeria.id,
-                      name: pizzeria.name,
-                      city: pizzeria.city,
-                      customImageUrl: pizzeria.custom_image_url,
-                      latestEventPhotoUrl: pizzeria.latest_event_photo_url,
-                      googlePhotoName: pizzeria.google_photo_name,
-                      width: 220,
-                    })}
-                    alt={pizzeria.name}
-                    width={72}
-                    height={72}
-                    unoptimized
-                    className="h-40 w-full rounded-2xl object-cover md:h-[72px] md:w-[72px]"
-                  />
-                  <div>
-                    <h2 className="text-2xl">{pizzeria.name}</h2>
-                    <p className="text-xs text-[var(--ink-soft)]">{pizzeria.location}</p>
-                    <p className="page-subtitle">{pizzeria.city}</p>
+        {pizzerias.map((pizzeria, index) => {
+          const rank = index + 1
+
+          return (
+            <article key={pizzeria.id} className="glass-card flex flex-col gap-3 p-4 transition hover:border-[var(--terracotta)] sm:p-5 md:flex-row md:items-center md:justify-between">
+              <div className="flex-1">
+                <Link href={pizzeria.latestVisitId ? `/eventi/${pizzeria.latestVisitId}` : '/eventi'} className="block">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+                    <Image
+                      src={getPizzeriaImageSrc({
+                        id: pizzeria.id,
+                        name: pizzeria.name,
+                        city: pizzeria.city,
+                        customImageUrl: pizzeria.custom_image_url,
+                        latestEventPhotoUrl: pizzeria.latest_event_photo_url,
+                        googlePhotoName: pizzeria.google_photo_name,
+                        width: 220,
+                      })}
+                      alt={pizzeria.name}
+                      width={72}
+                      height={72}
+                      unoptimized
+                      className="h-40 w-full rounded-2xl object-cover md:h-[72px] md:w-[72px]"
+                    />
+                    <div>
+                      <h2 className="text-2xl">{pizzeria.name}</h2>
+                      <p className="text-xs text-[var(--ink-soft)]">{pizzeria.location}</p>
+                      <p className="page-subtitle">{pizzeria.city}</p>
+                    </div>
                   </div>
-                </div>
-              </Link>
-              <details name="leaderboard-votes" className="mt-1">
-                <summary className="cursor-pointer text-xs font-medium text-[var(--ink-soft)] hover:text-[var(--ink)]">
-                  {votesByPizzeria[pizzeria.id]?.length ?? 0} voti
-                </summary>
-                <ul className="mt-1 inline-flex w-auto flex-col space-y-1 text-xs text-[var(--ink)]">
-                  {(votesByPizzeria[pizzeria.id] ?? []).map((vote, voteIndex) => (
-                    <li key={`${vote.reviewerName}-${voteIndex}`} className="inline-flex w-auto items-center gap-2">
-                      <span>{vote.reviewerName}</span>
-                      <span className="shrink-0 font-semibold tabular-nums">{formatMemberVote(vote.score)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            </div>
-            <div className="flex items-center gap-2 self-end md:self-auto">
-              <RankBadge rank={index + 1} size={38} />
-              <div className="rounded-full border border-[var(--paper-border)] bg-[rgba(255,255,255,0.86)] px-4 py-2 text-2xl font-bold text-[var(--ink)]">
-                {pizzeria.avg_score.toFixed(1)}
+                </Link>
+                <details name="leaderboard-votes" className="mt-1">
+                  <summary className="cursor-pointer text-xs font-medium text-[var(--ink-soft)] hover:text-[var(--ink)]">
+                    {votesByPizzeria[pizzeria.id]?.length ?? 0} voti
+                  </summary>
+                  <ul className="mt-1 inline-flex w-auto flex-col space-y-1 text-xs text-[var(--ink)]">
+                    {(votesByPizzeria[pizzeria.id] ?? []).map((vote, voteIndex) => (
+                      <li key={`${vote.reviewerName}-${voteIndex}`} className="inline-flex w-auto items-center gap-2">
+                        <span>{vote.reviewerName}</span>
+                        <span className="shrink-0 font-semibold tabular-nums">{formatMemberVote(vote.score)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               </div>
-            </div>
-          </article>
-        ))}
+              <div className="flex items-center gap-2 self-end md:self-auto">
+                {rank <= 3 ? (
+                  <RankBadge rank={rank} size={38} />
+                ) : (
+                  <span className="inline-flex h-[38px] min-w-[38px] items-center justify-center text-sm font-bold tabular-nums text-[var(--ink-soft)]">
+                    {rank}
+                  </span>
+                )}
+                <div className="rounded-full border border-[var(--paper-border)] bg-[rgba(255,255,255,0.86)] px-4 py-2 text-2xl font-bold text-[var(--ink)]">
+                  {pizzeria.avg_score.toFixed(1)}
+                </div>
+              </div>
+            </article>
+          )
+        })}
       </div>
     </section>
   )
