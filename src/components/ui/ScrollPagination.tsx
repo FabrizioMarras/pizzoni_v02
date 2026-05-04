@@ -5,82 +5,51 @@ import { useEffect, useRef, useState } from 'react'
 interface ScrollPaginationProps {
   hasMore: boolean
   onLoadMore: () => void
-  rootMargin?: string
+  threshold?: number
 }
 
 export default function ScrollPagination({
   hasMore,
   onLoadMore,
-  rootMargin = '240px 0px',
+  threshold = 160,
 }: ScrollPaginationProps) {
   const sentinelRef = useRef<HTMLDivElement | null>(null)
   const frameRef = useRef<number | null>(null)
-  const intersectingRef = useRef(false)
   const loadingRef = useRef(false)
-  const [armed, setArmed] = useState(false)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!hasMore || armed) return
+    if (!hasMore) return
 
-    const armPagination = () => setArmed(true)
-    const armPaginationFromKey = (event: KeyboardEvent) => {
-      if (['ArrowDown', 'ArrowUp', 'End', 'Home', 'PageDown', 'PageUp', ' '].includes(event.key)) {
-        setArmed(true)
-      }
+    const loadWhenNearSentinel = () => {
+      const sentinel = sentinelRef.current
+      if (!sentinel || loadingRef.current) return
+
+      const sentinelTop = sentinel.getBoundingClientRect().top
+      const isNearViewport = sentinelTop <= window.innerHeight + threshold
+      if (!isNearViewport) return
+
+      loadingRef.current = true
+      setLoading(true)
+      onLoadMore()
+      frameRef.current = window.requestAnimationFrame(() => {
+        loadingRef.current = false
+        setLoading(false)
+        frameRef.current = null
+      })
     }
 
-    window.addEventListener('scroll', armPagination, { once: true, passive: true })
-    window.addEventListener('wheel', armPagination, { once: true, passive: true })
-    window.addEventListener('touchmove', armPagination, { once: true, passive: true })
-    window.addEventListener('keydown', armPaginationFromKey)
+    window.addEventListener('scroll', loadWhenNearSentinel, { passive: true })
 
     return () => {
-      window.removeEventListener('scroll', armPagination)
-      window.removeEventListener('wheel', armPagination)
-      window.removeEventListener('touchmove', armPagination)
-      window.removeEventListener('keydown', armPaginationFromKey)
-    }
-  }, [armed, hasMore])
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current
-    if (!sentinel || !hasMore || !armed) return
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) {
-          intersectingRef.current = false
-          return
-        }
-
-        if (intersectingRef.current || loadingRef.current) return
-
-        intersectingRef.current = true
-        loadingRef.current = true
-        setLoading(true)
-        onLoadMore()
-        frameRef.current = window.requestAnimationFrame(() => {
-          loadingRef.current = false
-          setLoading(false)
-          frameRef.current = null
-        })
-      },
-      { rootMargin }
-    )
-
-    observer.observe(sentinel)
-
-    return () => {
-      observer.disconnect()
+      window.removeEventListener('scroll', loadWhenNearSentinel)
       if (frameRef.current) {
         window.cancelAnimationFrame(frameRef.current)
         frameRef.current = null
       }
-      intersectingRef.current = false
       loadingRef.current = false
     }
-  }, [armed, hasMore, onLoadMore, rootMargin])
+  }, [hasMore, onLoadMore, threshold])
 
   if (!hasMore) return null
 

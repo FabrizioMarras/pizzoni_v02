@@ -219,9 +219,9 @@ Pagina: `/profilo`.
 - `src/components/ui/ToastProvider.tsx`: sistema toast globale (success/warning/error/info).
 - `src/components/ui/SearchBar.tsx`: barra ricerca controllata riusabile con label, placeholder, conteggio risultati opzionale, icona ricerca a destra e azione clear.
   - Il componente gestisce solo UI/input; ogni pagina mantiene la propria logica di matching.
-- `src/components/ui/ScrollPagination.tsx`: trigger scroll riusabile basato su `IntersectionObserver`.
+- `src/components/ui/ScrollPagination.tsx`: trigger scroll riusabile basato su controllo posizione del sentinel durante lo scroll finestra.
   - Renderizza solo un loader a tre puntini mentre scatta il caricamento della batch successiva.
-  - Per evitare preload immediato al mount, il trigger si arma solo dopo una interazione di scroll/wheel/touchmove o tasto di navigazione.
+  - Non carica al mount: aggiunge la batch successiva solo quando un evento `scroll` porta il sentinel vicino al viewport.
   - La paginazione resta client-side e presuppone che il dataset sia gia caricato nella pagina/componente padre.
 
 ## 6.6 Utility condivise
