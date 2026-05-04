@@ -429,7 +429,7 @@ export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerPro
         <SearchBar
           value={listSearch}
           onChange={onListSearchChange}
-          label="Cerca nella lista"
+          ariaLabel="Cerca nella lista"
           placeholder="Cerca per nome, citta o indirizzo"
           resultCount={filteredPizzerias.length}
           totalCount={pizzerias.length}

@@ -7,28 +7,39 @@ import Button from '@/components/ui/Button'
 interface SearchBarProps {
   value: string
   onChange: (value: string) => void
-  label: string
+  label?: string
+  ariaLabel?: string
   placeholder?: string
   resultCount?: number
   totalCount?: number
 }
 
-export default function SearchBar({ value, onChange, label, placeholder = 'Cerca...', resultCount, totalCount }: SearchBarProps) {
+export default function SearchBar({ value, onChange, label, ariaLabel, placeholder = 'Cerca...', resultCount, totalCount }: SearchBarProps) {
   const inputId = useId()
   const hasSummary = typeof resultCount === 'number' && typeof totalCount === 'number'
+  const accessibleLabel = ariaLabel ?? label ?? placeholder
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <label htmlFor={inputId} className="label-text mb-0">
-          {label}
+      {(label || hasSummary) && (
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          {label && (
+            <label htmlFor={inputId} className="label-text mb-0">
+              {label}
+            </label>
+          )}
+          {hasSummary && (
+            <span className="ml-auto text-xs font-semibold text-[var(--ink-soft)]">
+              {resultCount} / {totalCount}
+            </span>
+          )}
+        </div>
+      )}
+      {!label && (
+        <label htmlFor={inputId} className="sr-only">
+          {accessibleLabel}
         </label>
-        {hasSummary && (
-          <span className="text-xs font-semibold text-[var(--ink-soft)]">
-            {resultCount} / {totalCount}
-          </span>
-        )}
-      </div>
+      )}
       <div className="relative">
         <input
           id={inputId}

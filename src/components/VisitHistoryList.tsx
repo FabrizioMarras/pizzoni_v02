@@ -73,7 +73,7 @@ export default function VisitHistoryList({ visits }: VisitHistoryListProps) {
       <SearchBar
         value={search}
         onChange={onSearchChange}
-        label="Cerca nello storico"
+        ariaLabel="Cerca nello storico"
         placeholder="Cerca per pizzeria, citta o data"
         resultCount={filteredVisits.length}
         totalCount={visits.length}
