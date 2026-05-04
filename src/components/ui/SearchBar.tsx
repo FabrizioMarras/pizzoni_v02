@@ -43,22 +43,24 @@ export default function SearchBar({ value, onChange, label, ariaLabel, placehold
       <div className="relative">
         <input
           id={inputId}
-          type="search"
+          type="text"
+          role="searchbox"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          className="field-input pr-20"
+          className="field-input pr-11"
         />
-        <FiSearch className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-soft)]" aria-hidden="true" />
-        {value && (
+        {value ? (
           <Button
             type="button"
             onClick={() => onChange('')}
             variant="unstyled"
-            className="absolute right-9 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full text-[var(--ink-soft)] transition hover:bg-[rgba(178,74,47,0.12)] hover:text-[var(--ink)]"
+            className="absolute right-2 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full text-[var(--ink-soft)] transition hover:bg-[rgba(178,74,47,0.12)] hover:text-[var(--ink)]"
             icon={<FiX className="h-4 w-4" />}
             aria-label="Cancella ricerca"
           />
+        ) : (
+          <FiSearch className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-soft)]" aria-hidden="true" />
         )}
       </div>
     </div>

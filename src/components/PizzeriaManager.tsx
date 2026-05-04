@@ -23,6 +23,22 @@ interface PizzeriaManagerProps {
 
 const PIZZERIA_BATCH_SIZE = 9
 
+function normalizeDuplicateKey(value: string) {
+  return value.trim().toLocaleLowerCase('it-IT').replace(/\s+/g, ' ')
+}
+
+function findDuplicatePizzeria(pizzerias: Pizzeria[], nextName: string, nextCity: string) {
+  const normalizedName = normalizeDuplicateKey(nextName)
+  const normalizedCity = normalizeDuplicateKey(nextCity)
+
+  if (!normalizedName || !normalizedCity) return null
+
+  return pizzerias.find((pizzeria) => (
+    normalizeDuplicateKey(pizzeria.name) === normalizedName &&
+    normalizeDuplicateKey(pizzeria.city) === normalizedCity
+  )) ?? null
+}
+
 export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerProps) {
   const [name, setName] = useState('')
   const [location, setLocation] = useState('')
@@ -156,6 +172,13 @@ export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerPro
 
   const createPizzeria = async (event: React.FormEvent) => {
     event.preventDefault()
+
+    const duplicatePizzeria = findDuplicatePizzeria(pizzerias, name, city)
+    if (duplicatePizzeria) {
+      toast.warning(`Pizzeria gia presente: ${duplicatePizzeria.name}, ${duplicatePizzeria.city}.`)
+      return
+    }
+
     setSaving(true)
 
     const {

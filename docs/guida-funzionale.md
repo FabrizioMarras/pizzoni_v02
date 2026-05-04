@@ -16,6 +16,7 @@ Questo file verra aggiornato man mano che aggiungiamo nuove funzionalita.
 
 ## 3. Pizzerie (`/pizzerie`)
 - Aggiunta nuova pizzeria: nome, indirizzo, citta.
+- Se nome e citta corrispondono a una pizzeria gia presente, l'app blocca la creazione e mostra un avviso.
 - Upload immagine pizzeria opzionale in creazione.
 - Visualizzazione elenco pizzerie gia inserite.
 - Ricerca nell'elenco per nome, citta o indirizzo.
@@ -109,3 +110,4 @@ Aggiornare questo blocco ogni volta che viene aggiunta/modificata una funzionali
 - 2026-04-24: Aggiornato `Button` condiviso con supporto icone sinistra/destra e applicazione su tutti i pulsanti.
 - 2026-05-03: Guida aggiornata con regole immagini pizzeria/evento, note multiutente e fallback avatar.
 - 2026-05-04: Aggiunta ricerca riusabile e paginazione incrementale su `Pizzerie` e storico `Eventi`.
+- 2026-05-04: Aggiunto controllo duplicati in creazione pizzeria su nome+citta.

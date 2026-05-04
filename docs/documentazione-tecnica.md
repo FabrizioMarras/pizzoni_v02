@@ -147,6 +147,7 @@ Note campo evento:
 ## 6.1 Gestione pizzerie
 Pagina: `/pizzerie` (`src/components/PizzeriaManager.tsx`).
 - Creazione pizzeria via modal.
+- La creazione blocca duplicati locali confrontando nome+citta normalizzati con l'elenco gia caricato; in caso di match mostra toast warning e non esegue upload/insert.
 - Filtro elenco: tutte / visitate / da visitare.
 - Ricerca client-side su nome, citta e indirizzo tramite `SearchBar`.
 - Paginazione incrementale client-side: prima batch da 9 card, poi ulteriori batch da 9 al raggiungimento del trigger scroll.
