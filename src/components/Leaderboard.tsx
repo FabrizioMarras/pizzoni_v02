@@ -206,8 +206,8 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
           return (
             <article key={pizzeria.id} className="glass-card flex flex-col gap-3 p-4 transition hover:border-[var(--terracotta)] sm:p-5 md:flex-row md:items-center md:justify-between">
               <div className="flex-1">
-                <Link href={pizzeria.latestVisitId ? `/eventi/${pizzeria.latestVisitId}` : '/eventi'} className="block">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4">
+                  <Link href={pizzeria.latestVisitId ? `/eventi/${pizzeria.latestVisitId}` : '/eventi'} className="block md:shrink-0">
                     <Image
                       src={getPizzeriaImageSrc({
                         id: pizzeria.id,
@@ -219,31 +219,33 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
                         width: 220,
                       })}
                       alt={pizzeria.name}
-                      width={72}
-                      height={72}
+                      width={112}
+                      height={90}
                       unoptimized
-                      className="h-40 w-full rounded-2xl object-cover md:h-[72px] md:w-[72px]"
+                      className="h-40 w-full rounded-2xl object-cover md:h-[90px] md:w-[112px] md:shrink-0"
                     />
-                    <div>
+                  </Link>
+                  <div className="min-w-0">
+                    <Link href={pizzeria.latestVisitId ? `/eventi/${pizzeria.latestVisitId}` : '/eventi'} className="block">
                       <h2 className="text-2xl">{pizzeria.name}</h2>
                       <p className="text-xs text-[var(--ink-soft)]">{pizzeria.location}</p>
                       <p className="page-subtitle">{pizzeria.city}</p>
-                    </div>
+                    </Link>
+                    <details name="leaderboard-votes" className="mt-1">
+                      <summary className="cursor-pointer text-xs font-medium text-[var(--ink-soft)] hover:text-[var(--ink)]">
+                        {votesByPizzeria[pizzeria.id]?.length ?? 0} voti
+                      </summary>
+                      <ul className="mt-1 inline-flex w-auto flex-col space-y-1 text-xs text-[var(--ink)]">
+                        {(votesByPizzeria[pizzeria.id] ?? []).map((vote, voteIndex) => (
+                          <li key={`${vote.reviewerName}-${voteIndex}`} className="inline-flex w-auto items-center gap-2">
+                            <span>{vote.reviewerName}</span>
+                            <span className="shrink-0 font-semibold tabular-nums">{formatMemberVote(vote.score)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
                   </div>
-                </Link>
-                <details name="leaderboard-votes" className="mt-1">
-                  <summary className="cursor-pointer text-xs font-medium text-[var(--ink-soft)] hover:text-[var(--ink)]">
-                    {votesByPizzeria[pizzeria.id]?.length ?? 0} voti
-                  </summary>
-                  <ul className="mt-1 inline-flex w-auto flex-col space-y-1 text-xs text-[var(--ink)]">
-                    {(votesByPizzeria[pizzeria.id] ?? []).map((vote, voteIndex) => (
-                      <li key={`${vote.reviewerName}-${voteIndex}`} className="inline-flex w-auto items-center gap-2">
-                        <span>{vote.reviewerName}</span>
-                        <span className="shrink-0 font-semibold tabular-nums">{formatMemberVote(vote.score)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
+                </div>
               </div>
               <div className="flex items-center gap-2 self-end md:self-auto">
                 {rank <= 3 ? (
