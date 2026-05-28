@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { FiX } from 'react-icons/fi'
 import Button from '@/components/ui/Button'
 
@@ -29,9 +30,9 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
     }
   }, [open, onClose])
 
-  if (!open) return null
+  if (!open || typeof document === 'undefined' || !document.body) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] bg-[rgba(43,31,26,0.45)]" onClick={onClose}>
       <div
         className="h-full w-full bg-[rgba(247,240,228,0.98)] md:mx-auto md:mt-[8vh] md:h-auto md:max-h-[84vh] md:w-[min(760px,100%-2rem)] md:rounded-2xl md:border md:border-[var(--panel-border)] md:bg-[rgba(255,251,246,0.98)] md:shadow-[0_18px_42px_rgba(43,31,26,0.28)]"
@@ -54,6 +55,7 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -27,15 +27,19 @@ function normalizeDuplicateKey(value: string) {
   return value.trim().toLocaleLowerCase('it-IT').replace(/\s+/g, ' ')
 }
 
-function findDuplicatePizzeria(pizzerias: Pizzeria[], nextName: string, nextCity: string) {
+function findDuplicatePizzeria(pizzerias: Pizzeria[], nextName: string, nextCity: string, nextLocation: string) {
   const normalizedName = normalizeDuplicateKey(nextName)
   const normalizedCity = normalizeDuplicateKey(nextCity)
+  const normalizedLocation = normalizeDuplicateKey(nextLocation)
 
   if (!normalizedName || !normalizedCity) return null
 
+  // Same name in the same city can be different pizzerias (different branches),
+  // so the address must also match to be considered a duplicate.
   return pizzerias.find((pizzeria) => (
     normalizeDuplicateKey(pizzeria.name) === normalizedName &&
-    normalizeDuplicateKey(pizzeria.city) === normalizedCity
+    normalizeDuplicateKey(pizzeria.city) === normalizedCity &&
+    normalizeDuplicateKey(pizzeria.location) === normalizedLocation
   )) ?? null
 }
 
@@ -173,7 +177,7 @@ export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerPro
   const createPizzeria = async (event: React.FormEvent) => {
     event.preventDefault()
 
-    const duplicatePizzeria = findDuplicatePizzeria(pizzerias, name, city)
+    const duplicatePizzeria = findDuplicatePizzeria(pizzerias, name, city, location)
     if (duplicatePizzeria) {
       toast.warning(`Pizzeria gia presente: ${duplicatePizzeria.name}, ${duplicatePizzeria.city}.`)
       return

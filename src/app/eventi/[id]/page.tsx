@@ -3,11 +3,13 @@ import { FiMapPin } from 'react-icons/fi'
 import Nav from '@/components/Nav'
 import AttendeesManager from '@/components/AttendeesManager'
 import EventNotesManager from '@/components/EventNotesManager'
+import EventLocationManager from '@/components/EventLocationManager'
 import EventScheduleManager from '@/components/EventScheduleManager'
 import PhotoGalleryManager from '@/components/PhotoGalleryManager'
 import ReviewForm from '@/components/ReviewForm'
 import { getProfileMembershipFlags } from '@/lib/profile-flags'
 import type { VisitPhoto } from '@/lib/data/photos-client'
+import type { ExistingPizzeria } from '@/lib/data/event-votes-client'
 import ButtonLink from '@/components/ui/ButtonLink'
 import MemberIdentity from '@/components/ui/MemberIdentity'
 import RankBadge from '@/components/ui/RankBadge'
@@ -233,6 +235,15 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
     : { data: null }
   const isAdmin = userId ? (await getProfileMembershipFlags(supabase, userId)).isAdmin : false
   const canManageSchedule = Boolean(userId) && (isAdmin || userId === visit.created_by)
+  let initialPizzerias: ExistingPizzeria[] = []
+  if (canManageSchedule) {
+    const { data } = await supabase
+      .from('pizzerias')
+      .select('id, name, location, city, google_place_id, google_maps_uri, google_photo_name, latitude, longitude')
+      .order('name', { ascending: true })
+      .returns<ExistingPizzeria[]>()
+    initialPizzerias = data ?? []
+  }
   let initialMembers: MemberRow[] = []
   if (isAdmin) {
     const { data } = await supabase
@@ -289,16 +300,24 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
             {pizzeria.city}
           </p>
 
-          <ButtonLink
-            href={pizzeria.google_maps_uri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pizzeria.name} ${pizzeria.location}`)}`}
-            target="_blank"
-            rel="noreferrer"
-            variant="secondary"
-            className="mt-4 px-4 py-2 text-sm"
-            icon={<FiMapPin className="h-4 w-4" />}
-          >
-            Apri in Google Maps
-          </ButtonLink>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <ButtonLink
+              href={pizzeria.google_maps_uri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pizzeria.name} ${pizzeria.location}`)}`}
+              target="_blank"
+              rel="noreferrer"
+              variant="secondary"
+              className="px-4 py-2 text-sm"
+              icon={<FiMapPin className="h-4 w-4" />}
+            >
+              Apri in Google Maps
+            </ButtonLink>
+            <EventLocationManager
+              visitId={id}
+              currentPizzeria={{ id: pizzeria.id, name: pizzeria.name, location: pizzeria.location, city: pizzeria.city }}
+              initialPizzerias={initialPizzerias}
+              canManage={canManageSchedule}
+            />
+          </div>
         </section>
 
         <EventScheduleManager
