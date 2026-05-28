@@ -351,7 +351,6 @@ Comandi:
 - `npm run lint`
 - `npm run check:routes`
 - `npm run build`
-- `npm run test:e2e` (smoke e2e con Playwright via `npx`)
 
 Stato atteso:
 - lint senza errori;

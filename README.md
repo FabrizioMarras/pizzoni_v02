@@ -115,15 +115,6 @@ npm run check:routes
 npm run build
 ```
 
-Smoke test e2e (Playwright):
-
-```bash
-npm run test:e2e
-```
-
-Note:
-- il comando usa `npx playwright`; alla prima esecuzione potrebbe richiedere installazione runtime/browser.
-
 ## Documentazione
 
 - Guida utente funzionale: `docs/guida-funzionale.md`

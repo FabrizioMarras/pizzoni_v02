@@ -7,8 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "check:routes": "node scripts/check-canonical-routes.mjs",
-    "test:e2e": "npx playwright test"
+    "check:routes": "node scripts/check-canonical-routes.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
