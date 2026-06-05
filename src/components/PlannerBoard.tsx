@@ -334,6 +334,9 @@ export default function PlannerBoard({
   const countVotes = (optionId: string, availability: 'available' | 'not_available') =>
     availabilityVotes.filter((vote) => vote.date_option_id === optionId && vote.availability === availability).length
 
+  const getVoters = (optionId: string, availability: 'available' | 'not_available') =>
+    availabilityVotes.filter((vote) => vote.date_option_id === optionId && vote.availability === availability)
+
   const myVote = (optionId: string) => availabilityVotes.find((vote) => vote.date_option_id === optionId && vote.user_id === userId)?.availability
 
   return (
@@ -488,10 +491,40 @@ export default function PlannerBoard({
                 const available = countVotes(option.id, 'available')
                 const notAvailable = countVotes(option.id, 'not_available')
                 const mine = myVote(option.id)
+                const availableVoters = getVoters(option.id, 'available')
+                const notAvailableVoters = getVoters(option.id, 'not_available')
                 return (
                   <div key={option.id} className="rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
                     <div className="mb-2 text-sm font-semibold text-[var(--ink)]">{formatDate(option.option_date)}</div>
-                    <div className="mb-2 text-xs text-[var(--ink-soft)]">Disponibili: {available} · Non disponibili: {notAvailable}</div>
+                    {availableVoters.length > 0 && (
+                      <div className="mb-1.5">
+                        <span className="text-xs text-[var(--ink-soft)]">Disponibili ({available})</span>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {availableVoters.map((vote) => (
+                            <span key={vote.id} className="inline-flex items-center gap-1 rounded-full bg-[rgba(81,100,58,0.12)] px-2 py-0.5 text-xs text-[var(--olive)]">
+                              <span>{vote.voter?.pizza_emoji ?? vote.voter?.name?.[0] ?? '?'}</span>
+                              <span>{vote.voter?.name ?? 'Utente'}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {notAvailableVoters.length > 0 && (
+                      <div className="mb-2">
+                        <span className="text-xs text-[var(--ink-soft)]">Non disponibili ({notAvailable})</span>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {notAvailableVoters.map((vote) => (
+                            <span key={vote.id} className="inline-flex items-center gap-1 rounded-full bg-[rgba(178,74,47,0.1)] px-2 py-0.5 text-xs text-[var(--terracotta-deep)]">
+                              <span>{vote.voter?.pizza_emoji ?? vote.voter?.name?.[0] ?? '?'}</span>
+                              <span>{vote.voter?.name ?? 'Utente'}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {available === 0 && notAvailable === 0 && (
+                      <div className="mb-2 text-xs text-[var(--ink-soft)]">Nessun voto ancora.</div>
+                    )}
                     <div className="flex flex-wrap gap-2">
                       <Button
                         type="button"

@@ -25,6 +25,11 @@ export interface EventAvailabilityVote {
   date_option_id: string
   user_id: string
   availability: 'available' | 'not_available'
+  voter?: {
+    name: string | null
+    avatar_url: string | null
+    pizza_emoji: string | null
+  } | null
 }
 
 export interface ExistingPizzeria {
@@ -54,7 +59,7 @@ export async function fetchPlannerData(supabase: SB) {
   const [{ data: eventVotes }, { data: dateChoices }, { data: availabilityVotes }, { data: existingPizzerias }] = await Promise.all([
     supabase.from('agenda_polls').select('*').order('created_at', { ascending: false }).returns<EventVote[]>(),
     supabase.from('agenda_poll_date_options').select('id, poll_id, option_date').order('option_date', { ascending: true }).returns<EventDateOption[]>(),
-    supabase.from('agenda_poll_date_votes').select('id, poll_id, date_option_id, user_id, availability').returns<EventAvailabilityVote[]>(),
+    supabase.from('agenda_poll_date_votes').select('id, poll_id, date_option_id, user_id, availability, voter:profiles(name, avatar_url, pizza_emoji)').returns<EventAvailabilityVote[]>(),
     supabase.from('pizzerias').select('id, name, location, city, google_place_id, google_maps_uri, google_photo_name, latitude, longitude').order('name', { ascending: true }).returns<ExistingPizzeria[]>(),
   ])
 
