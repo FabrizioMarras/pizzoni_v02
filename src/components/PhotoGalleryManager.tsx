@@ -243,9 +243,7 @@ export default function PhotoGalleryManager({ visitId, userId, initialPhotos }: 
   }
 
   return (
-    <section className="glass-card space-y-4 p-6">
-      <h2 className="text-3xl">Foto</h2>
-
+    <div className="space-y-4">
       <section className="space-y-3 rounded-2xl border border-[var(--paper-border)] bg-[rgba(255,255,255,0.7)] p-4">
         <div>
           <h3 className="text-lg font-semibold text-[var(--ink)]">Aggiungi nuova foto</h3>
@@ -394,6 +392,6 @@ export default function PhotoGalleryManager({ visitId, userId, initialPhotos }: 
           ))}
         </div>
       </section>
-    </section>
+    </div>
   )
 }

@@ -155,9 +155,7 @@ export default function AttendeesManager({ visitId, userId, isAdmin, initialAtte
   }
 
   return (
-    <section className="glass-card space-y-4 p-6">
-      <h2 className="text-3xl">Partecipazione</h2>
-
+    <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         {!isJoined ? (
           <Button
@@ -241,6 +239,6 @@ export default function AttendeesManager({ visitId, userId, isAdmin, initialAtte
           </div>
         </div>
       )}
-    </section>
+    </div>
   )
 }

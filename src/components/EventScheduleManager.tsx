@@ -110,8 +110,7 @@ export default function EventScheduleManager({ visitId, initialDate, initialSche
   const fallbackDateLabel = formatDateLabel(`${initialDate}T12:00:00`)
 
   return (
-    <section className="glass-card space-y-3 p-6">
-      <h2 className="text-3xl">Orario Evento</h2>
+    <div className="space-y-3">
       {!canManage && (
         <p className="page-subtitle">Solo il creatore evento o un admin possono impostare/modificare l’orario.</p>
       )}
@@ -161,6 +160,6 @@ export default function EventScheduleManager({ visitId, initialDate, initialSche
       {isAdmin && canManage && (
         <p className="text-xs text-[var(--ink-soft)]">Permesso admin attivo.</p>
       )}
-    </section>
+    </div>
   )
 }

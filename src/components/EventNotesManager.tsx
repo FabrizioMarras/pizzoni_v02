@@ -148,8 +148,7 @@ export default function EventNotesManager({ visitId, userId, initialNotes }: Eve
   }
 
   return (
-    <section className="glass-card space-y-3 p-6">
-      <h2 className="text-3xl">Note Evento</h2>
+    <div className="space-y-3">
       <p className="page-subtitle">Ogni membro può aggiungere note. Solo l’autore può modificare o eliminare la propria nota.</p>
 
       <form onSubmit={addNote} className="space-y-3">
@@ -253,6 +252,6 @@ export default function EventNotesManager({ visitId, userId, initialNotes }: Eve
           )
         })}
       </div>
-    </section>
+    </div>
   )
 }

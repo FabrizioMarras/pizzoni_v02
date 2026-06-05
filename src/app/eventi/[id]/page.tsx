@@ -10,6 +10,7 @@ import ReviewForm from '@/components/ReviewForm'
 import { getProfileMembershipFlags } from '@/lib/profile-flags'
 import type { VisitPhoto } from '@/lib/data/photos-client'
 import type { ExistingPizzeria } from '@/lib/data/event-votes-client'
+import CollapsiblePanel from '@/components/ui/CollapsiblePanel'
 import ButtonLink from '@/components/ui/ButtonLink'
 import MemberIdentity from '@/components/ui/MemberIdentity'
 import RankBadge from '@/components/ui/RankBadge'
@@ -320,27 +321,38 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
           </div>
         </section>
 
-        <EventScheduleManager
-          visitId={id}
-          initialDate={visit.date}
-          initialScheduledAt={visit.scheduled_at}
-          canManage={canManageSchedule}
-          isAdmin={isAdmin}
-        />
-        {userId && <ReviewForm visitId={id} userId={userId} initialReview={myReviewData ?? null} />}
-        {userId && <EventNotesManager visitId={id} userId={userId} initialNotes={notesData ?? []} />}
-        {userId && (
-          <AttendeesManager
+        <CollapsiblePanel title="Orario Evento">
+          <EventScheduleManager
             visitId={id}
-            userId={userId}
+            initialDate={visit.date}
+            initialScheduledAt={visit.scheduled_at}
+            canManage={canManageSchedule}
             isAdmin={isAdmin}
-            initialAttendees={attendeesData ?? []}
-            initialMembers={initialMembers}
           />
+        </CollapsiblePanel>
+        {userId && (
+          <CollapsiblePanel title="Partecipazione">
+            <AttendeesManager
+              visitId={id}
+              userId={userId}
+              isAdmin={isAdmin}
+              initialAttendees={attendeesData ?? []}
+              initialMembers={initialMembers}
+            />
+          </CollapsiblePanel>
+        )}
+        {userId && (
+          <CollapsiblePanel title="La Tua Recensione">
+            <ReviewForm visitId={id} userId={userId} initialReview={myReviewData ?? null} />
+          </CollapsiblePanel>
+        )}
+        {userId && (
+          <CollapsiblePanel title="Note Evento">
+            <EventNotesManager visitId={id} userId={userId} initialNotes={notesData ?? []} />
+          </CollapsiblePanel>
         )}
 
-        <section className="glass-card space-y-3 p-6">
-          <h2 className="text-3xl">Tutte le Recensioni</h2>
+        <CollapsiblePanel title="Tutte le Recensioni">
           {(reviewSummaries ?? []).length === 0 && <p className="page-subtitle">Ancora nessuna recensione.</p>}
           {(reviewSummaries ?? []).map((review) => {
             const profile = firstOrThrow(review.profiles)
@@ -353,9 +365,13 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
               </div>
             )
           })}
-        </section>
+        </CollapsiblePanel>
 
-        {userId && <PhotoGalleryManager visitId={id} userId={userId} initialPhotos={galleryPhotosData ?? []} />}
+        {userId && (
+          <CollapsiblePanel title="Foto">
+            <PhotoGalleryManager visitId={id} userId={userId} initialPhotos={galleryPhotosData ?? []} />
+          </CollapsiblePanel>
+        )}
       </main>
     </div>
   )

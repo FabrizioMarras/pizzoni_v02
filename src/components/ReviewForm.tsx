@@ -87,8 +87,7 @@ export default function ReviewForm({ visitId, userId, initialReview }: ReviewFor
   }
 
   return (
-    <section className="glass-card space-y-4 p-6">
-      <h2 className="text-3xl">La Tua Recensione</h2>
+    <div className="space-y-4">
       {myReview?.final_score !== null && myReview?.final_score !== undefined && (
         <p className="page-subtitle">Punteggio finale attuale: {myReview.final_score.toFixed(1)}</p>
       )}
@@ -117,6 +116,6 @@ export default function ReviewForm({ visitId, userId, initialReview }: ReviewFor
           {saving ? 'Salvataggio...' : 'Salva Recensione'}
         </Button>
       </form>
-    </section>
+    </div>
   )
 }
