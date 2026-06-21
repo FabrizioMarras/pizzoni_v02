@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import { FiCalendar, FiExternalLink } from 'react-icons/fi'
-import MemberIdentity from '@/components/ui/MemberIdentity'
+import NextEventAttendees from '@/components/NextEventAttendees'
 import ButtonLink from '@/components/ui/ButtonLink'
 import { VISIT_NEXT_EVENT_SELECT } from '@/lib/data/visit-queries'
 import { formatDateLabel, formatDateTimeLabel } from '@/lib/date-format'
@@ -107,7 +107,7 @@ export default async function NextEventCard({ showCreateAction = true, visit }: 
 
   return (
     <section className="glass-card p-5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-stretch">
+      <div className="flex flex-col gap-4 md:flex-row md:items-stretch md:min-h-60">
         <div className="relative overflow-hidden rounded-2xl border border-[var(--paper-border)] md:w-[42%] md:shrink-0 md:self-stretch">
           <Image
             src={getEventImageSrc({
@@ -138,24 +138,7 @@ export default async function NextEventCard({ showCreateAction = true, visit }: 
           {!nextVisit.scheduled_at && <p className="text-xs text-[var(--ink-soft)]">Orario da confermare</p>}
           <p className="text-sm text-[var(--ink-soft)]">{pizzeria.city} · {pizzeria.location}</p>
 
-          <div className="mt-3">
-            <p className="text-xs uppercase tracking-[0.1em] text-[var(--ink-soft)]">Partecipanti ({attendees.length})</p>
-            {attendees.length === 0 ? (
-              <p className="mt-1 text-sm page-subtitle">Nessuno ancora confermato.</p>
-            ) : (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {attendees.map((attendee) => (
-                  <span key={attendee.id} className="rounded-full bg-[rgba(255,255,255,0.75)] px-3 py-1 text-xs text-[var(--ink)]">
-                    <MemberIdentity
-                      name={attendee.name}
-                      email={attendee.email}
-                      avatarUrl={attendee.avatarUrl}
-                    />
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+          <NextEventAttendees attendees={attendees} />
 
           <ButtonLink
             href={`/eventi/${nextVisit.id}`}
