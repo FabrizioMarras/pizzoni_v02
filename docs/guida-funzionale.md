@@ -179,3 +179,4 @@ Il flusso di pianificazione e votazione-first: prima si vota la data, poi l'even
 - 2026-06-21: Sezioni dettaglio evento rese collassabili.
 - 2026-06-21: Aggiunta cancellazione votazione aperta da admin con conferma modal.
 - 2026-06-21: Aggiunto Vercel Cron per prevenire pausa DB Supabase piano free.
+- 2026-06-21: Aggiunta anteprima OG dinamica per condivisione eventi (WhatsApp, Telegram, etc.): immagine pizzeria, nome, data e orario.

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import { FiMapPin } from 'react-icons/fi'
 import Nav from '@/components/Nav'
@@ -16,13 +17,73 @@ import MemberIdentity from '@/components/ui/MemberIdentity'
 import RankBadge from '@/components/ui/RankBadge'
 import { formatDateLabel, formatDateTimeLabel } from '@/lib/date-format'
 import { getEventImageSrc } from '@/lib/pizzeria-image'
-import { firstOrThrow } from '@/lib/supabase-relations'
+import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import { firstOrNull, firstOrThrow } from '@/lib/supabase-relations'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 interface VisitPageProps {
   params: Promise<{
     id: string
   }>
+}
+
+interface MetaPizzeria {
+  name: string
+  city: string
+}
+
+interface MetaVisit {
+  date: string
+  scheduled_at: string | null
+  pizzerias: MetaPizzeria | MetaPizzeria[]
+}
+
+function formatOgDate(scheduledAt: string | null, date: string): string {
+  const tz = 'Europe/Amsterdam'
+  if (scheduledAt) {
+    const d = new Date(scheduledAt)
+    const datePart = new Intl.DateTimeFormat('it-IT', { timeZone: tz, day: 'numeric', month: 'long', year: 'numeric' }).format(d)
+    const timePart = new Intl.DateTimeFormat('it-IT', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d)
+    return `${datePart} · ${timePart}`
+  }
+  return new Intl.DateTimeFormat('it-IT', { timeZone: tz, day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${date}T12:00:00Z`))
+}
+
+export async function generateMetadata({ params }: VisitPageProps): Promise<Metadata> {
+  const { id } = await params
+
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return {}
+
+  const adminSupabase = createSupabaseAdminClient()
+  const { data: visit } = await adminSupabase
+    .from('visits')
+    .select('date, scheduled_at, pizzerias(name, city)')
+    .eq('id', id)
+    .maybeSingle<MetaVisit>()
+
+  if (!visit) return {}
+
+  const pizzeria = firstOrNull(visit.pizzerias)
+  const name = pizzeria?.name ?? 'Evento'
+  const city = pizzeria?.city ?? ''
+  const dateLabel = formatOgDate(visit.scheduled_at, visit.date)
+  const title = `${name} · ${dateLabel}`
+  const description = `Serata Pizzoni${city ? ` a ${city}` : ''}`
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+  }
 }
 
 interface VisitDetails {
@@ -200,7 +261,7 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
       <div className="app-shell">
         <Nav />
         <main className="page-wrap">
-          <div className="glass-card p-6 text-[var(--ink-soft)]">Visita non trovata.</div>
+          <div className="glass-card p-6 text-(--ink-soft)">Visita non trovata.</div>
         </main>
       </div>
     )
@@ -261,7 +322,7 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
       <Nav />
       <main className="page-wrap space-y-6">
         <section className="glass-card relative p-6">
-          <div className="mb-4 overflow-hidden rounded-2xl border border-[var(--paper-border)]">
+          <div className="mb-4 overflow-hidden rounded-2xl border border-(--paper-border)">
             <Image
               src={getEventImageSrc({
                 photoOfNightUrl: photoOfNight,
@@ -282,7 +343,7 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
           {rank > 0 && (
             <div className="absolute right-3 top-3 z-10 flex items-center gap-2 md:bottom-4 md:right-4 md:top-auto">
               {score !== null && (
-                <div className="rounded-full border border-[var(--paper-border)] bg-[rgba(255,255,255,0.92)] px-3 py-1 text-sm font-semibold text-[var(--ink)]">
+                <div className="rounded-full border border-(--paper-border) bg-[rgba(255,255,255,0.92)] px-3 py-1 text-sm font-semibold text-foreground">
                   {score.toFixed(1)}
                 </div>
               )}
@@ -291,7 +352,7 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
           )}
 
           <h1 className="page-title mb-1">{pizzeria.name}</h1>
-          <p className="text-sm text-[var(--ink-soft)]">{pizzeria.location}</p>
+          <p className="text-sm text-(--ink-soft)">{pizzeria.location}</p>
 
           <p className="mt-2 page-subtitle">
             {visit.scheduled_at
@@ -357,7 +418,7 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
           {(reviewSummaries ?? []).map((review) => {
             const profile = firstOrThrow(review.profiles)
             return (
-              <div key={review.id} className="surface-card px-3 py-2 text-sm text-[var(--ink)]">
+              <div key={review.id} className="surface-card px-3 py-2 text-sm text-foreground">
                 <span className="font-medium">
                   <MemberIdentity name={profile.name} avatarUrl={profile.avatar_url} />
                 </span>

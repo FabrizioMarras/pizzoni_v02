@@ -23,6 +23,7 @@ App privata per un gruppo chiuso: organizza serate pizza, vota le date, registra
   - Note evento multiutente (ogni autore gestisce le proprie)
   - Foto: upload da file o camera, tag unico "foto della serata"
 - Export calendario `.ics` per ogni evento
+- Anteprime OG dinamiche per la condivisione evento (WhatsApp, Telegram, etc.)
 - Vercel Cron per prevenire la pausa automatica del DB Supabase piano free
 
 ## Stack
@@ -48,10 +49,13 @@ Crea `.env.local` a partire da `env.example`:
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=
 GOOGLE_MAPS_API_KEY=
 ```
+
+`SUPABASE_SERVICE_ROLE_KEY` si trova in Supabase Dashboard → Project → Settings → API → "Project API keys" (sezione `service_role`). Usata solo server-side per generare le anteprime OG delle pagine evento.
 
 ### 3. Migrazioni database (Supabase Cloud, senza CLI)
 
