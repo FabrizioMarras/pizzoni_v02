@@ -1,113 +1,181 @@
 # Guida Funzionale Pizzoni
 
-Documento di riferimento per capire cosa puo fare l'utente in ogni pagina.
-Questo file verra aggiornato man mano che aggiungiamo nuove funzionalita.
+Questo documento descrive cosa puo fare l'utente in ogni pagina dell'app. E il riferimento principale per capire il comportamento atteso delle funzionalita, indipendentemente dall'implementazione tecnica.
+
+Per i dettagli tecnici, vedere `docs/documentazione-tecnica.md`.
+
+---
+
+## Indice
+
+1. [Login](#1-login-accedi)
+2. [Classifica](#2-classifica-)
+3. [Pizzerie](#3-pizzerie-pizzerie)
+4. [Eventi](#4-eventi-eventi)
+5. [Dettaglio Evento](#5-dettaglio-evento-eventiid)
+6. [Votazione](#6-votazione-in-eventi)
+7. [Profilo](#7-profilo-profilo)
+8. [Errore autenticazione](#8-errore-autenticazione-authauth-code-error)
+9. [Changelog](#changelog)
+
+---
 
 ## 1. Login (`/accedi`)
-- Accesso solo con Google.
+
+- Accesso solo con Google OAuth.
 - L'utente clicca `Continua con Google`.
-- Se l'email e invitata, entra nell'app.
-- Se non e invitata, viene mostrato un errore di autenticazione.
+- Se l'email e stata invitata da un admin, l'accesso viene completato.
+- Se l'email non e invitata, viene mostrata una pagina di errore con il motivo.
+
+**Regole di accesso:**
+- Solo utenti con email presente nella lista inviti possono entrare nell'app.
+- Gli inviti sono gestiti dall'admin dalla pagina Profilo.
+- Il primo utente in assoluto viene promosso automaticamente ad admin.
+
+---
 
 ## 2. Classifica (`/`)
-- Mostra le pizzerie ordinate per punteggio medio.
-- Permette filtro per citta.
-- Serve per vedere rapidamente i locali migliori del gruppo.
+
+- Mostra le pizzerie ordinate per punteggio medio delle recensioni.
+- Permette di filtrare per citta.
+- Le posizioni sono indicate con badge visivi (oro, argento, bronzo).
+- Serve per vedere rapidamente i locali migliori visitati dal gruppo.
+
+---
 
 ## 3. Pizzerie (`/pizzerie`)
-- Aggiunta nuova pizzeria: nome, indirizzo, citta.
-- Se nome e citta corrispondono a una pizzeria gia presente, l'app blocca la creazione e mostra un avviso.
-- Upload immagine pizzeria opzionale in creazione.
-- Visualizzazione elenco pizzerie gia inserite.
-- Ricerca nell'elenco per nome, citta o indirizzo.
-- Filtri rapidi: tutte, visitate, da visitare.
-- L'elenco mostra le prime card e carica altri elementi scorrendo la pagina.
-- Layout a card responsive (1 col mobile, 2 tablet, 3 desktop).
+
+- Elenco di tutte le pizzerie inserite, in layout a card (1 colonna mobile, 2 tablet, 3 desktop).
+- Filtri rapidi: tutte / visitate / da visitare.
+- Ricerca per nome, citta o indirizzo.
+- L'elenco carica i primi elementi e ne aggiunge altri scorrendo la pagina.
 - Link rapido a Google Maps per ogni locale.
 
+**Aggiunta nuova pizzeria:**
+- Apertura modal con form: nome, indirizzo, citta.
+- Ricerca integrata Google Places: digitando il nome appaiono suggerimenti in tempo reale. Selezionando un risultato, nome, indirizzo e citta vengono compilati automaticamente.
+- Bottone geolocalizzazione per ricevere suggerimenti vicini alla posizione attuale.
+- Upload immagine copertina opzionale (se omessa, il sistema usa automaticamente la foto Google o un placeholder).
+- Se nome e citta corrispondono a una pizzeria gia presente, la creazione viene bloccata con un avviso.
+
+---
+
 ## 4. Eventi (`/eventi`)
-- Pagina principale per pianificazione + storico eventi.
-- Creazione nuova votazione tramite bottone `Aggiungi` (visibile quando non c'e una votazione aperta).
-- Blocco `Prossimo Evento Pizzoni` uguale alla home (nessun pulsante duplicato interno).
-- Elenco cronologico degli eventi registrati.
-- Ricerca nello storico per pizzeria, citta o data.
-- Lo storico mostra le prime card e carica altri eventi scorrendo la pagina.
-- Link al dettaglio del singolo evento.
-- La creazione di nuovi eventi non avviene manualmente qui.
-  - L'evento viene generato automaticamente quando una votazione viene chiusa con data vincente.
+
+- Pagina principale per pianificazione e storico degli eventi.
+- Nella parte alta: il prossimo evento in programma (stesso blocco della home).
+- Nella parte centrale: la votazione aperta (se presente).
+- Nella parte bassa: lo storico degli eventi passati.
+
+**Storico:**
+- Elenco cronologico degli eventi conclusi.
+- Ricerca per pizzeria, citta o data.
+- Caricamento incrementale scorrendo la pagina.
+- Link al dettaglio di ogni evento.
+
+**Nota:** gli eventi non vengono creati manualmente. Vengono generati automaticamente quando una votazione viene finalizzata con una data vincente.
+
+---
 
 ## 5. Dettaglio Evento (`/eventi/[id]`)
-- Mostra informazioni della visita (locale, data, note, indirizzo).
-- Owner/admin puo impostare l'orario prenotazione dell'evento.
-- Link per apertura rapida in Google Maps.
-- Ogni membro puo inserire/modificare la propria recensione (0-10 per categoria).
-- Elenco di tutte le recensioni ricevute.
-- Ogni membro puo aggiungere note evento; solo autore puo modificare/eliminare la propria nota.
-- Caricamento foto della visita:
-  - scelta da galleria o scatto camera;
-  - upload manuale con bottone `Aggiungi`;
-  - supporto a tag unico `foto della serata` (una sola per evento).
 
-## 6. Poll Eventi (in `/eventi`)
-- Flusso principale di pianificazione (votazione-first) integrato in Eventi.
-- Un membro designato (owner del turno) crea una votazione con:
-  - pizzeria proposta (esistente o nuova)
-  - opzioni data multiple
-  - eventuale nota
-- I membri votano la disponibilita sulle date proposte.
-- L'owner (o admin) chiude la votazione e seleziona il risultato finale.
-- Alla chiusura:
-  - se la pizzeria non esiste, viene creata in `pizzerias`
-  - viene creata la riga in `visits` con la data scelta
-  - pre-compilazione partecipanti in base ai voti disponibilita
-- L'orario prenotazione viene aggiunto dopo, nel dettaglio evento (non votato in poll).
-- Dopo la chiusura, la votazione diventa sola lettura.
+- Mostra informazioni dell'evento: locale, data, indirizzo, punteggio medio e posizione in classifica.
+- Le sezioni sono collassabili: espandere solo quelle di interesse.
+
+**Orario evento** *(owner o admin)*
+- Imposta data e orario esatto della prenotazione del tavolo.
+- Una volta impostato, l'orario determina quando l'evento passa da "prossimo" a "storico".
+
+**Cambio pizzeria** *(owner o admin)*
+- Permette di associare una pizzeria diversa all'evento dopo la creazione.
+- Si puo scegliere tra le pizzerie gia presenti o cercarne una nuova via Google Places.
+
+**Partecipazione**
+- Ogni membro puo aggiungersi o rimuoversi dalla lista partecipanti.
+- L'admin puo aggiungere o rimuovere qualsiasi membro tramite un menu a discesa.
+
+**Recensioni**
+- Ogni membro puo inserire o modificare la propria recensione.
+- Categorie di voto: qualita pizza, ambiente, servizio, rapporto qualita/prezzo (scala 0-10, supporto mezzi punti es. 8.5).
+- Elenco di tutte le recensioni ricevute con punteggio finale.
+
+**Note evento**
+- Ogni membro puo aggiungere note libere all'evento (es. ricordi, annotazioni).
+- Solo l'autore puo modificare o eliminare la propria nota.
+
+**Foto**
+- Upload da galleria o scatto diretto con la camera del dispositivo.
+- E possibile taggare una foto come "foto della serata": un solo tag attivo per evento alla volta.
+- Ogni autore puo eliminare le proprie foto.
+
+---
+
+## 6. Votazione (in `/eventi`)
+
+Il flusso di pianificazione e votazione-first: prima si vota la data, poi l'evento viene creato.
+
+**Creazione votazione** *(qualsiasi membro)*
+- Apertura modal con: pizzeria (esistente o nuova), opzioni data multiple, nota opzionale.
+- La votazione appare nella sezione "Votazione Aperta" della pagina eventi.
+
+**Voto disponibilita** *(tutti i membri)*
+- Per ogni data proposta, ogni membro indica se e disponibile o non disponibile.
+- I votanti sono visibili per ogni data, con nome ed emoji.
+
+**Finalizzazione** *(owner della votazione o admin)*
+- L'owner (o un admin) seleziona la data vincente e chiude la votazione.
+- Alla chiusura: viene creato automaticamente l'evento in `visits`, con i partecipanti pre-compilati dai voti "disponibile".
+- L'orario prenotazione si aggiunge dopo, nel dettaglio evento.
+- Una volta finalizzata, la votazione diventa sola lettura.
+
+**Cancellazione votazione** *(solo admin)*
+- Se una votazione e stata aperta per errore, l'admin puo cancellarla.
+- Bottone `Cancella votazione` nell'header della sezione, visibile solo agli admin.
+- Richiede conferma in un modal prima di procedere.
+- Elimina la votazione e tutti i voti associati in modo irreversibile.
+- Non e possibile cancellare una votazione gia chiusa/finalizzata.
+
+**Regole operative:**
+- Un solo owner per votazione.
+- Piu votazioni aperte possono tecnicamente coesistere, ma per chiarezza e consigliato averne una sola attiva alla volta.
+- In caso di pareggio date, la scelta spetta all'owner.
+- Una votazione finalizzata non si puo modificare retroattivamente; eventuali correzioni richiedono una nuova votazione.
+
+---
 
 ## 7. Profilo (`/profilo`)
-- Modifica profilo personale: nome e avatar.
-- Se utente admin:
-  - Sezione `Inviti Admin`.
-  - Inserimento email da invitare.
-  - Le email invitate possono autenticarsi con Google.
 
-## 8. Errore Auth (`/auth/auth-code-error`)
-- Pagina di fallback in caso di errore accesso.
-- Mostra motivo principale (es. email non invitata).
-- Azioni: ritorno al login o pagina precedente.
+- Modifica profilo personale: nome e URL avatar.
 
-## Regole Di Accesso
-- Accesso applicativo tramite Google OAuth.
-- Solo utenti invitati/membri autorizzati possono entrare.
-- Gestione inviti tramite tabella `public.invites` + controllo membership in `public.profiles`.
+**Sezione admin — Inviti:**
+- Inserimento email da invitare (deve essere una Gmail, necessaria per il login Google).
+- Elenco inviti inviati con stato (in attesa / accettato) e data accettazione.
+- Le email invitate possono autenticarsi con Google al primo accesso.
 
-## Regole Poll v2
-- Un solo owner per ogni turno decisionale.
-- Una votazione attiva alla volta (versione semplice per gruppo piccolo).
-- Solo owner/admin puo finalizzare la votazione.
-- In caso di pareggio date, decide l'owner.
-- Una volta finalizzata, non si modifica la visita generata dalla votazione; eventuali cambi creano nuova votazione o update admin tracciato.
+---
 
-## Stato Attuale
-- `Eventi` gestisce votazioni, scelta data e finalizzazione.
-- `Eventi` mostra prossimo evento + storico e dettaglio.
-- Storico eventi basato su data/ora evento (`scheduled_at` se presente).
-- Creazione evento manuale rimossa da `Eventi`.
-- Azioni principali standardizzate con pulsanti coerenti (icona + testo).
-- Identita membri: avatar se presente, altrimenti fallback automatico.
-- Immagini pizzeria: Google -> foto della serata piu recente -> custom -> placeholder.
-- Immagini evento: foto della serata prioritaria; fallback su logica pizzeria.
-- Ricerca e paginazione incrementale sono disponibili in `Pizzerie` e nello storico `Eventi`.
+## 8. Errore autenticazione (`/auth/auth-code-error`)
 
-## Sezione Aggiornamenti
-Aggiornare questo blocco ogni volta che viene aggiunta/modificata una funzionalita.
+- Pagina di fallback in caso di errore durante il login.
+- Mostra il motivo principale (es. email non invitata).
+- Azioni disponibili: tornare al login o alla pagina precedente.
 
-- 2026-04-22: Creata prima versione della guida funzionale.
-- 2026-04-22: Definita direzione Agenda v2 (votazione-first) e ruolo di `Visite` come storico.
-- 2026-04-22: Implementata Agenda v2 con votazione date + finalizzazione automatica visita.
+---
+
+## Changelog
+
+- 2026-04-22: Prima versione guida funzionale. Definita direzione votazione-first.
+- 2026-04-22: Implementata votazione date + finalizzazione automatica visita.
 - 2026-04-24: Aggiunto orario evento (`scheduled_at`) e transizione upcoming/storico su datetime.
-- 2026-04-24: Flusso foto aggiornato (camera in-app + upload manuale) e tag unico `foto della serata`.
+- 2026-04-24: Flusso foto aggiornato (camera in-app + upload manuale) e tag unico "foto della serata".
 - 2026-04-24: Introdotti componenti UI condivisi (`Button`, `Checkbox`, `ToastProvider`).
-- 2026-04-24: Aggiornato `Button` condiviso con supporto icone sinistra/destra e applicazione su tutti i pulsanti.
-- 2026-05-03: Guida aggiornata con regole immagini pizzeria/evento, note multiutente e fallback avatar.
-- 2026-05-04: Aggiunta ricerca riusabile e paginazione incrementale su `Pizzerie` e storico `Eventi`.
-- 2026-05-04: Aggiunto controllo duplicati in creazione pizzeria su nome+citta.
+- 2026-04-24: `Button` aggiornato con supporto icone sinistra/destra.
+- 2026-05-03: Aggiunte regole immagini pizzeria/evento, note multiutente, fallback avatar.
+- 2026-05-04: Aggiunta ricerca riusabile e paginazione incrementale su Pizzerie e storico Eventi.
+- 2026-05-04: Aggiunto controllo duplicati in creazione pizzeria su nome + citta.
+- 2026-06-21: Aggiunto cambio pizzeria evento per owner/admin nel dettaglio evento.
+- 2026-06-21: Aggiunta gestione partecipanti admin (aggiunta/rimozione manuale da dropdown membri).
+- 2026-06-21: Votazione aperta mostra i votanti per ogni opzione data con nome ed emoji.
+- 2026-06-21: Sezioni dettaglio evento rese collassabili.
+- 2026-06-21: Aggiunta cancellazione votazione aperta da admin con conferma modal.
+- 2026-06-21: Aggiunto Vercel Cron per prevenire pausa DB Supabase piano free.

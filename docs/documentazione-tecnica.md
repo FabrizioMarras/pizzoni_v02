@@ -1,18 +1,40 @@
 # Documentazione Tecnica Pizzoni
 
-Versione documento: 2026-05-04  
+Versione documento: 2026-06-21
 Stack: Next.js 16 (App Router), React 19, TypeScript, Supabase, Tailwind CSS 4
+
+---
+
+## Indice
+
+1. [Obiettivo applicazione](#1-obiettivo-applicazione)
+2. [Architettura](#2-architettura)
+3. [Routing applicativo](#3-routing-applicativo)
+4. [Autenticazione e autorizzazione](#4-autenticazione-e-autorizzazione)
+5. [Modello dati](#5-modello-dati)
+6. [Flussi funzionali principali](#6-flussi-funzionali-principali)
+7. [API interne](#7-api-interne)
+8. [Configurazione ambiente](#8-configurazione-ambiente)
+9. [Migrazioni database](#9-migrazioni-database)
+10. [Sicurezza](#10-sicurezza)
+11. [Qualita e verifiche](#11-qualita-e-verifiche)
+12. [Troubleshooting rapido](#12-troubleshooting-rapido)
+13. [Convenzioni di sviluppo](#13-convenzioni-di-sviluppo)
+
+---
 
 ## 1. Obiettivo applicazione
 
-Pizzoni e una web app privata per un gruppo chiuso che organizza serate pizza, vota le date del prossimo evento, registra gli eventi passati e raccoglie recensioni/foto.
+Pizzoni e una web app privata per un gruppo chiuso che organizza serate pizza, vota le date del prossimo evento, registra gli eventi passati e raccoglie recensioni e foto.
 
 Punti chiave:
 - accesso solo utenti invitati;
 - login con Google OAuth;
 - pianificazione evento con flusso votazione-first;
-- leaderboard per citta;
+- leaderboard pizzerie per citta;
 - gestione pizzerie, eventi, recensioni, foto.
+
+---
 
 ## 2. Architettura
 
@@ -24,234 +46,255 @@ Punti chiave:
 ### 2.2 Backend/BaaS
 - Supabase Auth per autenticazione.
 - Supabase Postgres per dati applicativi.
-- RLS (Row Level Security) su tabelle pubbliche.
+- RLS (Row Level Security) su tutte le tabelle pubbliche.
 - Funzioni SQL custom per finalizzazione votazioni e gestione tag foto della serata.
 
 ### 2.3 API interne Next.js
 - `POST /api/places/search`: ricerca pizzerie via Google Places API (New).
+- `GET /api/places/photo`: proxy server-side immagini Google Places.
 - `GET /api/calendar`: export ICS per calendario eventi.
-- `GET /api/places/photo`: proxy immagini Google Places.
+- `GET /api/keepalive`: ping DB Supabase per prevenire la pausa automatica del piano free (chiamato da Vercel Cron ogni 5 giorni).
 
-### 2.4 Data access layer (frontend)
-Per ridurre coupling UI-query, parte delle operazioni client e stata estratta in layer dati:
-- `src/lib/data/event-votes-client.ts` (snapshot, creazione votazione, voto disponibilita, finalizzazione).
-- `src/lib/data/photos-client.ts` (CRUD foto evento e tag foto della serata).
-- `src/lib/data/pizzeria-mapper.ts` (normalizzazione dati pizzerie + conteggio visitate con modalita `all/past`).
-- `src/lib/data/pizzeria-queries.ts` (selector condivisi query pizzerie).
-- `src/lib/data/visit-queries.ts` (selector condivisi query visite per card/eventi).
-- `src/lib/cloudinary.ts` (upload immagine centralizzato).
+### 2.4 Data access layer
+Per ridurre coupling UI-query, le operazioni client sono estratte in moduli dedicati:
+- `src/lib/data/event-votes-client.ts`: snapshot, creazione votazione, voto disponibilita, finalizzazione, cancellazione poll (admin).
+- `src/lib/data/photos-client.ts`: CRUD foto evento e tag "foto della serata".
+- `src/lib/data/pizzeria-mapper.ts`: normalizzazione dati pizzerie + conteggio visitate con modalita `all/past`.
+- `src/lib/data/pizzeria-queries.ts`: selector condivisi per query pizzerie.
+- `src/lib/data/visit-queries.ts`: selector condivisi per query visite (card/eventi).
+- `src/lib/cloudinary.ts`: upload immagine centralizzato verso Cloudinary.
+- `src/lib/pizzeria-image.ts`: logica priorita immagini pizzeria/evento (Google photo → foto serata → custom_image_url → placeholder deterministico).
+
+---
 
 ## 3. Routing applicativo
 
 Route principali:
-- `/` classifica.
-- `/accedi` login Google.
-- `/eventi` gestione votazioni + storico eventi.
-- `/eventi/[id]` dettaglio evento.
-- `/pizzerie` gestione elenco pizzerie.
-- `/profilo` profilo utente + inviti admin.
-- `/guida` guida funzionale utenti.
 
-Route alias/compatibilita:
-- Alias storici centralizzati in `next.config.ts` (`redirects`):
-  - `/agenda` -> `/eventi`
-  - `/planner` -> `/eventi`
-  - `/visits` -> `/eventi`
-  - `/visits/:id` -> `/eventi/:id`
-  - `/pizzerias` -> `/pizzerie`
-  - `/login` -> `/accedi`
-  - `/profile` -> `/profilo`
+| Path | Descrizione |
+|---|---|
+| `/` | Classifica pizzerie |
+| `/accedi` | Login Google |
+| `/eventi` | Votazioni + storico eventi |
+| `/eventi/[id]` | Dettaglio evento |
+| `/pizzerie` | Elenco e gestione pizzerie |
+| `/profilo` | Profilo utente + inviti admin |
+| `/guida` | Guida funzionale utenti |
 
 Route auth:
-- `/auth/callback` finalizzazione sessione OAuth + enforcement invite-only.
-- `/auth/auth-code-error` pagina errore autenticazione.
+- `/auth/callback`: finalizzazione sessione OAuth + enforcement invite-only.
+- `/auth/auth-code-error`: pagina errore autenticazione.
+
+Route alias/compatibilita (redirect permanenti in `next.config.ts`):
+- `/agenda`, `/planner`, `/visits` → `/eventi`
+- `/visits/:id` → `/eventi/:id`
+- `/pizzerias` → `/pizzerie`
+- `/login` → `/accedi`
+- `/profile` → `/profilo`
+
+---
 
 ## 4. Autenticazione e autorizzazione
 
-## 4.1 Provider e metodo login
+### 4.1 Provider e metodo login
 - Login attivo: Google OAuth.
 - Entry point UI: `src/components/Login.tsx`.
 
-## 4.2 Callback e gate invite-only
+### 4.2 Callback e gate invite-only
 File: `src/app/auth/callback/route.ts`.
 
 Flusso:
 1. Exchange `code` OAuth con sessione Supabase.
 2. Lettura utente autenticato e email.
-3. Verifica tabella `public.invites` su email.
-4. Se email invitata:
-   - `profiles.is_member = true`;
-   - se `accepted_at` nullo su invite, viene valorizzato.
+3. Verifica presenza email in `public.invites`.
+4. Se email invitata: imposta `profiles.is_member = true`; valorizza `accepted_at` se nullo.
 5. Se email non invitata:
-   - fallback bootstrap primo utente: se nessun membro esiste, promuove primo utente a `is_member=true` + `is_admin=true` e crea invite auto-accettato;
-   - altrimenti sign out e redirect a errore `not_invited`.
+   - fallback bootstrap primo utente: se nessun membro esiste, promuove il primo utente a `is_member = true` + `is_admin = true` e crea un invite auto-accettato;
+   - altrimenti: sign out e redirect a errore `not_invited`.
 
-## 4.3 Ruoli
-- `is_member`: abilita accesso funzionale all’app.
-- `is_admin`: puo gestire inviti e operazioni admin su policy dedicate.
+### 4.3 Ruoli
+- `is_member`: abilita l'accesso funzionale all'app.
+- `is_admin`: abilita operazioni privilegiate. Operazioni esclusive admin:
+  - cancellazione votazioni aperte;
+  - aggiunta/rimozione manuale partecipanti a un evento;
+  - modifica orario prenotazione evento (condivisa con owner);
+  - cambio pizzeria associata a un evento (condivisa con owner);
+  - finalizzazione di qualsiasi votazione (non solo la propria);
+  - gestione inviti (`/profilo`).
 
-## 4.4 RLS
-RLS attiva su tutte le tabelle applicative principali.  
-Policy in migrazioni (`init`, `existing_db_security_sync`, `membership_and_invites`, `agenda_poll_first`, `visit_attendees_admin_management`).
+### 4.4 RLS
+RLS attiva su tutte le tabelle applicative principali.
+Policy principali distribuite nelle migrazioni: `init`, `existing_db_security_sync`, `membership_and_invites`, `agenda_poll_first`, `visit_attendees_admin_management`, `cancel_poll_admin_only`.
 
-## 5. Modello dati (stato corrente)
+Policy notevole per cancellazione poll (`agenda_polls_delete_admin_only`, migrazione `20260621000000`): richiede `is_admin = true` e `status = 'open'`. Le poll chiuse non possono essere eliminate da nessuno.
+
+---
+
+## 5. Modello dati
 
 Tabelle principali in `public`:
-- `profiles`: anagrafica membri estesa da `auth.users`.
-- `invites`: whitelist email invitabili + stato accettazione.
-- `pizzerias`: catalogo pizzerie.
-- `visits`: evento concreto (data/locale) con `scheduled_at` per orario prenotazione.
-- `visit_attendees`: partecipanti evento.
-- `reviews`: recensioni per visita e utente (supporto voti a mezzi punti, es. `8.5`).
-- `visit_notes`: note evento multiutente (autore per nota).
-- `photos`: foto evento.
-- `agenda_polls`: votazione aperta/chiusa per prossimo evento.
-- `agenda_poll_date_options`: opzioni data per votazione.
-- `agenda_poll_date_votes`: disponibilita utenti per opzione data.
+
+| Tabella | Descrizione |
+|---|---|
+| `profiles` | Anagrafica membri, estende `auth.users` |
+| `invites` | Whitelist email invitabili + stato accettazione |
+| `pizzerias` | Catalogo pizzerie |
+| `visits` | Evento concreto (data/locale) con `scheduled_at` per orario prenotazione |
+| `visit_attendees` | Partecipanti per evento |
+| `reviews` | Recensioni per visita e utente (supporto mezzi punti, es. `8.5`) |
+| `visit_notes` | Note evento multiutente (una nota per autore) |
+| `photos` | Foto evento |
+| `agenda_polls` | Votazione aperta/chiusa per il prossimo evento |
+| `agenda_poll_date_options` | Opzioni data proposte per una votazione |
+| `agenda_poll_date_votes` | Disponibilita utenti per opzione data |
 
 Metadati Google su `pizzerias`:
-- `google_place_id`
-- `google_maps_uri`
-- `google_photo_name`
-- `latitude`
-- `longitude`
-- `custom_image_url` (copertina manuale opzionale caricata da utente)
+- `google_place_id`, `google_maps_uri`, `google_photo_name`, `latitude`, `longitude`
+- `custom_image_url`: copertina manuale opzionale caricata dall'utente
 
 Tabelle legacy rimosse:
 - `upcoming_visits`, `rsvps`, `poll_suggestions`, `poll_votes` (drop tramite migrazione dedicata).
 
-## 5.1 Relazioni chiave
-- `pizzerias.id` -> `visits.pizzeria_id`.
-- `visits.id` -> `reviews.visit_id`, `visit_notes.visit_id`, `photos.visit_id`, `visit_attendees.visit_id`.
-- `profiles.id` -> campi `created_by`, `user_id`, `uploaded_by`, `owner_id`.
-- `agenda_polls.id` -> `agenda_poll_date_options.poll_id`, `agenda_poll_date_votes.poll_id`.
-- `agenda_poll_date_options.id` -> `agenda_poll_date_votes.date_option_id`.
+### 5.1 Relazioni chiave
+- `pizzerias.id` → `visits.pizzeria_id`
+- `visits.id` → `reviews.visit_id`, `visit_notes.visit_id`, `photos.visit_id`, `visit_attendees.visit_id`
+- `profiles.id` → campi `created_by`, `user_id`, `uploaded_by`, `owner_id`
+- `agenda_polls.id` → `agenda_poll_date_options.poll_id`, `agenda_poll_date_votes.poll_id`
+- `agenda_poll_date_options.id` → `agenda_poll_date_votes.date_option_id`
 
-## 5.2 Funzioni SQL
-- `public.finalize_agenda_poll(p_poll_id uuid, p_option_id uuid) -> uuid`
+### 5.2 Funzioni SQL
+- `public.finalize_agenda_poll(p_poll_id uuid, p_option_id uuid) → uuid`
   - valida permessi owner/admin;
-  - crea pizzeria se mancante;
-  - crea visita;
-  - pre-popola partecipanti da voti `available`;
-  - chiude votazione e aggancia `visit_id`.
-- `public.set_pizza_of_night(p_visit_id uuid, p_photo_id uuid) -> void`
+  - trova o crea la pizzeria;
+  - crea la visita con la data scelta;
+  - pre-popola i partecipanti dai voti `available`;
+  - chiude la votazione e aggancia `visit_id`.
+- `public.set_pizza_of_night(p_visit_id uuid, p_photo_id uuid) → void`
   - assegna in modo atomico il tag "foto della serata";
-  - garantisce un solo tag per evento.
+  - garantisce un solo tag attivo per evento.
 
-Note campo evento:
+Note sui campi dell'evento:
 - `date`: data logica evento.
-- `scheduled_at`: timestamp effettivo prenotazione; usato per transizione upcoming/concluso.
+- `scheduled_at`: timestamp effettivo prenotazione; determina la transizione upcoming/concluso.
+
+---
 
 ## 6. Flussi funzionali principali
 
-## 6.1 Gestione pizzerie
-Pagina: `/pizzerie` (`src/components/PizzeriaManager.tsx`).
+### 6.1 Gestione pizzerie
+Pagina: `/pizzerie` — componente: `src/components/PizzeriaManager.tsx`.
+
 - Creazione pizzeria via modal.
-- La creazione blocca duplicati locali confrontando nome+citta normalizzati con l'elenco gia caricato; in caso di match mostra toast warning e non esegue upload/insert.
+- La creazione blocca duplicati confrontando nome + citta normalizzati con l'elenco gia caricato; in caso di match mostra toast warning e non esegue insert.
 - Filtro elenco: tutte / visitate / da visitare.
 - Ricerca client-side su nome, citta e indirizzo tramite `SearchBar`.
-- Paginazione incrementale client-side: prima batch da 9 card, poi ulteriori batch da 9 al raggiungimento del trigger scroll.
-- Badge visitata in base a presenza record in `visits`.
-  - con fallback legacy: se manca `scheduled_at`, usa fine giornata della `date`.
+- Paginazione incrementale client-side: prima batch da 9 card, poi ulteriori batch da 9 al trigger di scroll.
+- Badge "visitata" in base a presenza record in `visits` (con fallback legacy su fine giornata della `date` se manca `scheduled_at`).
 
-### Ricerca Google Places integrata
-- Digitazione nome (e opzionale citta) -> suggerimenti Google.
-- Bottone geolocalizzazione -> bias dei risultati vicino all’utente.
-- Selezione risultato -> auto-popolamento nome/indirizzo/citta.
-- Per pizzerie manuali, e possibile caricare una copertina custom; se manca, il frontend usa placeholder automatico.
+**Ricerca Google Places integrata:**
+- Digitazione nome (e opzionale citta) → suggerimenti Google in tempo reale.
+- Bottone geolocalizzazione → bias dei risultati vicino all'utente.
+- Selezione risultato → auto-popolamento nome/indirizzo/citta/metadati Google.
+- Per pizzerie manuali (senza Google), e possibile caricare una copertina custom.
 
-## 6.2 Nuovo evento (votazione-first)
-Pagina: `/eventi` (`src/components/PlannerBoard.tsx`).
-- Se non esiste votazione aperta, mostra azione `Aggiungi` in alto pagina.
-- Il blocco `Prossimo Evento Pizzoni` in `/eventi` e lo stesso della home, senza CTA duplicata interna.
-- Creazione nuova votazione:
-  - scelta pizzeria esistente o nuova;
-  - opzioni data multiple;
-  - note opzionali.
-- Voto disponibilita per ogni opzione data.
-- Finalizzazione consentita a owner o admin.
-- Finalizzazione crea evento in `visits`.
+### 6.2 Nuovo evento (votazione-first)
+Pagina: `/eventi` — componente: `src/components/PlannerBoard.tsx`.
 
-Vincolo logico UI:
-- una sola votazione aperta alla volta.
+- Se non esiste votazione aperta, mostra il bottone `Aggiungi`.
+- Creazione nuova votazione: scelta pizzeria (esistente o nuova), opzioni data multiple, nota opzionale.
+- I membri votano la disponibilita per ogni opzione data; i votanti sono visualizzati per nome ed emoji.
+- Finalizzazione consentita a owner o admin; crea la riga in `visits`.
 
-## 6.3 Eventi e dettaglio
-- Card prossimo evento (`NextEventCard`), inclusa in home e pagina eventi.
-- In `/eventi`, fetch visite consolidato lato server nella pagina:
-  - `NextEventCard` riceve `visit` opzionale pre-caricata;
-  - `VisitsManager` riceve lista eventi conclusi gia filtrata;
-  - riduzione query duplicate rispetto al caricamento separato componente-per-componente.
-- Storico eventi in lista (solo eventi con orario passato).
-- Storico eventi renderizzato da `VisitHistoryList`:
-  - ricerca client-side su pizzeria, citta e data;
-  - paginazione incrementale client-side da 9 elementi per batch;
-  - ordine logico: dataset gia caricato -> ricerca/filtro -> slice visibile.
-- Dettaglio evento:
-  - gestione orario prenotazione (owner/admin);
-  - partecipanti;
-  - recensioni;
-  - note evento multiutente (CRUD per autore nota);
-  - foto (selezione file/scatto camera, upload manuale, tag unico "foto della serata", sostituzione, eliminazione per autore foto);
-  - link Google Maps.
+Vincolo UI: il form di creazione e nascosto se esiste gia una votazione aperta. Non c'e un blocco tecnico a livello DB.
+
+**Cancellazione votazione (admin only):**
+- Bottone `Cancella votazione` nell'header della sezione "Votazione Aperta", visibile solo se `is_admin = true`.
+- Richiede conferma tramite modal con nome pizzeria.
+- Elimina in cascata: `agenda_polls` + `agenda_poll_date_options` + `agenda_poll_date_votes`.
+- Bloccata dal DB se la poll ha `status = 'closed'` (RLS `agenda_polls_delete_admin_only`).
+- Funzione: `cancelAgendaPoll(supabase, pollId)` in `src/lib/data/event-votes-client.ts`.
+
+### 6.3 Dettaglio evento
+Pagina: `/eventi/[id]` — componente principale: `src/app/eventi/[id]/page.tsx`.
+
+- Sezioni collassabili (`CollapsiblePanel`): Orario Evento, Partecipazione, Recensione, Note, Foto, Tutte le Recensioni.
+- Gestione orario prenotazione (owner/admin) tramite `EventScheduleManager`.
+- Cambio pizzeria associata all'evento (owner/admin) tramite `EventLocationManager`.
+- Partecipanti: ogni membro puo aggiungersi/rimuoversi; admin puo aggiungere/rimuovere qualsiasi membro (`AttendeesManager`).
+- Recensioni per categoria (0-10, mezzi punti supportati) tramite `ReviewForm`.
+- Note evento multiutente: CRUD per autore nota tramite `EventNotesManager`.
+- Foto: upload da file/camera, tag unico "foto della serata", eliminazione da parte dell'autore (`PhotoGalleryManager`).
 
 Priorita immagini:
-- Pizzeria: Google photo -> foto della serata piu recente della pizzeria -> custom_image_url -> placeholder.
-- Evento: foto della serata (se presente) -> immagine pizzeria.
+- Pizzeria: Google photo → foto della serata piu recente della pizzeria → custom_image_url → placeholder.
+- Evento: foto della serata (se presente) → logica immagine pizzeria.
 
 Transizione stato evento:
-- `upcoming`: `scheduled_at` nel futuro;
-- `concluso`: `scheduled_at <= now()`;
-- fallback legacy senza `scheduled_at`: confronto su fine giornata della `date`.
+- `upcoming`: `scheduled_at` nel futuro.
+- `concluso`: `scheduled_at <= now()`.
+- Fallback legacy senza `scheduled_at`: confronto su fine giornata della `date`.
 
-## 6.4 Inviti admin
-Pagina: `/profilo`.
-- Admin inserisce email in `invites`.
-- Solo email presenti in invite list possono completare login.
+### 6.4 Inviti admin
+Pagina: `/profilo` — componente: `src/components/InviteManager.tsx`.
 
-## 6.5 Design System UI
-- `src/components/ui/Button.tsx`: componente bottone riusabile (`primary`, `secondary`, `unstyled`) usato in tutto il repo.
-  - API icone: `icon`, `iconPosition` (`left`/`right`), `iconClassName`.
-  - comportamento base centralizzato: `inline-flex`, allineamento contenuti, `cursor-pointer`, gestione `disabled`.
-  - tutte le azioni principali del prodotto usano il componente con icona esplicita per coerenza visiva.
-- `src/components/ui/Checkbox.tsx`: checkbox brandizzato riusabile.
-- `src/components/ui/ButtonLink.tsx`: variante link del bottone con API coerente (`variant`, `icon`, `iconPosition`).
-- `src/components/ui/FileButton.tsx`: bottone upload file riusabile con stile coerente (`btn-secondary`) e input hidden incapsulato.
-- `src/components/ui/Avatar.tsx`: avatar unificato con fallback iniziali (URL non valido/non presente).
-- `src/components/ui/ToastProvider.tsx`: sistema toast globale (success/warning/error/info).
-- `src/components/ui/SearchBar.tsx`: barra ricerca controllata riusabile con label, placeholder, conteggio risultati opzionale, icona ricerca a destra e azione clear.
-  - Il componente gestisce solo UI/input; ogni pagina mantiene la propria logica di matching.
-- `src/components/ui/ScrollPagination.tsx`: trigger scroll riusabile basato su controllo posizione del sentinel durante lo scroll finestra.
-  - Renderizza solo un loader a tre puntini mentre scatta il caricamento della batch successiva.
-  - Non carica al mount: aggiunge la batch successiva solo quando un evento `scroll` porta il sentinel vicino al viewport.
-  - La paginazione resta client-side e presuppone che il dataset sia gia caricato nella pagina/componente padre.
+- Admin inserisce email in `public.invites`.
+- Solo le email presenti nell'invite list possono completare il login Google.
+- Elenco inviti con stato (in attesa / accettato) e timestamp accettazione.
 
-## 6.6 Utility condivise
-- `src/lib/visit-time.ts`: logica unica per timestamp e stato evento:
-  - `getVisitTimestamp`
-  - `isUpcomingVisit`
-  - `isDoneVisit`
-  - `getNowTimestamp`
-- usata in classifica/home/eventi/storico per evitare divergenze di comportamento.
-- `src/lib/supabase-relations.ts`: normalizzazione relazioni Supabase (`T | T[]`):
-  - `firstOrNull`
-  - `firstOrThrow`
-- `src/lib/profile-flags.ts`: lettura centralizzata flag membership (`is_admin`, `is_member`) su profilo.
+### 6.5 Design System UI
 
-## 6.8 Guard routing canonico
+Tutti i componenti sono in `src/components/ui/`.
+
+| Componente | Descrizione |
+|---|---|
+| `Button.tsx` | Bottone riusabile (`primary`, `secondary`, `unstyled`). Il prop `icon` e **obbligatorio**. API: `icon`, `iconPosition` (`left`/`right`), `iconClassName`. |
+| `ButtonLink.tsx` | Variante link del bottone con API identica. |
+| `FileButton.tsx` | Bottone upload file con input hidden incapsulato. |
+| `Checkbox.tsx` | Checkbox brandizzato. |
+| `Avatar.tsx` | Avatar con fallback automatico alle iniziali se URL non valido. |
+| `MemberIdentity.tsx` | Identita membro composita: avatar + overlay emoji + nome. Props: `name`, `email`, `emoji`, `avatarUrl`, `size` (`sm`/`md`). |
+| `Modal.tsx` | Dialog a portale (`createPortal`): overlay, blocco scroll body, chiusura su `Escape` e click fuori. Full-screen mobile, max 760px desktop. Props: `open`, `onClose`, `title`, `children`. |
+| `CollapsiblePanel.tsx` | Sezione espandibile/collassabile con animazione CSS `grid-template-rows`. Props: `title`, `children`, `defaultOpen` (default `false`). |
+| `RankBadge.tsx` | Badge SVG rosetta + nastro per classifica. Palette: oro (1), argento (2), bronzo (3), blu (4+). Props: `rank`, `size` (default 38px). |
+| `ToastProvider.tsx` | Sistema toast globale (success / warning / error / info). |
+| `SearchBar.tsx` | Barra ricerca controllata con label, placeholder, conteggio risultati e azione clear. Gestisce solo UI/input; la logica di matching resta nel componente padre. |
+| `ScrollPagination.tsx` | Trigger scroll per paginazione incrementale. Non carica al mount; aggiunge batch solo su evento `scroll` con sentinel vicino al viewport. |
+
+### 6.6 Utility condivise
+
+- `src/lib/visit-time.ts`: logica centralizzata per timestamp e stato evento.
+  - `getVisitTimestamp`, `isUpcomingVisit`, `isDoneVisit`, `getNowTimestamp`.
+  - Usata in classifica, home, eventi e storico per evitare divergenze.
+- `src/lib/supabase-relations.ts`: normalizzazione relazioni Supabase (`T | T[]`).
+  - `firstOrNull`, `firstOrThrow`.
+- `src/lib/profile-flags.ts`: lettura centralizzata flag membership (`is_admin`, `is_member`) da `profiles`.
+- `src/lib/pizzeria-image.ts`: logica priorita immagini.
+  - `getPizzeriaImageSrc`: Google photo → foto serata → custom_image_url → placeholder deterministico.
+  - `getEventImageSrc`: foto della serata → fallback su `getPizzeriaImageSrc`.
+  - `getPizzeriaPlaceholder`: uno dei 4 SVG in `/public/placeholders/` scelto tramite hash del seed (id+name+city).
+- `src/lib/date-format.ts`: formattazione date con timezone `Europe/Amsterdam`.
+  - `formatDateLabel(value)`: output `dd/mm/yyyy`.
+  - `formatDateTimeLabel(value)`: output `dd/mm/yyyy, HH:MM`.
+  - `formatIsoDateToItalian(value)`: converte `YYYY-MM-DD` → `dd/mm/yyyy` senza timezone.
+  - `parseItalianDateToIso(value)`: converte `dd/mm/yyyy` o `dd-mm-yyyy` → `YYYY-MM-DD`; ritorna `null` se non valido.
+  - `parseTimeToIso(value)`: valida e normalizza stringa `HH:MM`; ritorna `null` se non valido.
+- `src/lib/supabase.ts`: client Supabase browser singleton (`createBrowserClient` da `@supabase/ssr`).
+- `src/lib/supabase-server.ts`: factory client Supabase server (`createServerClient` da `@supabase/ssr`, con cookie store Next.js).
+
+### 6.7 Convenzioni identita membro
+- Rendering allineato su `name` + `avatar_url`.
+- `pizza_emoji` mantenuto a livello DB per la visualizzazione nei voti votazione, ma non e una dipendenza del rendering principale (profilo/recensioni).
+
+### 6.8 Guard routing canonico
 - Script: `scripts/check-canonical-routes.mjs`.
-- Controllo AST-based su `src` per individuare riferimenti ai path legacy in:
-  - `href` JSX
-  - `redirect(...)`/`permanentRedirect(...)`
-  - `router.push(...)`/`router.replace(...)`
+- Controllo AST-based su `src` per individuare riferimenti ai path legacy in: `href` JSX, `redirect()`/`permanentRedirect()`, `router.push()`/`router.replace()`.
 - Comando: `npm run check:routes`.
 
-## 6.7 Convenzioni identita membro
-- Rendering identita utente allineato su `name` + `avatar_url`.
-- `pizza_emoji` mantenuto a livello DB legacy, ma non e piu una dipendenza del rendering principale.
+---
 
 ## 7. API interne
 
-## 7.1 `POST /api/places/search`
+### 7.1 `POST /api/places/search`
 File: `src/app/api/places/search/route.ts`.
 
 Input JSON:
@@ -260,137 +303,186 @@ Input JSON:
 - `longitude` (number, optional)
 
 Comportamento:
-- chiama `https://places.googleapis.com/v1/places:searchText`;
-- usa field mask minimale (`id`, `displayName`, `formattedAddress`, `addressComponents`);
-- mappa risposta a `{ id, name, address, city }`.
-- include anche metadati utili per persistenza pizzeria:
-  - `latitude`, `longitude`, `mapsUri`, `photoName`.
+- Chiama `https://places.googleapis.com/v1/places:searchText` con field mask minimale.
+- Risponde con `{ id, name, address, city, latitude, longitude, mapsUri, photoName }`.
 
-Errori tipici:
-- `Missing GOOGLE_MAPS_API_KEY` se env non valorizzata.
+Errori tipici: `Missing GOOGLE_MAPS_API_KEY` se la variabile d'ambiente non e valorizzata.
 
-## 7.2 `GET /api/places/photo`
+### 7.2 `GET /api/places/photo`
 File: `src/app/api/places/photo/route.ts`.
 
 Input query:
 - `name` (required): valore `google_photo_name` ricevuto da Places.
 - `w` (optional): larghezza max thumbnail.
 
-Comportamento:
-- proxy server-side verso Google Places Photo media endpoint;
-- non espone la API key al client;
-- ritorna stream immagine con cache header.
+Comportamento: proxy server-side verso Google Places Photo; non espone la API key al client; ritorna stream immagine con cache header.
 
-## 7.3 `GET /api/calendar`
-- esporta evento in formato ICS.
-- se `scheduled_at` esiste: crea evento con orario.
-- se `scheduled_at` manca: crea evento all-day sulla sola data.
+### 7.3 `GET /api/calendar`
+File: `src/app/api/calendar/route.ts`.
+
+Input query: `id` (visit ID, required).
+
+Comportamento:
+- Se `scheduled_at` esiste: esporta evento ICS con orario.
+- Se `scheduled_at` manca: esporta evento ICS all-day sulla sola `date`.
+
+### 7.4 `GET /api/keepalive`
+File: `src/app/api/keepalive/route.ts`.
+
+Scopo: prevenire la pausa automatica del DB Supabase sul piano free (pausa dopo 7 giorni di inattivita).
+
+Comportamento:
+- Crea un client Supabase con anon key (non richiede sessione utente).
+- Esegue `SELECT id FROM profiles LIMIT 1`.
+- Risponde `{ ok: true }` su successo, `{ ok: false, error: "..." }` con status 500 su errore.
+
+Invocazione: esclusivamente da Vercel Cron (configurato in `vercel.json`). Non e un endpoint funzionale pubblico.
+
+---
 
 ## 8. Configurazione ambiente
 
-Variabili richieste:
+### 8.1 Variabili d'ambiente
+
+Variabili client + server (prefisso `NEXT_PUBLIC_`):
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`
 - `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`
 
-Variabile server richiesta per Places:
-- `GOOGLE_MAPS_API_KEY`
+Variabili server-only:
+- `GOOGLE_MAPS_API_KEY` (Places API)
+- `CLOUDINARY_API_KEY` (opzionale, per operazioni server-side Cloudinary)
+- `CLOUDINARY_API_SECRET` (opzionale, per operazioni server-side Cloudinary)
 
-## 8.1 Google Cloud (Places)
+Template: `env.example` in root progetto. Non committare `.env.local`.
+
+### 8.2 Google Cloud (Places)
 - API da abilitare: **Places API (New)**.
-- Restrizioni consigliate API key:
-  - API restrictions: solo Places API (New);
-  - application restrictions in base a deployment.
-- Billing GCP necessario (con quote gratuite per SKU, oltre soglia consumo a pagamento).
+- Restrizioni consigliate per la API key:
+  - API restrictions: solo Places API (New).
+  - Application restrictions: in base all'ambiente (HTTP referrer per prod, IP per server).
+- Billing GCP necessario (quota gratuita per SKU; oltre soglia a pagamento).
+
+### 8.3 Supabase Auth
+- Provider Google abilitato nella dashboard Supabase.
+- Site URL locale: `http://localhost:3000`.
+- Redirect URL locale: `http://localhost:3000/auth/callback`.
+- In produzione: aggiornare Site URL + Redirect URL con il dominio Vercel.
+
+### 8.4 Vercel Deployment e Cron
+- File configurazione: `vercel.json` in root progetto.
+- Cron configurato: `GET /api/keepalive` ogni 5 giorni alle 08:00 UTC (`0 8 */5 * *`).
+- Variabili d'ambiente configurate in Vercel dashboard (Settings → Environment Variables).
+- Il cron si attiva automaticamente al primo deploy successivo al push di `vercel.json`.
+- Verificabile in Vercel dashboard sotto Settings → Crons.
+- Limite piano Hobby Vercel: massimo 2 cron job, frequenza massima una volta al giorno.
+
+---
 
 ## 9. Migrazioni database
 
-Cartella: `supabase/migrations`.
+Cartella: `supabase/migrations/`. Applicare in ordine cronologico via SQL Editor di Supabase Cloud.
 
-Ordine principale:
-1. `20260422190500_init.sql` (solo DB nuovo)
-2. `20260422191500_existing_db_security_sync.sql` (sync sicurezza/RLS su DB esistente)
-3. `20260422194000_membership_and_invites.sql`
-4. `20260422201500_magic_link_invite_gate.sql` (storica; oggi login principale e OAuth Google)
-5. `20260422213000_agenda_poll_first.sql`
-6. `20260422221000_drop_legacy_planner_tables.sql`
-7. `20260422224000_visit_attendees_admin_management.sql`
-8. `20260423182000_pizzerias_google_metadata.sql`
-9. `20260424102000_visits_scheduled_at_and_admin_update.sql`
-10. `20260424113000_pizza_of_night_single_tag.sql`
-11. `20260424130000_visit_notes_multi_user.sql`
-12. `20260424134500_reviews_allow_half_points.sql`
-13. `20260424141000_pizzerias_custom_image.sql`
-14. `20260424144000_set_pizza_of_night_sync_pizzeria_cover.sql`
-15. `20260424145000_set_pizza_of_night_event_only.sql`
-16. `20260424150000_cleanup_deleted_photo_references.sql`
-17. `20260424151000_cleanup_updated_photo_references.sql`
+| # | File | Note |
+|---|---|---|
+| 1 | `20260422190500_init.sql` | Solo per DB nuovo |
+| 2 | `20260422191500_existing_db_security_sync.sql` | Per DB esistente: sync RLS/sicurezza |
+| 3 | `20260422194000_membership_and_invites.sql` | |
+| 4 | `20260422201500_magic_link_invite_gate.sql` | Storica; login principale ora e OAuth Google |
+| 5 | `20260422213000_agenda_poll_first.sql` | Schema votazioni + RPC finalizzazione |
+| 6 | `20260422221000_drop_legacy_planner_tables.sql` | Rimozione tabelle legacy |
+| 7 | `20260422224000_visit_attendees_admin_management.sql` | |
+| 8 | `20260423182000_pizzerias_google_metadata.sql` | |
+| 9 | `20260424102000_visits_scheduled_at_and_admin_update.sql` | |
+| 10 | `20260424113000_pizza_of_night_single_tag.sql` | |
+| 11 | `20260424130000_visit_notes_multi_user.sql` | |
+| 12 | `20260424134500_reviews_allow_half_points.sql` | Colonne voto in `double precision` |
+| 13 | `20260424141000_pizzerias_custom_image.sql` | |
+| 14 | `20260424144000_set_pizza_of_night_sync_pizzeria_cover.sql` | |
+| 15 | `20260424145000_set_pizza_of_night_event_only.sql` | |
+| 16 | `20260424150000_cleanup_deleted_photo_references.sql` | |
+| 17 | `20260424151000_cleanup_updated_photo_references.sql` | |
+| 18 | `20260621000000_cancel_poll_admin_only.sql` | Policy delete admin-only su poll aperte |
 
-Nota operativa Supabase Cloud:
-- le migrazioni si applicano via SQL Editor in ordine cronologico.
+---
 
 ## 10. Sicurezza
 
 Pratiche applicate:
-- invite-only a livello callback server;
-- RLS su tabelle pubbliche;
-- policy granulari per owner/admin/self;
-- RPC di finalizzazione con controlli permessi.
-- vincolo DB di unicita tag "foto della serata" per evento.
+- Invite-only a livello callback server (non solo UI).
+- RLS su tutte le tabelle pubbliche.
+- Policy granulari per owner / admin / self.
+- RPC di finalizzazione con controlli permessi interni.
+- Vincolo DB di unicita tag "foto della serata" per evento.
+- Cancellazione poll bloccata a livello RLS per poll chiuse e per non-admin.
 
-Attenzioni:
-- non esporre `GOOGLE_MAPS_API_KEY` nel client; resta server-side.
-- non committare `.env.local`.
-- proteggere API key Google con restrizioni.
-- usare upload preset Cloudinary corretto (case-sensitive).
+Attenzioni operative:
+- Non esporre `GOOGLE_MAPS_API_KEY` nel client; e e deve rimanere server-side.
+- Non committare `.env.local`.
+- Proteggere la API key Google con restrizioni HTTP/IP.
+- Usare l'upload preset Cloudinary corretto (case-sensitive).
+- `/api/keepalive` usa anon key ed e raggiungibile pubblicamente: non aggiungere logica privilegiata a questa route.
+
+---
 
 ## 11. Qualita e verifiche
 
-Comandi:
-- `npm run lint`
-- `npm run check:routes`
-- `npm run build`
+Comandi disponibili:
 
-Stato atteso:
+```bash
+npm run lint          # ESLint
+npm run check:routes  # guard path canonici (AST-based)
+npm run build         # build produzione Next.js
+```
+
+Stato atteso prima del deploy:
 - lint senza errori;
-- guard route canoniche senza violazioni;
-- build Next.js completa.
+- nessuna violazione di path legacy;
+- build Next.js completa senza errori TypeScript.
 
-## 11.1 CI
-- Workflow: `.github/workflows/ci.yml`
-- Step automatici su push/PR:
-  - `npm ci`
-  - `npm run lint`
-  - `npm run check:routes`
-  - `npm run build`
+### 11.1 CI
+- Workflow: `.github/workflows/ci.yml`.
+- Step automatici su push e pull request:
+  1. `npm ci`
+  2. `npm run lint`
+  3. `npm run check:routes`
+  4. `npm run build`
+
+---
 
 ## 12. Troubleshooting rapido
 
-`Missing GOOGLE_MAPS_API_KEY`
-- aggiungere key in `.env.local`;
-- riavviare dev server.
+**`Missing GOOGLE_MAPS_API_KEY`**
+Aggiungere la key in `.env.local` e riavviare il dev server.
 
-`Errore auth not_invited`
-- verificare email in `public.invites`;
-- controllare `profiles.is_member`.
+**`Errore auth not_invited`**
+Verificare che l'email sia presente in `public.invites` e che `profiles.is_member` sia `true`.
 
-`relation already exists` su migrazione init
-- usare migrazione sync per DB esistente invece di rieseguire init.
+**`relation already exists` su migrazione init**
+Usare la migrazione `existing_db_security_sync` per DB esistenti invece di rieseguire `init`.
 
-`Caricamento Cloudinary fallito (400)`
-- verificare `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` e `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`;
-- verificare che il preset esista e sia `unsigned`;
-- attenzione: nome preset case-sensitive.
+**`Caricamento Cloudinary fallito (400)`**
+Verificare `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` e `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`. Il preset deve esistere, essere di tipo `unsigned` e il nome e case-sensitive.
 
-`Voti recensione con .5 falliscono`
-- applicare migrazione `20260424134500_reviews_allow_half_points.sql`;
-- verificare che `public.reviews` abbia colonne voto in `double precision`.
+**`Voti recensione con .5 falliscono`**
+Applicare migrazione `20260424134500_reviews_allow_half_points.sql`. Verificare che le colonne voto in `public.reviews` siano `double precision`.
+
+**`DB Supabase in pausa (piano free)`**
+Il DB Supabase free si mette in pausa dopo 7 giorni di inattivita. Soluzione attiva: Vercel Cron chiama `/api/keepalive` ogni 5 giorni. Se il cron non risulta attivo, riattivare manualmente il DB dal dashboard Supabase e verificare che `vercel.json` sia stato deployato.
+
+**`Build fallita: Property 'icon' is missing`**
+Il componente `Button` richiede il prop `icon` obbligatorio. Aggiungere `icon={<FiX className="h-4 w-4" />}` (o altra icona da `react-icons/fi`) a ogni istanza Button priva di icona.
+
+---
 
 ## 13. Convenzioni di sviluppo
 
-- UI lingua italiana.
-- Nomenclatura business: “evento”, “votazione”, non “poll” nei testi utente.
-- Mobile-first su componenti interattivi (menu/modal full-screen mobile).
-- Usare componenti UI condivisi (`Button`, `Checkbox`, `ToastProvider`) invece di elementi nativi non stilizzati.
-- Tenere allineata questa documentazione quando cambia flusso o schema.
+- **Lingua UI**: italiano. Nomenclatura business: "evento", "votazione", non "poll" nei testi visibili all'utente.
+- **Mobile-first**: componenti interattivi (modal, menu) full-screen su mobile.
+- **Componenti UI condivisi**: usare sempre `Button`, `ButtonLink`, `Modal`, `CollapsiblePanel`, `ToastProvider` invece di elementi nativi non stilizzati.
+- **Prop `icon` obbligatorio su `Button`**: ogni bottone deve avere un'icona esplicita da `react-icons/fi`.
+- **Azioni distruttive**: usare `variant="unstyled"` con palette terracotta:
+  - trigger: `bg-[rgba(178,74,47,0.1)] text-(--terracotta-deep)`
+  - confirm: `bg-[rgba(178,74,47,0.85)] text-white`
+- **Documentazione**: aggiornare questo file e `guida-funzionale.md` quando cambia un flusso, uno schema o una migrazione.

@@ -1,36 +1,29 @@
-# Pizzoni 🍕
+# Pizzoni
 
-App privata per gruppo chiuso: classifica pizzerie, organizzazione eventi, recensioni e foto.
+App privata per un gruppo chiuso: organizza serate pizza, vota le date, registra eventi, raccoglie recensioni e foto.
 
-## Funzionalita principali
+## Funzionalita
 
 - Login con Google OAuth (invite-only)
-- Gestione inviti admin
-- Profilo utente (nome, avatar)
-- Pizzerie: creazione, elenco, filtro visitate/non visitate
-  - supporto immagine custom caricata manualmente
-  - fallback automatico: Google -> foto evento recente -> custom -> placeholder
-- Eventi:
-  - votazione date per nuovo evento (votazione-first)
-  - impostazione orario prenotazione evento (owner/admin)
-  - finalizzazione evento con creazione automatica visita
-  - distinzione upcoming/storico basata su data+ora evento
-  - storico eventi + dettaglio evento
-- Recensioni per evento con punteggio medio
-- Foto evento:
-  - scelta file o scatto camera direttamente nell'app
-  - upload manuale con bottone `Aggiungi`
-  - tag unico "foto della serata" per evento
-- UI coerente con componenti condivisi:
-  - `Button` unico con supporto icona sinistra/destra
-  - `ButtonLink` unico per azioni di navigazione con stesso stile/API
-  - `FileButton` unico per upload file con stile consistente
-  - `Checkbox` brandizzato
-  - `Avatar` unico con fallback automatico alle iniziali se URL non valido
-  - toast globali per feedback utente
-- Classifica pizzerie con filtro citta
-- Ricerca pizzerie da Google Places API (New) con geolocalizzazione opzionale
-- Export calendario `.ics` (`/api/calendar`)
+- Inviti gestiti da admin dalla pagina profilo
+- Classifica pizzerie per punteggio medio, con filtro citta
+- Pizzerie: creazione, elenco, filtro visitate/da visitare, ricerca
+  - Ricerca integrata Google Places con geolocalizzazione opzionale
+  - Immagine custom caricabile manualmente; fallback automatico: Google → foto evento recente → placeholder
+- Pianificazione evento (votazione-first):
+  - Creazione votazione con pizzeria + opzioni data multiple
+  - Voto disponibilita per ogni data; votanti visibili per nome ed emoji
+  - Finalizzazione da owner o admin: crea l'evento e pre-compila i partecipanti
+  - Cancellazione votazione aperta (solo admin)
+- Dettaglio evento con sezioni collassabili:
+  - Impostazione orario prenotazione (owner/admin)
+  - Cambio pizzeria associata (owner/admin)
+  - Gestione partecipanti (admin puo aggiungere/rimuovere qualsiasi membro)
+  - Recensioni per categoria (0-10, supporto mezzi punti)
+  - Note evento multiutente (ogni autore gestisce le proprie)
+  - Foto: upload da file o camera, tag unico "foto della serata"
+- Export calendario `.ics` per ogni evento
+- Vercel Cron per prevenire la pausa automatica del DB Supabase piano free
 
 ## Stack
 
@@ -38,84 +31,94 @@ App privata per gruppo chiuso: classifica pizzerie, organizzazione eventi, recen
 - Supabase (Auth + Postgres + RLS)
 - Cloudinary (upload immagini)
 - Google Places API (New)
+- Tailwind CSS 4
 
 ## Setup locale
 
-### 1) Install
+### 1. Installa le dipendenze
 
 ```bash
 npm install
 ```
 
-### 2) Variabili ambiente
+### 2. Variabili d'ambiente
 
-Crea `.env.local` (vedi anche `env.example`):
+Crea `.env.local` a partire da `env.example`:
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`
-- `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`
-- `GOOGLE_MAPS_API_KEY`
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=
+GOOGLE_MAPS_API_KEY=
+```
 
-### 3) Database migrations (Supabase Cloud, no CLI)
+### 3. Migrazioni database (Supabase Cloud, senza CLI)
 
-SQL in `supabase/migrations/`.
+I file SQL sono in `supabase/migrations/`. Eseguirli in ordine cronologico via SQL Editor di Supabase.
 
-- DB nuovo: eseguire dalla prima migrazione in ordine cronologico.
-- DB esistente: partire da `20260422191500_existing_db_security_sync.sql` e poi seguire ordine cronologico.
+- **DB nuovo**: partire da `20260422190500_init.sql`.
+- **DB esistente**: partire da `20260422191500_existing_db_security_sync.sql`.
 
-Migrazioni chiave del flusso attuale:
-- `20260422194000_membership_and_invites.sql`
-- `20260422213000_agenda_poll_first.sql`
-- `20260422221000_drop_legacy_planner_tables.sql`
-- `20260422224000_visit_attendees_admin_management.sql`
-- `20260423182000_pizzerias_google_metadata.sql`
-- `20260424102000_visits_scheduled_at_and_admin_update.sql`
-- `20260424113000_pizza_of_night_single_tag.sql`
-- `20260424130000_visit_notes_multi_user.sql`
-- `20260424134500_reviews_allow_half_points.sql`
-- `20260424141000_pizzerias_custom_image.sql`
-- `20260424144000_set_pizza_of_night_sync_pizzeria_cover.sql`
-- `20260424145000_set_pizza_of_night_event_only.sql`
-- `20260424150000_cleanup_deleted_photo_references.sql`
-- `20260424151000_cleanup_updated_photo_references.sql`
+Migrazioni rilevanti per il flusso attuale:
 
-### 4) Configurazione Supabase Auth
+| File | Contenuto |
+|---|---|
+| `20260422194000_membership_and_invites.sql` | Membership e sistema inviti |
+| `20260422213000_agenda_poll_first.sql` | Schema votazioni + RPC finalizzazione |
+| `20260422221000_drop_legacy_planner_tables.sql` | Rimozione tabelle legacy |
+| `20260422224000_visit_attendees_admin_management.sql` | Gestione partecipanti admin |
+| `20260423182000_pizzerias_google_metadata.sql` | Metadati Google su pizzerie |
+| `20260424102000_visits_scheduled_at_and_admin_update.sql` | Orario prenotazione evento |
+| `20260424113000_pizza_of_night_single_tag.sql` | Tag unico "foto della serata" |
+| `20260424130000_visit_notes_multi_user.sql` | Note evento multiutente |
+| `20260424134500_reviews_allow_half_points.sql` | Supporto voti con .5 |
+| `20260424141000_pizzerias_custom_image.sql` | Immagine custom pizzeria |
+| `20260424144000_set_pizza_of_night_sync_pizzeria_cover.sql` | Sync copertina pizzeria |
+| `20260424145000_set_pizza_of_night_event_only.sql` | Tag foto solo su eventi |
+| `20260424150000_cleanup_deleted_photo_references.sql` | Pulizia riferimenti foto eliminati |
+| `20260424151000_cleanup_updated_photo_references.sql` | Pulizia riferimenti foto aggiornati |
+| `20260621000000_cancel_poll_admin_only.sql` | Policy delete poll: solo admin, solo aperte |
 
-- Provider Google abilitato in Supabase.
+### 4. Supabase Auth
+
+- Abilitare il provider Google nella dashboard Supabase.
 - Site URL locale: `http://localhost:3000`
 - Redirect URL locale: `http://localhost:3000/auth/callback`
+- In produzione: aggiornare entrambi con il dominio Vercel.
 
-In produzione, aggiornare Site URL + Redirect URL con il dominio Vercel.
+### 5. Google Cloud (Places API)
 
-Alias storici route sono gestiti in `next.config.ts` tramite `redirects` (es. `/pizzerias` -> `/pizzerie`, `/login` -> `/accedi`).
+- Abilitare **Places API (New)** nel progetto Google Cloud.
+- Creare una API key e impostarla in `GOOGLE_MAPS_API_KEY`.
+- Restrizioni consigliate: API restrictions → solo Places API (New).
 
-Guard automatica path canonici:
-- `npm run check:routes` esegue uno script AST-based che blocca riferimenti ai path legacy nel codice sorgente.
-
-### 5) Configurazione Google Cloud (Places)
-
-- Abilitare `Places API (New)` nello stesso progetto Google Cloud.
-- Creare API key e impostarla in `GOOGLE_MAPS_API_KEY`.
-- Restrizioni consigliate key:
-  - API restrictions: solo `Places API (New)`.
-  - Application restrictions: in base all'ambiente (dev/prod).
-
-### 6) Run
+### 6. Avvia il dev server
 
 ```bash
 npm run dev
 ```
 
-### 7) Quality checks
+### 7. Verifica qualita
 
 ```bash
-npm run lint
-npm run check:routes
-npm run build
+npm run lint          # ESLint
+npm run check:routes  # guard path canonici (AST-based)
+npm run build         # build produzione
 ```
+
+Questi stessi comandi vengono eseguiti automaticamente dalla CI su ogni push (`.github/workflows/ci.yml`).
+
+## Deploy (Vercel)
+
+Push su GitHub → deploy automatico su Vercel.
+
+Il file `vercel.json` configura un Cron Job che chiama `/api/keepalive` ogni 5 giorni per prevenire la pausa automatica del DB Supabase piano free. Il cron si attiva automaticamente al deploy.
+
+Le variabili d'ambiente vanno configurate in Vercel dashboard (Settings → Environment Variables).
 
 ## Documentazione
 
-- Guida utente funzionale: `docs/guida-funzionale.md`
-- Documentazione tecnica completa: `docs/documentazione-tecnica.md`
+- Guida funzionale: [`docs/guida-funzionale.md`](docs/guida-funzionale.md)
+- Documentazione tecnica: [`docs/documentazione-tecnica.md`](docs/documentazione-tecnica.md)
+- Prossimi sviluppi: [`docs/next-steps.md`](docs/next-steps.md)
