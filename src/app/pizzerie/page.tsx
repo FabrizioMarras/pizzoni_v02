@@ -19,7 +19,6 @@ export default async function PizzeriasPage() {
       <Nav />
       <main className="page-wrap">
         <h1 className="page-title">Pizzerie</h1>
-        <p className="page-subtitle mb-6">Crea e consulta i locali visitati dal gruppo.</p>
         <PizzeriaManager initialPizzerias={initialPizzerias} />
       </main>
     </div>
