@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { FiCalendar, FiCheck, FiExternalLink, FiMapPin, FiNavigation, FiPlus, FiX } from 'react-icons/fi'
+import { FiCalendar, FiCheck, FiExternalLink, FiMapPin, FiNavigation, FiPlus, FiTrash2, FiX } from 'react-icons/fi'
 import { formatDateLabel } from '@/lib/date-format'
 import { supabase } from '@/lib/supabase'
 import {
+  cancelAgendaPoll,
   createEventVoteWithDates,
   createPizzeria,
   fetchPlannerSnapshot,
@@ -73,6 +74,8 @@ export default function PlannerBoard({
   const [longitude, setLongitude] = useState<number | null>(null)
 
   const [submitting, setSubmitting] = useState(false)
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const toast = useToast()
 
   const loadData = async () => {
@@ -317,6 +320,20 @@ export default function PlannerBoard({
     void loadData()
   }
 
+  const cancelPoll = async () => {
+    if (!openEventVote || !isAdmin) return
+    setCancelling(true)
+    const { error } = await cancelAgendaPoll(supabase, openEventVote.id)
+    setCancelling(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    setCancelConfirmOpen(false)
+    toast.success('Votazione cancellata.')
+    void loadData()
+  }
+
   const finalizeEventVote = async (optionId: string) => {
     if (!openEventVote || !canFinalizeOpenEventVote) return
 
@@ -478,9 +495,48 @@ export default function PlannerBoard({
         </form>
       </Modal>
 
+      <Modal open={cancelConfirmOpen} onClose={() => setCancelConfirmOpen(false)} title="Cancella votazione">
+        <p className="text-sm text-foreground">
+          Sei sicuro di voler cancellare la votazione per <strong>{openEventVote?.pizzeria_name}</strong>? Tutti i voti e le opzioni data verranno eliminati. Questa azione è irreversibile.
+        </p>
+        <div className="mt-4 flex gap-2">
+          <Button
+            type="button"
+            onClick={() => void cancelPoll()}
+            disabled={cancelling}
+            variant="unstyled"
+            className="rounded-full bg-[rgba(178,74,47,0.85)] px-4 py-2 text-sm text-white"
+            icon={<FiTrash2 className="h-4 w-4" />}
+          >
+            {cancelling ? 'Cancellazione...' : 'Sì, cancella'}
+          </Button>
+          <Button
+            type="button"
+            onClick={() => setCancelConfirmOpen(false)}
+            variant="secondary"
+            className="px-4 py-2 text-sm"
+          >
+            Annulla
+          </Button>
+        </div>
+      </Modal>
+
       {openEventVote && (
         <section className="glass-card space-y-3 p-6">
-          <h2 className="text-3xl">Votazione Aperta</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-3xl">Votazione Aperta</h2>
+            {isAdmin && (
+              <Button
+                type="button"
+                onClick={() => setCancelConfirmOpen(true)}
+                variant="unstyled"
+                className="rounded-full bg-[rgba(178,74,47,0.1)] px-3 py-1 text-xs text-(--terracotta-deep)"
+                icon={<FiTrash2 className="h-3.5 w-3.5" />}
+              >
+                Cancella votazione
+              </Button>
+            )}
+          </div>
           <article className="surface-card space-y-3 px-4 py-4">
             <div className="text-lg font-semibold text-[var(--ink)]">{openEventVote.pizzeria_name}</div>
             <div className="text-sm text-[var(--ink-soft)]">{openEventVote.city} · {openEventVote.location}</div>

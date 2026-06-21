@@ -168,3 +168,7 @@ export async function finalizeEventVote(supabase: SB, pollId: string, optionId: 
     p_option_id: optionId,
   })
 }
+
+export async function cancelAgendaPoll(supabase: SB, pollId: string) {
+  return supabase.from('agenda_polls').delete().eq('id', pollId).eq('status', 'open')
+}
