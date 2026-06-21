@@ -2,7 +2,18 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { getProfileMembershipFlags } from '@/lib/profile-flags'
 
+const CRAWLER_UA = /WhatsApp|Telegram|facebookexternalhit|Twitterbot|Slackbot|LinkedInBot|Discordbot/i
+
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // OG image routes and known social crawlers bypass auth so link previews work.
+  // The image route returns only a PNG; the page HTML exposes only OG meta tags
+  // (generated via the admin client) — page content is still RLS-protected.
+  if (pathname.endsWith('/opengraph-image')) return NextResponse.next({ request })
+  const ua = request.headers.get('user-agent') ?? ''
+  if (CRAWLER_UA.test(ua)) return NextResponse.next({ request })
+
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -28,7 +39,6 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
   const isAuthRoute = pathname.startsWith('/auth/') || pathname === '/accedi'
 
   if (!user && !isAuthRoute) {
