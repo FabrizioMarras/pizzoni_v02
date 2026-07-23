@@ -4,6 +4,11 @@ import { getProfileMembershipFlags } from '@/lib/profile-flags'
 
 const CRAWLER_UA = /WhatsApp|Telegram|facebookexternalhit|Twitterbot|Slackbot|LinkedInBot|Discordbot/i
 
+// PWA assets: must be reachable pre-login so the manifest, icons, and service
+// worker resolve correctly while a visitor is still sitting on /accedi — none
+// of these expose any user data.
+const PWA_PATHS = new Set(['/manifest.webmanifest', '/icon', '/apple-icon', '/icon-192', '/icon-512', '/sw.js', '/offline'])
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -17,6 +22,8 @@ export async function proxy(request: NextRequest) {
   // Called by Vercel Cron (never an authenticated browser session); protected
   // by its own CRON_SECRET check inside the route, not by login.
   if (pathname === '/api/keepalive') return NextResponse.next({ request })
+
+  if (PWA_PATHS.has(pathname)) return NextResponse.next({ request })
 
   let response = NextResponse.next({ request })
 

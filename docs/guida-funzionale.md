@@ -16,7 +16,8 @@ Per i dettagli tecnici, vedere `docs/documentazione-tecnica.md`.
 6. [Votazione](#6-votazione-in-eventi)
 7. [Profilo](#7-profilo-profilo)
 8. [Errore autenticazione](#8-errore-autenticazione-authauth-code-error)
-9. [Changelog](#changelog)
+9. [Installazione come app sul telefono](#9-installazione-come-app-sul-telefono)
+10. [Changelog](#changelog)
 
 ---
 
@@ -174,6 +175,18 @@ Il flusso di pianificazione e votazione-first: prima si vota la data, poi l'even
 
 ---
 
+## 9. Installazione come app sul telefono
+
+Pizzoni si puo installare sulla schermata home del telefono, come un'app vera e propria (icona, apertura a schermo intero, nessuna barra del browser). Non e un file da scaricare ne un'app da cercare nello store: e una funzione del browser che "aggiunge" il sito come app.
+
+**Android (Chrome):** aprire pizzoni sul browser, toccare il menu (⋮) in alto a destra e scegliere "Aggiungi a schermata Home" (o toccare il banner di installazione se compare automaticamente).
+
+**iPhone/iPad (Safari):** l'installazione funziona solo da Safari (non da Chrome su iOS). Aprire pizzoni, toccare l'icona di condivisione (il quadrato con la freccia verso l'alto) e scegliere "Aggiungi a Home".
+
+Una volta installata, l'app si apre dall'icona come le altre; se manca la connessione mostra una schermata "Sei offline" invece di restare bloccata su una pagina bianca.
+
+---
+
 ## Changelog
 
 - 2026-04-22: Prima versione guida funzionale. Definita direzione votazione-first.
@@ -202,3 +215,4 @@ Il flusso di pianificazione e votazione-first: prima si vota la data, poi l'even
 - 2026-07-23: Aggiunti placeholder di caricamento (skeleton) su Classifica, Eventi, Pizzerie e dettaglio evento, cosi la pagina non resta vuota su connessioni lente mentre i dati arrivano.
 - 2026-07-23: Aggiunto un tema scuro automatico che segue le preferenze del dispositivo/browser (nessun interruttore manuale in app): se il telefono o il computer sono impostati su tema scuro, Pizzoni si adatta da solo.
 - 2026-07-24: Corretti alcuni punti rimasti chiari in tema scuro dopo il rilascio: il menu mobile e le finestre di dialogo (es. creazione/modifica votazione) ora seguono correttamente il tema scuro.
+- 2026-07-24: Pizzoni e ora installabile sulla schermata home del telefono (icona propria, apertura a schermo intero, schermata "Sei offline" quando manca la connessione). Vedi sezione 9.

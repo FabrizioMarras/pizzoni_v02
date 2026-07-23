@@ -53,6 +53,16 @@ export default function GuidaPage() {
         </section>
 
         <section className="glass-card space-y-3 p-6">
+          <h2 className="text-3xl">Installare Pizzoni Sul Telefono</h2>
+          <div className="space-y-2 text-sm text-[var(--ink)]">
+            <p>Non è un file da scaricare né un&apos;app da cercare nello store: si aggiunge direttamente dal browser.</p>
+            <p><strong>Android (Chrome):</strong> apri Pizzoni, tocca il menu ⋮ in alto a destra e scegli <strong>&quot;Aggiungi a schermata Home&quot;</strong> (a volte compare anche un banner automatico).</p>
+            <p><strong>iPhone/iPad:</strong> funziona solo da <strong>Safari</strong> (non da Chrome). Apri Pizzoni, tocca l&apos;icona di condivisione (il quadrato con la freccia verso l&apos;alto) e scegli <strong>&quot;Aggiungi a Home&quot;</strong>.</p>
+            <p>Dopo l&apos;installazione trovi un&apos;icona sulla home come le altre app: si apre a schermo intero, senza barra del browser.</p>
+          </div>
+        </section>
+
+        <section className="glass-card space-y-3 p-6">
           <h2 className="text-3xl">Domande Comuni</h2>
           <div className="space-y-2 text-sm text-[var(--ink)]">
             <p><strong>Se non ho votato la votazione?</strong> Nel dettaglio evento puoi cliccare <strong>Partecipo</strong>.</p>

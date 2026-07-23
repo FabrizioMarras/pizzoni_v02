@@ -1,6 +1,7 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { ToastProvider } from '@/components/ui/ToastProvider'
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import './globals.css'
 
 const baseUrl =
@@ -13,6 +14,13 @@ export const metadata: Metadata = {
   description: 'Recensioni social di pizzerie con classifica e pianificazione visite.',
 }
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#b24a2f' },
+    { media: '(prefers-color-scheme: dark)', color: '#e07a52' },
+  ],
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -23,6 +31,7 @@ export default function RootLayout({
   return (
     <html lang="it" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
+        <ServiceWorkerRegister />
         <ToastProvider>{children}</ToastProvider>
         <footer className="mt-auto px-4 pb-5 pt-3 text-center text-xs text-[var(--ink-soft)]">
           © {new Date().getFullYear()} FM Consulting

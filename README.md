@@ -32,6 +32,7 @@ App privata per un gruppo chiuso: organizza serate pizza, vota le date, registra
 - Proxy server-side per gli avatar Google (`/api/avatar`), per evitare blocchi del browser sugli hotlink diretti
 - Skeleton di caricamento su Classifica, Eventi, Pizzerie e dettaglio evento (`loading.tsx` per route, nessuna dipendenza esterna)
 - Tema scuro automatico (`prefers-color-scheme`, nessun toggle manuale), CSS puro senza dipendenze aggiuntive
+- App installabile (PWA): manifest + icone generate via `ImageResponse` + service worker con cache degli asset statici e pagina di fallback offline
 
 ## Stack
 

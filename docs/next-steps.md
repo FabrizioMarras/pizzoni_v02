@@ -28,12 +28,6 @@ Ordinate per impatto stimato, non per priorita assoluta.
 **Perche:** il gruppo usa l'app da tempo e ha dati sufficienti per visualizzazioni interessanti.
 **Come:** query aggregate su `reviews`, `visit_attendees`, `photos`, `visits`.
 
-### 4. PWA / app installabile
-**Cosa:** `manifest.json` + service worker per permettere l'installazione sul telefono come app nativa.
-**Perche:** l'UI e gia mobile-first; l'installazione migliora l'accessibilita per i membri meno tecnici.
-**Come:** Next.js supporta PWA con `next-pwa` o configurazione manuale del manifest.
-**Nota (2026-07-23):** ricerca preliminare gia fatta per la prossima sessione — vedi convenzioni Next.js in `docs/documentazione-tecnica.md` (`app/manifest.ts`, `app/icon.tsx`/`app/apple-icon.tsx` con `ImageResponse`, gia usato in questo repo per `opengraph-image.tsx`). Nessuna icona brandizzata esiste ancora nel repo (solo emoji 🍕 in Nav).
-
 ---
 
 ## Note operative
@@ -45,6 +39,7 @@ Ordinate per impatto stimato, non per priorita assoluta.
 
 ## Completate
 
+- **PWA / app installabile** (2026-07-24): manifest (`src/app/manifest.ts`), icone generate via `ImageResponse` (`icon.tsx`/`apple-icon.tsx`/`icon-192`/`icon-512`, JSX condivisa in `src/lib/app-icon.tsx` — emoji 🍕 su gradiente terracotta, nessun asset immagine nuovo) e service worker (`public/sw.js`) con cache degli asset statici `_next/static` e pagina di fallback `src/app/offline`. Nessuna dipendenza esterna (`next-pwa` scartato, tutto file-convention Next.js + service worker scritto a mano). Emerso durante l'implementazione: il middleware (`src/proxy.ts`) redirigeva a `/accedi` anche manifest/icone/service worker per i visitatori non loggati (nessuno di quei path termina con un'estensione esente dal matcher) — aggiunta un'eccezione esplicita, stesso pattern gia usato per `opengraph-image`/`keepalive`. Verificato con `curl` (200 su tutti i path da sessione non autenticata) e Playwright (manifest/theme-color/apple-touch-icon in `<head>`, service worker registrato e attivo, screenshot pagina offline in chiaro/scuro).
 - **Modifica votazione aperta** (2026-07-23): owner/admin possono ora modificare pizzeria/nota di una votazione aperta senza cancellarla e ricrearla (`updateEventVotePizzeria`). Le date non sono piu opzioni fisse decise dall'owner: qualsiasi membro le propone tramite calendario condiviso, risolvendo di fatto anche la parte "aggiungere opzioni data" di questo item.
 - **Aggiornamenti real-time nella votazione** (2026-07-23): i voti, le date proposte, le modifiche pizzeria e la finalizzazione/cancellazione della poll ora si propagano dal vivo a tutti i membri collegati, senza ricaricare la pagina. Implementato con un canale `supabase.channel()` su `postgres_changes` (`agenda_polls`, `agenda_poll_date_options`, `agenda_poll_date_votes`, `pizzerias`) in `PlannerBoard.tsx`, con refetch debounced (~300ms) invece di patch granulari sullo stato. Verificato manualmente con due finestre browser aperte in contemporanea.
 - **Mostra chi non ha ancora votato** (2026-07-23): nella votazione aperta, un riquadro "Non hanno ancora votato" elenca (con avatar) i membri senza un voto `available` sulla poll corrente; si aggiorna anche live grazie alla sottoscrizione real-time gia presente. Implementato aggiungendo il fetch di `profiles` (`is_member = true`) a `fetchPlannerData` in `event-votes-client.ts`.

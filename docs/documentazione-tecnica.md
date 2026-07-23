@@ -1,6 +1,6 @@
 # Documentazione Tecnica Pizzoni
 
-Versione documento: 2026-07-23
+Versione documento: 2026-07-24
 Stack: Next.js 16 (App Router), React 19, TypeScript, Supabase, Tailwind CSS 4
 
 ---
@@ -89,6 +89,30 @@ Tutto il tema (chiaro/scuro) vive in `src/app/globals.css`, pilotato automaticam
 
 **Fix post-deploy (2026-07-24)**: lo sweep iniziale cercava solo le tuple rgba gia note (bianco/terracotta/oliva) invece di uno sweep libero su tutti i letterali, perdendo tre punti reali: il menu mobile di `Nav.tsx`, lo sfondo del componente condiviso `ui/Modal.tsx` (usato da ogni dialog dell'app — impatto piu ampio del solo menu) e il badge "Foto della serata". Da qui i token `--page-cream-rgb`/`--panel-rgb`/`--tag-featured-bg`/`--scrim-rgb` sopra. Lezione: per una sweep di "rimuovi tutti i colori hardcoded", cercare `rgba([0-9]` e `#[0-9a-fA-F]{3,6}` senza vincolare i pattern alle tuple gia individuate, non fidarsi solo dei grep mirati.
 
+### 2.6 PWA / installabilita
+App installabile su telefono ("Add to Home Screen"), senza dipendenze esterne (niente `next-pwa`).
+
+**Manifest**: `src/app/manifest.ts`, convenzione nativa Next.js — default export tipizzato `MetadataRoute.Manifest`, servito automaticamente su `/manifest.webmanifest` con `<link rel="manifest">` gia iniettato nell'head, nessuna modifica manuale necessaria. Campi: `name`/`short_name` "Pizzoni", `display: 'standalone'`, `background_color`/`theme_color` allineati a `--page-cream`/`--terracotta` (valori chiari — il manifest non supporta `prefers-color-scheme`, a differenza del `viewport.themeColor`).
+
+**Icone generate via codice** (nessun asset immagine nel repo — l'unico "logo" esistente era l'emoji 🍕 in `Nav.tsx`): tutte usano `ImageResponse` (`next/og`), stesso pattern gia in uso per `eventi/[id]/opengraph-image.tsx`. JSX condivisa in `src/lib/app-icon.tsx` (`renderAppIcon(fontSize)`: emoji 🍕 su gradiente `--terracotta` → `--terracotta-deep`), usata da 4 route:
+- `src/app/icon.tsx` (32×32) e `src/app/apple-icon.tsx` (180×180): convenzione icone Next.js, generano i `<link rel="icon">`/`<link rel="apple-touch-icon">` automaticamente.
+- `src/app/icon-192/route.ts` e `src/app/icon-512/route.ts`: Route Handler "semplici" (non convenzione icon/apple-icon), servono solo a dare al manifest URL statiche reali per `icons[]` (192×192, 512×512 — dimensioni richieste per l'installabilita su Android/iOS).
+
+`ImageResponse` di default usa `emoji: 'twemoji'`: l'emoji viene renderizzata scaricando l'SVG da CDN twemoji, sia in dev sia in build — richiede quindi accesso di rete (presente su Vercel e in locale).
+
+**Service worker**: `public/sw.js`, scritto a mano (nessuna convenzione Next.js per i service worker). Strategia deliberatamente minimale, coerente con un'app auth-gated su dati RLS:
+- `install`: precache fissa di `/offline`, `/icon-192`, `/icon-512`.
+- `activate`: elimina cache di versioni precedenti (`CACHE_NAME` con suffisso versione).
+- `fetch`: richieste di navigazione → network-first, fallback alla pagina `/offline` cacheata se il fetch fallisce. Asset sotto `/_next/static/` → cache-first (sicuro, sono content-hashed/immutabili). Tutto il resto (API, dati Supabase, immagini) → passthrough diretto alla rete, **nessuna cache**: evita di servire dati stantii o di un altro utente per contenuti autenticati/RLS-protetti.
+
+Registrazione: `src/components/ServiceWorkerRegister.tsx` (`'use client'`, `useEffect` con `navigator.serviceWorker.register('/sw.js')`, render `null`), montato una volta in `src/app/layout.tsx`.
+
+**Pagina offline**: `src/app/offline/page.tsx`, statica, nessun fetch, riusa i token di tema esistenti (`page-wrap`/`surface-card`) — messaggio "Sei offline" + bottone "Riprova" (`location.reload()`).
+
+**Theme color del browser**: `viewport` export in `src/app/layout.tsx` (API `Viewport`, distinta dall'oggetto `metadata`), con `themeColor` per media query chiaro/scuro (`--terracotta` light/dark), cosi la barra del browser/titlebar PWA segue il tema di sistema come il resto dell'app.
+
+**Middleware**: vedi 4.5 — `/manifest.webmanifest`, `/icon`, `/apple-icon`, `/icon-192`, `/icon-512`, `/sw.js`, `/offline` sono esentati dal redirect di autenticazione, altrimenti un visitatore non loggato (fermo su `/accedi`) riceverebbe l'HTML di `/accedi` al posto del manifest/icone/service worker reali, rompendo l'installabilita pre-login.
+
 ---
 
 ## 3. Routing applicativo
@@ -164,6 +188,7 @@ Bypass espliciti (nessun redirect a `/accedi`, in quest'ordine):
 1. Route `*/opengraph-image` (necessario per le anteprime social).
 2. User-agent noto di crawler social (WhatsApp, Telegram, facebookexternalhit, Twitterbot, Slackbot, LinkedInBot, Discordbot).
 3. `/api/keepalive` (chiamato da Vercel Cron, mai da una sessione browser autenticata; protetto invece dal controllo `CRON_SECRET` nella route stessa — vedi 7.5).
+4. Asset PWA (`/manifest.webmanifest`, `/icon`, `/apple-icon`, `/icon-192`, `/icon-512`, `/sw.js`, `/offline`) — nessun dato utente, devono restare raggiungibili anche da un visitatore non loggato perche l'installabilita/service worker funzionino prima del login (vedi 2.6).
 
 Per ogni altra richiesta: legge la sessione Supabase dai cookie; se assente e la route non e `/auth/*`/`/accedi`, redirect a `/accedi`. Se l'utente e autenticato ma non e membro (`profiles.is_member = false`), redirect a `/auth/auth-code-error?error_code=not_invited`.
 
