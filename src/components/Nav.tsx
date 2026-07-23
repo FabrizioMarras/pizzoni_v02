@@ -87,7 +87,7 @@ export default function Nav() {
       </div>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-[90] flex min-h-screen flex-col bg-[rgba(247,240,228,0.98)] px-5 pb-8 pt-6 md:hidden">
+        <div className="fixed inset-0 z-[90] flex min-h-screen flex-col bg-[rgba(var(--page-cream-rgb),0.98)] px-5 pb-8 pt-6 md:hidden">
           <div className="mb-6 flex items-center justify-between">
             <Link href="/" onClick={() => setMobileOpen(false)} className="font-semibold tracking-tight text-[var(--ink)]">
               <span className="text-xl">🍕</span>

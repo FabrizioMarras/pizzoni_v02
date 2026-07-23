@@ -233,7 +233,7 @@ export default function AvailabilityCalendar({
             <div className="flex flex-wrap gap-1">
               {voters.map((vote) => (
                 <span key={vote.id} className="inline-flex items-center gap-1 rounded-full bg-[rgba(var(--olive-rgb),0.12)] px-2 py-0.5 text-xs text-[var(--olive)]">
-                  <span>{vote.voter?.pizza_emoji ?? vote.voter?.name?.[0] ?? '?'}</span>
+                  {vote.voter?.pizza_emoji && <span>{vote.voter.pizza_emoji}</span>}
                   <span>{vote.voter?.name ?? 'Utente'}</span>
                 </span>
               ))}

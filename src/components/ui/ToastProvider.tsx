@@ -76,7 +76,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto rounded-xl border px-3 py-2 text-sm shadow-[0_10px_24px_rgba(40,28,20,0.16)] backdrop-blur ${getToastClasses(
+            className={`pointer-events-auto rounded-xl border px-3 py-2 text-sm shadow-[0_10px_24px_rgba(var(--scrim-rgb),0.16)] backdrop-blur ${getToastClasses(
               toast.type
             )}`}
           >

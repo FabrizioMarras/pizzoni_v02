@@ -201,3 +201,4 @@ Il flusso di pianificazione e votazione-first: prima si vota la data, poi l'even
 - 2026-07-23: Protetta la route interna di keepalive del database con un controllo di autorizzazione; risolto anche un bug per cui questa chiamata automatica non arrivava mai a destinazione, con il rischio che il database si mettesse in pausa nonostante il cron attivo.
 - 2026-07-23: Aggiunti placeholder di caricamento (skeleton) su Classifica, Eventi, Pizzerie e dettaglio evento, cosi la pagina non resta vuota su connessioni lente mentre i dati arrivano.
 - 2026-07-23: Aggiunto un tema scuro automatico che segue le preferenze del dispositivo/browser (nessun interruttore manuale in app): se il telefono o il computer sono impostati su tema scuro, Pizzoni si adatta da solo.
+- 2026-07-24: Corretti alcuni punti rimasti chiari in tema scuro dopo il rilascio: il menu mobile e le finestre di dialogo (es. creazione/modifica votazione) ora seguono correttamente il tema scuro.

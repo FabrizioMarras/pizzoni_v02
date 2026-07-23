@@ -33,9 +33,9 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
   if (!open || typeof document === 'undefined' || !document.body) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] bg-[rgba(43,31,26,0.45)]" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] bg-[rgba(var(--scrim-rgb),0.45)]" onClick={onClose}>
       <div
-        className="h-full w-full bg-[rgba(247,240,228,0.98)] md:mx-auto md:mt-[8vh] md:h-auto md:max-h-[84vh] md:w-[min(760px,100%-2rem)] md:rounded-2xl md:border md:border-[var(--panel-border)] md:bg-[rgba(255,251,246,0.98)] md:shadow-[0_18px_42px_rgba(43,31,26,0.28)]"
+        className="h-full w-full bg-[rgba(var(--page-cream-rgb),0.98)] md:mx-auto md:mt-[8vh] md:h-auto md:max-h-[84vh] md:w-[min(760px,100%-2rem)] md:rounded-2xl md:border md:border-[var(--panel-border)] md:bg-[rgba(var(--panel-rgb),0.98)] md:shadow-[0_18px_42px_rgba(var(--scrim-rgb),0.28)]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[var(--panel-border)] px-5 py-4">

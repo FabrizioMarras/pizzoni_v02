@@ -298,7 +298,7 @@ export default function PhotoGalleryManager({ visitId, userId, initialPhotos }: 
       </section>
 
       {cameraOpen && (
-        <div className="fixed inset-0 z-[120] bg-[rgba(43,31,26,0.65)] p-4" onClick={closeCamera}>
+        <div className="fixed inset-0 z-[120] bg-[rgba(var(--scrim-rgb),0.65)] p-4" onClick={closeCamera}>
           <div
             className="mx-auto relative flex h-full w-full max-w-2xl overflow-hidden rounded-2xl border border-[var(--panel-border)] bg-black"
             onClick={(event) => event.stopPropagation()}
@@ -348,7 +348,7 @@ export default function PhotoGalleryManager({ visitId, userId, initialPhotos }: 
                   className="h-64 w-full object-cover transition duration-300 group-hover:scale-105"
                 />
                 {photo.is_pizza_of_night && (
-                  <span className="absolute left-1 top-1 rounded-full bg-[rgba(255,225,155,0.95)] px-2 py-1 text-xs font-medium text-[var(--ink)] flex items-center gap-1">
+                  <span className="absolute left-1 top-1 rounded-full bg-[var(--tag-featured-bg)] px-2 py-1 text-xs font-medium text-[var(--ink)] flex items-center gap-1">
                     <FiStar className="h-3 w-3" />
                     Foto della serata
                   </span>
