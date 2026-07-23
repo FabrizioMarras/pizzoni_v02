@@ -114,7 +114,7 @@ export async function createPizzeria(
     .single<ExistingPizzeria>()
 }
 
-export async function createEventVoteWithDates(
+export async function createEventVote(
   supabase: SB,
   payload: {
     owner_id: string
@@ -122,44 +122,58 @@ export async function createEventVoteWithDates(
     location: string
     city: string
     notes: string | null
-    dateOptions: string[]
   }
-) : Promise<{ eventVoteError: PostgrestError | null; dateOptionsError: PostgrestError | null }> {
-  const { data: eventVote, error: eventVoteError } = await supabase
-    .from('agenda_polls')
-    .insert({
-      owner_id: payload.owner_id,
-      pizzeria_name: payload.pizzeria_name,
-      location: payload.location,
-      city: payload.city,
-      notes: payload.notes,
-    })
-    .select('id')
-    .single<{ id: string }>()
+): Promise<{ eventVoteError: PostgrestError | null }> {
+  const { error: eventVoteError } = await supabase.from('agenda_polls').insert({
+    owner_id: payload.owner_id,
+    pizzeria_name: payload.pizzeria_name,
+    location: payload.location,
+    city: payload.city,
+    notes: payload.notes,
+  })
 
-  if (eventVoteError || !eventVote) return { eventVoteError, dateOptionsError: null }
-
-  const { error: dateOptionsError } = await supabase.from('agenda_poll_date_options').insert(
-    payload.dateOptions.map((optionDate) => ({
-      poll_id: eventVote.id,
-      option_date: optionDate,
-      created_by: payload.owner_id,
-    }))
-  )
-
-  return { eventVoteError: null, dateOptionsError }
+  return { eventVoteError }
 }
 
-export async function upsertAvailabilityVote(
+export async function proposeDateAndVote(
   supabase: SB,
   payload: {
     poll_id: string
-    date_option_id: string
     user_id: string
-    availability: 'available' | 'not_available'
+    date: string
+    existingOptionId?: string
   }
 ) {
-  return supabase.from('agenda_poll_date_votes').upsert(payload, { onConflict: 'date_option_id,user_id' })
+  let optionId = payload.existingOptionId
+
+  if (!optionId) {
+    const { data: option, error: optionError } = await supabase
+      .from('agenda_poll_date_options')
+      .insert({ poll_id: payload.poll_id, option_date: payload.date, created_by: payload.user_id })
+      .select('id')
+      .single<{ id: string }>()
+
+    if (optionError || !option) return { error: optionError }
+    optionId = option.id
+  }
+
+  return supabase.from('agenda_poll_date_votes').upsert(
+    {
+      poll_id: payload.poll_id,
+      date_option_id: optionId,
+      user_id: payload.user_id,
+      availability: 'available',
+    },
+    { onConflict: 'date_option_id,user_id' }
+  )
+}
+
+export async function removeDateVote(supabase: SB, payload: { date_option_id: string; user_id: string }) {
+  return supabase
+    .from('agenda_poll_date_votes')
+    .delete()
+    .eq('date_option_id', payload.date_option_id)
+    .eq('user_id', payload.user_id)
 }
 
 export async function finalizeEventVote(supabase: SB, pollId: string, optionId: string) {

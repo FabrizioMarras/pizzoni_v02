@@ -1,24 +1,26 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { FiCalendar, FiCheck, FiExternalLink, FiMapPin, FiNavigation, FiPlus, FiTrash2, FiX } from 'react-icons/fi'
+import { FiCheck, FiExternalLink, FiMapPin, FiNavigation, FiPlus, FiTrash2, FiX } from 'react-icons/fi'
 import { formatDateLabel } from '@/lib/date-format'
 import { supabase } from '@/lib/supabase'
 import {
   cancelAgendaPoll,
-  createEventVoteWithDates,
+  createEventVote as createEventVoteRequest,
   createPizzeria,
   fetchPlannerSnapshot,
   finalizeEventVote as finalizeEventVoteRpc,
+  proposeDateAndVote,
+  removeDateVote,
   type EventAvailabilityVote,
   type EventDateOption,
   type EventVote,
   type ExistingPizzeria,
-  upsertAvailabilityVote,
 } from '@/lib/data/event-votes-client'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import ButtonLink from '@/components/ui/ButtonLink'
+import AvailabilityCalendar from '@/components/AvailabilityCalendar'
 import { getCurrentPosition, searchPlaces, type PlaceSuggestion } from '@/lib/places'
 import { useToast } from '@/components/ui/ToastProvider'
 
@@ -60,8 +62,6 @@ export default function PlannerBoard({
   const [city, setCity] = useState('')
   const [notes, setNotes] = useState('')
 
-  const [dateDraft, setDateDraft] = useState('')
-  const [dateOptions, setDateOptions] = useState<string[]>([])
   const [eventVoteModalOpen, setEventVoteModalOpen] = useState(false)
   const [searchResults, setSearchResults] = useState<PlaceSuggestion[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
@@ -122,24 +122,6 @@ export default function PlannerBoard({
     () => (openEventVote ? dateChoices.filter((option) => option.poll_id === openEventVote.id) : []),
     [openEventVote, dateChoices]
   )
-
-  const addDateOptionDraft = () => {
-    if (!dateDraft) {
-      toast.warning('Seleziona una data.')
-      return
-    }
-
-    if (dateOptions.includes(dateDraft)) {
-      toast.info('Data gia aggiunta.')
-      return
-    }
-    setDateOptions((current) => [...current, dateDraft].sort())
-    setDateDraft('')
-  }
-
-  const removeDateOptionDraft = (dateValue: string) => {
-    setDateOptions((current) => current.filter((value) => value !== dateValue))
-  }
 
   const onSelectExistingPizzeria = (pizzeriaId: string) => {
     setSelectedPizzeriaId(pizzeriaId)
@@ -218,10 +200,6 @@ export default function PlannerBoard({
       toast.warning("Esiste gia una votazione aperta. Chiudila prima di crearne una nuova.")
       return
     }
-    if (dateOptions.length < 2) {
-      toast.warning('Aggiungi almeno due opzioni data.')
-      return
-    }
 
     const normalizedName = pizzeriaName.trim()
     const normalizedLocation = location.trim()
@@ -262,25 +240,18 @@ export default function PlannerBoard({
 
     setSubmitting(true)
 
-    const { eventVoteError, dateOptionsError } = await createEventVoteWithDates(supabase, {
+    const { eventVoteError } = await createEventVoteRequest(supabase, {
       owner_id: userId,
       pizzeria_name: ensuredPizzeria.name,
       location: ensuredPizzeria.location,
       city: ensuredPizzeria.city,
       notes: notes.trim() || null,
-      dateOptions,
     })
-
-    if (eventVoteError) {
-      setSubmitting(false)
-      toast.error(eventVoteError.message ?? 'Errore durante la creazione della votazione.')
-      return
-    }
 
     setSubmitting(false)
 
-    if (dateOptionsError) {
-      toast.error(dateOptionsError.message)
+    if (eventVoteError) {
+      toast.error(eventVoteError.message ?? 'Errore durante la creazione della votazione.')
       return
     }
 
@@ -294,28 +265,26 @@ export default function PlannerBoard({
     setLongitude(null)
     setNotes('')
     setSelectedPizzeriaId('')
-    setDateOptions([])
-    setDateDraft('')
     setSearchResults([])
     setEventVoteModalOpen(false)
     toast.success('Nuovo evento creato: votazione avviata con successo.')
     void loadData()
   }
 
-  const voteOnOption = async (option: EventDateOption, availability: 'available' | 'not_available') => {
+  const toggleCalendarDate = async (date: string, existingOptionId: string | undefined, hasMyVote: boolean) => {
     if (!userId || !openEventVote) return
 
-    const { error } = await upsertAvailabilityVote(supabase, {
-      poll_id: openEventVote.id,
-      date_option_id: option.id,
-      user_id: userId,
-      availability,
-    })
+    const { error } = hasMyVote && existingOptionId
+      ? await removeDateVote(supabase, { date_option_id: existingOptionId, user_id: userId })
+      : await proposeDateAndVote(supabase, {
+          poll_id: openEventVote.id,
+          user_id: userId,
+          date,
+          existingOptionId,
+        })
 
     if (error) {
       toast.error(error.message)
-    } else {
-      toast.success('Voto salvato.')
     }
     void loadData()
   }
@@ -347,14 +316,6 @@ export default function PlannerBoard({
     toast.success(`Data evento confermata. Evento creato: ${data}`)
     void loadData()
   }
-
-  const countVotes = (optionId: string, availability: 'available' | 'not_available') =>
-    availabilityVotes.filter((vote) => vote.date_option_id === optionId && vote.availability === availability).length
-
-  const getVoters = (optionId: string, availability: 'available' | 'not_available') =>
-    availabilityVotes.filter((vote) => vote.date_option_id === optionId && vote.availability === availability)
-
-  const myVote = (optionId: string) => availabilityVotes.find((vote) => vote.date_option_id === optionId && vote.user_id === userId)?.availability
 
   return (
     <div className="space-y-6">
@@ -446,42 +407,7 @@ export default function PlannerBoard({
           <input value={city} onChange={(event) => onCityChange(event.target.value)} placeholder="Città" className="field-input" required />
           <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Note (opzionale)" className="field-input min-h-[80px]" />
 
-          <div className="rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
-            <p className="mb-2 text-sm font-semibold text-[var(--ink)]">Opzioni data</p>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                type="date"
-                value={dateDraft}
-                onChange={(event) => setDateDraft(event.target.value)}
-                className="field-input"
-              />
-              <Button
-                type="button"
-                onClick={addDateOptionDraft}
-                variant="secondary"
-                className="px-4 py-2 text-sm"
-                icon={<FiCalendar className="h-4 w-4" />}
-              >
-                Aggiungi data
-              </Button>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {dateOptions.length === 0 && <span className="text-xs text-[var(--ink-soft)]">Nessuna data aggiunta.</span>}
-              {dateOptions.map((optionDate) => (
-                <Button
-                  key={optionDate}
-                  type="button"
-                  onClick={() => removeDateOptionDraft(optionDate)}
-                  variant="unstyled"
-                  className="rounded-full bg-[rgba(178,74,47,0.14)] px-3 py-1 text-xs text-[var(--terracotta-deep)]"
-                  icon={<FiX className="h-3 w-3" />}
-                  iconPosition="right"
-                >
-                  {formatDate(optionDate)}
-                </Button>
-              ))}
-            </div>
-          </div>
+          <p className="text-xs text-[var(--ink-soft)]">Dopo la creazione, ognuno potrà segnare le proprie date disponibili sul calendario.</p>
 
           <Button
             variant="primary"
@@ -543,80 +469,14 @@ export default function PlannerBoard({
             <div className="text-sm text-[var(--ink-soft)]">{openEventVote.city} · {openEventVote.location}</div>
             {openEventVote.notes && <p className="text-sm text-[var(--ink)]">{openEventVote.notes}</p>}
 
-            <div className="space-y-2">
-              {openEventDateChoices.map((option) => {
-                const available = countVotes(option.id, 'available')
-                const notAvailable = countVotes(option.id, 'not_available')
-                const mine = myVote(option.id)
-                const availableVoters = getVoters(option.id, 'available')
-                const notAvailableVoters = getVoters(option.id, 'not_available')
-                return (
-                  <div key={option.id} className="rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
-                    <div className="mb-2 text-sm font-semibold text-[var(--ink)]">{formatDate(option.option_date)}</div>
-                    {availableVoters.length > 0 && (
-                      <div className="mb-1.5">
-                        <span className="text-xs text-[var(--ink-soft)]">Disponibili ({available})</span>
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {availableVoters.map((vote) => (
-                            <span key={vote.id} className="inline-flex items-center gap-1 rounded-full bg-[rgba(81,100,58,0.12)] px-2 py-0.5 text-xs text-[var(--olive)]">
-                              <span>{vote.voter?.pizza_emoji ?? vote.voter?.name?.[0] ?? '?'}</span>
-                              <span>{vote.voter?.name ?? 'Utente'}</span>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {notAvailableVoters.length > 0 && (
-                      <div className="mb-2">
-                        <span className="text-xs text-[var(--ink-soft)]">Non disponibili ({notAvailable})</span>
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {notAvailableVoters.map((vote) => (
-                            <span key={vote.id} className="inline-flex items-center gap-1 rounded-full bg-[rgba(178,74,47,0.1)] px-2 py-0.5 text-xs text-[var(--terracotta-deep)]">
-                              <span>{vote.voter?.pizza_emoji ?? vote.voter?.name?.[0] ?? '?'}</span>
-                              <span>{vote.voter?.name ?? 'Utente'}</span>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {available === 0 && notAvailable === 0 && (
-                      <div className="mb-2 text-xs text-[var(--ink-soft)]">Nessun voto ancora.</div>
-                    )}
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        onClick={() => void voteOnOption(option, 'available')}
-                        variant="unstyled"
-                        className={`rounded-full px-3 py-1 text-xs ${mine === 'available' ? 'bg-[var(--olive)] text-white' : 'bg-[rgba(81,100,58,0.15)] text-[var(--olive)]'}`}
-                        icon={<FiCheck className="h-3.5 w-3.5" />}
-                      >
-                        Disponibile
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => void voteOnOption(option, 'not_available')}
-                        variant="unstyled"
-                        className={`rounded-full px-3 py-1 text-xs ${mine === 'not_available' ? 'bg-[var(--terracotta)] text-white' : 'bg-[rgba(178,74,47,0.15)] text-[var(--terracotta-deep)]'}`}
-                        icon={<FiX className="h-3.5 w-3.5" />}
-                      >
-                        Non disponibile
-                      </Button>
-                      {canFinalizeOpenEventVote && (
-                        <Button
-                          type="button"
-                          onClick={() => void finalizeEventVote(option.id)}
-                          variant="primary"
-                          className="px-3 py-1 text-xs"
-                          icon={<FiCheck className="h-3.5 w-3.5" />}
-                        >
-                          Conferma data evento
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            <AvailabilityCalendar
+              dateChoices={openEventDateChoices}
+              availabilityVotes={availabilityVotes}
+              userId={userId}
+              canFinalize={canFinalizeOpenEventVote}
+              onToggleDate={(date, existingOptionId, hasMyVote) => void toggleCalendarDate(date, existingOptionId, hasMyVote)}
+              onFinalize={(optionId) => void finalizeEventVote(optionId)}
+            />
           </article>
         </section>
       )}
