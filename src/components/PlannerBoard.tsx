@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FiCheck, FiEdit2, FiExternalLink, FiMapPin, FiNavigation, FiPlus, FiTrash2, FiX } from 'react-icons/fi'
 import { formatDateLabel } from '@/lib/date-format'
 import { supabase } from '@/lib/supabase'
@@ -80,14 +80,38 @@ export default function PlannerBoard({
   const [cancelling, setCancelling] = useState(false)
   const toast = useToast()
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const snapshot = await fetchPlannerSnapshot(supabase)
     if (!snapshot) return
     setEventVotes(snapshot.eventVotes)
     setDateChoices(snapshot.dateChoices)
     setAvailabilityVotes(snapshot.availabilityVotes)
     setExistingPizzerias(snapshot.existingPizzerias)
-  }
+  }, [])
+
+  useEffect(() => {
+    let refreshTimeout: number | undefined
+
+    const scheduleRefresh = () => {
+      if (refreshTimeout) window.clearTimeout(refreshTimeout)
+      refreshTimeout = window.setTimeout(() => {
+        void loadData()
+      }, 300)
+    }
+
+    const channel = supabase
+      .channel('planner-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda_polls' }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda_poll_date_options' }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda_poll_date_votes' }, scheduleRefresh)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pizzerias' }, scheduleRefresh)
+      .subscribe()
+
+    return () => {
+      if (refreshTimeout) window.clearTimeout(refreshTimeout)
+      void supabase.removeChannel(channel)
+    }
+  }, [loadData])
 
   useEffect(() => {
     if (!eventVoteModalOpen || selectedPizzeriaId) return

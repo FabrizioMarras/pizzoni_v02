@@ -15,6 +15,7 @@ App privata per un gruppo chiuso: organizza serate pizza, vota le date, registra
   - Calendario disponibilita condiviso: ogni membro segna le proprie date libere (vista doppio mese su desktop, singolo su mobile); qualsiasi membro puo proporre una nuova data
   - Classifica "Date piu votate" con le prime 3 in evidenza e toggle per vederle tutte
   - Modifica pizzeria della votazione aperta (owner/admin), per correggere errori senza dover ricreare la poll
+  - Aggiornamenti in tempo reale (Supabase Realtime): voti, nuove date, modifica pizzeria e finalizzazione/cancellazione si propagano subito a tutti i membri collegati
   - Finalizzazione da owner o admin: crea l'evento e pre-compila i partecipanti dai voti disponibili
   - Cancellazione votazione aperta (solo admin)
 - Dettaglio evento con sezioni collassabili:
@@ -86,6 +87,7 @@ Migrazioni rilevanti per il flusso attuale:
 | `20260424151000_cleanup_updated_photo_references.sql` | Pulizia riferimenti foto aggiornati |
 | `20260621000000_cancel_poll_admin_only.sql` | Policy delete poll: solo admin, solo aperte |
 | `20260723130000_calendar_open_date_proposals.sql` | Permette a qualsiasi membro di proporre date sulla votazione aperta |
+| `20260723140000_enable_realtime_planner_tables.sql` | Abilita Supabase Realtime sulle tabelle della votazione + pizzerias |
 
 ### 4. Supabase Auth
 

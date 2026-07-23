@@ -48,6 +48,7 @@ Punti chiave:
 - Supabase Postgres per dati applicativi.
 - RLS (Row Level Security) su tutte le tabelle pubbliche.
 - Funzioni SQL custom per finalizzazione votazioni e gestione tag foto della serata.
+- Supabase Realtime (`postgres_changes`) per aggiornamenti live della votazione aperta (vedi 6.2).
 
 ### 2.3 API interne Next.js
 - `POST /api/places/search`: ricerca pizzerie via Google Places API (New).
@@ -230,6 +231,14 @@ Vincolo UI: il form di creazione e nascosto se esiste gia una votazione aperta (
 - Elimina in cascata: `agenda_polls` + `agenda_poll_date_options` + `agenda_poll_date_votes`.
 - Bloccata dal DB se la poll ha `status = 'closed'` (RLS `agenda_polls_delete_admin_only`).
 - Funzione: `cancelAgendaPoll(supabase, pollId)` in `src/lib/data/event-votes-client.ts`.
+
+**Aggiornamenti real-time:**
+- `PlannerBoard.tsx` apre un canale `supabase.channel('planner-realtime')` in un `useEffect` mount-only, sottoscritto a `postgres_changes` (`event: '*'`) su `agenda_polls`, `agenda_poll_date_options`, `agenda_poll_date_votes`, e (`event: 'INSERT'`) su `pizzerias`.
+- Ogni evento ricevuto schedula un refetch **debounced** (~300ms, `window.setTimeout`) dell'intero snapshot tramite `loadData()` (wrappato in `useCallback`) invece di applicare patch granulari allo stato: i payload `postgres_changes` contengono solo le colonne raw della tabella, non la relazione `voter:profiles(...)` gia usata da `fetchPlannerData`, quindi un secondo fetch sarebbe comunque necessario per i dati del votante.
+- Il debounce assorbe raffiche di eventi correlati (es. `proposeDateAndVote` scrive sia `agenda_poll_date_options` che `agenda_poll_date_votes`) in un unico refetch.
+- Cleanup: al dismount viene cancellato l'eventuale timeout pendente e chiamato `supabase.removeChannel(channel)`.
+- Prerequisito DB: le tabelle devono essere aggiunte alla publication `supabase_realtime` (migrazione `20260723140000_enable_realtime_planner_tables.sql`); senza questo passaggio manuale in SQL Editor, la sottoscrizione si apre ma non riceve eventi. Le policy RLS `select` esistenti (`auth.role() = 'authenticated'`) coprono gia il controllo permessi di Realtime, nessuna nuova policy necessaria.
+- Le chiamate manuali `void loadData()` dopo ogni mutazione locale restano invariate: sono ridondanti con la sottoscrizione (il debounce assorbe il doppione) ma fungono da rete di sicurezza se il socket realtime è temporaneamente disconnesso.
 
 ### 6.3 Dettaglio evento
 Pagina: `/eventi/[id]` — componente principale: `src/app/eventi/[id]/page.tsx`.
@@ -422,6 +431,7 @@ Cartella: `supabase/migrations/`. Applicare in ordine cronologico via SQL Editor
 | 17 | `20260424151000_cleanup_updated_photo_references.sql` | |
 | 18 | `20260621000000_cancel_poll_admin_only.sql` | Policy delete admin-only su poll aperte |
 | 19 | `20260723130000_calendar_open_date_proposals.sql` | Policy insert `agenda_poll_date_options`: qualsiasi membro, non solo owner/admin |
+| 20 | `20260723140000_enable_realtime_planner_tables.sql` | Abilita `postgres_changes` su `agenda_polls`, `agenda_poll_date_options`, `agenda_poll_date_votes`, `pizzerias` |
 
 ---
 
@@ -434,6 +444,7 @@ Pratiche applicate:
 - RPC di finalizzazione con controlli permessi interni.
 - Vincolo DB di unicita tag "foto della serata" per evento.
 - Cancellazione poll bloccata a livello RLS per poll chiuse e per non-admin.
+- Realtime (`postgres_changes`) rispetta le stesse policy RLS `select` delle query normali: nessun dato aggiuntivo esposto rispetto a quanto gia leggibile via REST.
 
 Attenzioni operative:
 - Non esporre `GOOGLE_MAPS_API_KEY` nel client; e e deve rimanere server-side.
@@ -470,6 +481,9 @@ Stato atteso prima del deploy:
 ---
 
 ## 12. Troubleshooting rapido
+
+**La votazione non si aggiorna in tempo reale tra piu utenti**
+Verificare che la migrazione `20260723140000_enable_realtime_planner_tables.sql` sia stata eseguita: senza le tabelle nella publication `supabase_realtime`, il canale si apre ma non riceve eventi. Controllare anche la console browser per errori tipo `CHANNEL_ERROR`.
 
 **`Missing GOOGLE_MAPS_API_KEY`**
 Aggiungere la key in `.env.local` e riavviare il dev server.
