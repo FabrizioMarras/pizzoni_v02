@@ -55,7 +55,7 @@ export default function Avatar({ name, email, avatarUrl, size = 'sm', className 
       <span
         aria-label={label}
         className={joinClasses(
-          'inline-flex items-center justify-center rounded-full bg-[rgba(81,100,58,0.18)] font-semibold text-[var(--olive)]',
+          'inline-flex items-center justify-center rounded-full bg-[rgba(var(--olive-rgb),0.18)] font-semibold text-[var(--olive)]',
           wrapper,
           text,
           className

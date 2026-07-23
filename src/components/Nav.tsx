@@ -68,7 +68,7 @@ export default function Nav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`top-nav-link inline-flex items-center gap-1.5 leading-none ${active ? 'bg-[rgba(178,74,47,0.16)] text-[var(--ink)]' : ''}`}
+                className={`top-nav-link inline-flex items-center gap-1.5 leading-none ${active ? 'bg-[rgba(var(--terracotta-rgb),0.16)] text-[var(--ink)]' : ''}`}
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="leading-none">{item.label}</span>
@@ -115,7 +115,7 @@ export default function Nav() {
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
                   className={`inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-base ${
-                    active ? 'bg-[rgba(178,74,47,0.16)] text-[var(--ink)]' : 'bg-[rgba(255,255,255,0.7)] text-[var(--ink-soft)]'
+                    active ? 'bg-[rgba(var(--terracotta-rgb),0.16)] text-[var(--ink)]' : 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'
                   }`}
                 >
                   <Icon className="h-5 w-5 shrink-0" />

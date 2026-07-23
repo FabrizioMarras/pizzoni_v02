@@ -50,7 +50,7 @@ export default function ProfileEditor({ name, avatarUrl }: ProfileEditorProps) {
   return (
     <form onSubmit={onSubmit} className="glass-card space-y-4 p-6">
       <h2 className="text-3xl">Il Mio Profilo</h2>
-      <div className="flex items-center gap-3 rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
+      <div className="flex items-center gap-3 rounded-xl bg-[var(--surface-soft)] p-3">
         <Avatar name={formName} avatarUrl={avatarUrl} size="lg" />
         <div>
           <p className="text-sm font-semibold text-[var(--ink)]">Anteprima avatar</p>

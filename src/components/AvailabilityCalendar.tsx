@@ -62,17 +62,17 @@ function MonthGrid({ year, month, todayIso, optionByDate, votersByOptionId, user
               onClick={() => onToggleDate(cell.iso, option?.id, mine)}
               className={`relative aspect-square rounded-xl text-sm font-medium transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:shadow-none ${
                 mine
-                  ? 'bg-[var(--olive)] text-white shadow-[0_4px_12px_rgba(81,100,58,0.35)]'
+                  ? 'bg-[var(--olive)] text-white shadow-[0_4px_12px_rgba(var(--olive-rgb),0.35)]'
                   : voters.length > 0
-                    ? 'bg-[rgba(81,100,58,0.16)] text-[var(--olive)] hover:-translate-y-0.5 hover:bg-[rgba(81,100,58,0.24)]'
-                    : `bg-white hover:-translate-y-0.5 hover:bg-[rgba(81,100,58,0.08)] hover:shadow-[0_4px_10px_rgba(93,66,46,0.14)] ${
+                    ? 'bg-[rgba(var(--olive-rgb),0.16)] text-[var(--olive)] hover:-translate-y-0.5 hover:bg-[rgba(var(--olive-rgb),0.24)]'
+                    : `bg-[var(--surface-solid)] hover:-translate-y-0.5 hover:bg-[rgba(var(--olive-rgb),0.08)] hover:shadow-[0_4px_10px_rgba(var(--ink-rgb),0.14)] ${
                         cell.isWeekend ? 'text-[var(--terracotta)]' : 'text-[var(--ink)]'
                       }`
               } ${isToday && !mine ? 'ring-1 ring-inset ring-[var(--terracotta)]' : ''}`}
             >
               {cell.day}
               {voters.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-white bg-[var(--terracotta)] px-1 text-[9px] leading-none font-semibold text-white shadow-sm">
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-[var(--surface-solid)] bg-[var(--terracotta)] px-1 text-[9px] leading-none font-semibold text-white shadow-sm">
                   {voters.length}
                 </span>
               )}
@@ -170,7 +170,7 @@ export default function AvailabilityCalendar({
                 onClick={goToPreviousMonth}
                 disabled={isCurrentMonth}
                 variant="unstyled"
-                className="rounded-full border border-[var(--panel-border)] bg-white/80 p-2 text-[var(--ink)] transition-all hover:-translate-y-0.5 hover:border-[var(--terracotta)] hover:text-[var(--terracotta)] disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:border-[var(--panel-border)] disabled:hover:text-[var(--ink)]"
+                className="rounded-full border border-[var(--panel-border)] bg-[var(--surface-strong)] p-2 text-[var(--ink)] transition-all hover:-translate-y-0.5 hover:border-[var(--terracotta)] hover:text-[var(--terracotta)] disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:border-[var(--panel-border)] disabled:hover:text-[var(--ink)]"
                 icon={<FiChevronLeft className="h-4 w-4" />}
               />
               <div className="[font-family:var(--font-display)] text-lg font-semibold tracking-tight text-[var(--ink)]">
@@ -180,7 +180,7 @@ export default function AvailabilityCalendar({
                 type="button"
                 onClick={goToNextMonth}
                 variant="unstyled"
-                className="rounded-full border border-[var(--panel-border)] bg-white/80 p-2 text-[var(--ink)] transition-all hover:-translate-y-0.5 hover:border-[var(--terracotta)] hover:text-[var(--terracotta)] md:invisible"
+                className="rounded-full border border-[var(--panel-border)] bg-[var(--surface-strong)] p-2 text-[var(--ink)] transition-all hover:-translate-y-0.5 hover:border-[var(--terracotta)] hover:text-[var(--terracotta)] md:invisible"
                 icon={<FiChevronRight className="h-4 w-4" />}
               />
             </div>
@@ -204,7 +204,7 @@ export default function AvailabilityCalendar({
                 type="button"
                 onClick={goToNextMonth}
                 variant="unstyled"
-                className="rounded-full border border-[var(--panel-border)] bg-white/80 p-2 text-[var(--ink)] transition-all hover:-translate-y-0.5 hover:border-[var(--terracotta)] hover:text-[var(--terracotta)]"
+                className="rounded-full border border-[var(--panel-border)] bg-[var(--surface-strong)] p-2 text-[var(--ink)] transition-all hover:-translate-y-0.5 hover:border-[var(--terracotta)] hover:text-[var(--terracotta)]"
                 icon={<FiChevronRight className="h-4 w-4" />}
               />
             </div>
@@ -225,14 +225,14 @@ export default function AvailabilityCalendar({
         <p className="text-sm font-semibold text-[var(--ink)]">Date più votate</p>
         {rankedDates.length === 0 && <p className="text-xs text-[var(--ink-soft)]">Nessuna data ancora selezionata.</p>}
         {(showAllDates ? rankedDates : rankedDates.slice(0, TOP_DATES_COLLAPSED_COUNT)).map(({ option, voters }) => (
-          <div key={option.id} className="rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
+          <div key={option.id} className="rounded-xl bg-[var(--surface-soft)] p-3">
             <div className="mb-1.5 flex items-center justify-between gap-2">
               <span className="text-sm font-semibold text-[var(--ink)]">{formatDateLabel(`${option.option_date}T12:00:00`)}</span>
               <span className="text-xs text-[var(--ink-soft)]">{voters.length} disponibili</span>
             </div>
             <div className="flex flex-wrap gap-1">
               {voters.map((vote) => (
-                <span key={vote.id} className="inline-flex items-center gap-1 rounded-full bg-[rgba(81,100,58,0.12)] px-2 py-0.5 text-xs text-[var(--olive)]">
+                <span key={vote.id} className="inline-flex items-center gap-1 rounded-full bg-[rgba(var(--olive-rgb),0.12)] px-2 py-0.5 text-xs text-[var(--olive)]">
                   <span>{vote.voter?.pizza_emoji ?? vote.voter?.name?.[0] ?? '?'}</span>
                   <span>{vote.voter?.name ?? 'Utente'}</span>
                 </span>

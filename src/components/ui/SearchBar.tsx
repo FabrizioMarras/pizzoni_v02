@@ -55,7 +55,7 @@ export default function SearchBar({ value, onChange, label, ariaLabel, placehold
             type="button"
             onClick={() => onChange('')}
             variant="unstyled"
-            className="absolute right-2 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full text-[var(--ink-soft)] transition hover:bg-[rgba(178,74,47,0.12)] hover:text-[var(--ink)]"
+            className="absolute right-2 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full text-[var(--ink-soft)] transition hover:bg-[rgba(var(--terracotta-rgb),0.12)] hover:text-[var(--ink)]"
             icon={<FiX className="h-4 w-4" />}
             aria-label="Cancella ricerca"
           />

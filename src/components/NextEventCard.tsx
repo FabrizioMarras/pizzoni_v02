@@ -108,7 +108,7 @@ export default async function NextEventCard({ showCreateAction = true, visit }: 
   return (
     <section className="glass-card p-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-stretch md:min-h-60">
-        <div className="relative overflow-hidden rounded-2xl border border-[var(--paper-border)] md:w-[42%] md:shrink-0 md:self-stretch">
+        <div className="relative overflow-hidden rounded-2xl border border-[var(--panel-border)] md:w-[42%] md:shrink-0 md:self-stretch">
           <Image
             src={getEventImageSrc({
               photoOfNightUrl: photoOfNight,

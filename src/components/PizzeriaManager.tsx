@@ -328,7 +328,7 @@ export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerPro
       <Modal open={addModalOpen} onClose={closeAddModal} title="Aggiungi Pizzeria">
         <form onSubmit={createPizzeria} className="space-y-4">
           <input value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Nome" className="field-input" required />
-          <div className="space-y-2 rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
+          <div className="space-y-2 rounded-xl bg-[var(--surface-soft)] p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs text-[var(--ink-soft)]">Suggerimenti Google Maps</p>
               <Button
@@ -351,7 +351,7 @@ export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerPro
                     type="button"
                     onClick={() => pickPlace(place)}
                     variant="unstyled"
-                    className="block w-full rounded-xl bg-white px-3 py-2 text-left text-xs text-[var(--ink)]"
+                    className="block w-full rounded-xl bg-[var(--surface-solid)] px-3 py-2 text-left text-xs text-[var(--ink)]"
                     icon={<FiMapPin className="mt-0.5 h-3.5 w-3.5" />}
                   >
                     <div className="font-semibold">{place.name}</div>
@@ -373,7 +373,7 @@ export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerPro
             className="field-input"
             required
           />
-          <div className="space-y-2 rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
+          <div className="space-y-2 rounded-xl bg-[var(--surface-soft)] p-3">
             <p className="text-xs text-[var(--ink-soft)]">Immagine pizzeria (opzionale)</p>
             {customImagePreview && (
               <Image
@@ -472,7 +472,7 @@ export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerPro
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {visiblePizzerias.map((pizzeria, index) => (
                 <article key={pizzeria.id} className="surface-card flex h-full flex-col px-3 py-3">
-                  <div className="mb-3 overflow-hidden rounded-2xl border border-[var(--paper-border)]">
+                  <div className="mb-3 overflow-hidden rounded-2xl border border-[var(--panel-border)]">
                     <Image
                       src={getPizzeriaImageSrc({
                         id: pizzeria.id,
@@ -494,11 +494,11 @@ export default function PizzeriaManager({ initialPizzerias }: PizzeriaManagerPro
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="text-lg font-semibold text-[var(--ink)]">{pizzeria.name}</div>
                     {pizzeria.visited ? (
-                      <span className="rounded-full bg-[rgba(81,100,58,0.15)] px-2 py-1 text-xs text-[var(--olive)]">
+                      <span className="rounded-full bg-[rgba(var(--olive-rgb),0.15)] px-2 py-1 text-xs text-[var(--olive)]">
                         Visitata ({pizzeria.visitsCount})
                       </span>
                     ) : (
-                      <span className="rounded-full bg-[rgba(178,74,47,0.15)] px-2 py-1 text-xs text-[var(--terracotta-deep)]">
+                      <span className="rounded-full bg-[rgba(var(--terracotta-rgb),0.15)] px-2 py-1 text-xs text-[var(--terracotta-deep)]">
                         Da visitare
                       </span>
                     )}

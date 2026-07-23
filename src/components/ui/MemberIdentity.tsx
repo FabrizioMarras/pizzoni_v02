@@ -26,7 +26,7 @@ export default function MemberIdentity({
 
   return (
     <span className={joinClasses('inline-flex items-center gap-2', className)}>
-      <span className={joinClasses('relative inline-flex items-center justify-center rounded-full bg-[rgba(255,255,255,0.7)]', iconSize)}>
+      <span className={joinClasses('relative inline-flex items-center justify-center rounded-full bg-[var(--surface-soft)]', iconSize)}>
         <span className={joinClasses('inline-flex items-center justify-center rounded-full', iconSize)}>
           {emoji?.trim() || '🍕'}
         </span>

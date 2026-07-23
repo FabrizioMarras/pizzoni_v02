@@ -471,7 +471,7 @@ export default function PlannerBoard({
 
       <Modal open={eventVoteModalOpen} onClose={closePizzeriaModal} title={isEditingPizzeria ? 'Modifica Pizzeria' : 'Nuovo Evento'}>
         <form onSubmit={submitPizzeriaForm} className="space-y-3">
-          <div className="rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
+          <div className="rounded-xl bg-[var(--surface-soft)] p-3">
             <label className="mb-1 block text-sm font-semibold text-[var(--ink)]">Pizzeria esistente (opzionale)</label>
             <select value={selectedPizzeriaId} onChange={(event) => onSelectExistingPizzeria(event.target.value)} className="field-input">
               <option value="">Nuova pizzeria</option>
@@ -485,7 +485,7 @@ export default function PlannerBoard({
 
           <input value={pizzeriaName} onChange={(event) => onNameChange(event.target.value)} placeholder="Nome pizzeria" className="field-input" required />
           {!selectedPizzeriaId && (
-            <div className="space-y-2 rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
+            <div className="space-y-2 rounded-xl bg-[var(--surface-soft)] p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-[var(--ink-soft)]">Suggerimenti Google Maps</p>
                 <Button
@@ -508,7 +508,7 @@ export default function PlannerBoard({
                       type="button"
                     onClick={() => pickPlace(place)}
                     variant="unstyled"
-                    className="block w-full rounded-xl bg-white px-3 py-2 text-left text-xs text-[var(--ink)]"
+                    className="block w-full rounded-xl bg-[var(--surface-solid)] px-3 py-2 text-left text-xs text-[var(--ink)]"
                     icon={<FiMapPin className="mt-0.5 h-3.5 w-3.5" />}
                   >
                       <div className="font-semibold">{place.name}</div>
@@ -549,7 +549,7 @@ export default function PlannerBoard({
             onClick={() => void cancelPoll()}
             disabled={cancelling}
             variant="unstyled"
-            className="rounded-full bg-[rgba(178,74,47,0.85)] px-4 py-2 text-sm text-white"
+            className="rounded-full bg-[rgba(var(--terracotta-rgb),0.85)] px-4 py-2 text-sm text-white"
             icon={<FiTrash2 className="h-4 w-4" />}
           >
             {cancelling ? 'Cancellazione...' : 'Sì, cancella'}
@@ -576,7 +576,7 @@ export default function PlannerBoard({
                   type="button"
                   onClick={openEditPizzeriaModal}
                   variant="unstyled"
-                  className="rounded-full bg-[rgba(81,100,58,0.1)] px-3 py-1 text-xs text-[var(--olive)]"
+                  className="rounded-full bg-[rgba(var(--olive-rgb),0.1)] px-3 py-1 text-xs text-[var(--olive)]"
                   icon={<FiEdit2 className="h-3.5 w-3.5" />}
                 >
                   Modifica pizzeria
@@ -587,7 +587,7 @@ export default function PlannerBoard({
                   type="button"
                   onClick={() => setCancelConfirmOpen(true)}
                   variant="unstyled"
-                  className="rounded-full bg-[rgba(178,74,47,0.1)] px-3 py-1 text-xs text-(--terracotta-deep)"
+                  className="rounded-full bg-[rgba(var(--terracotta-rgb),0.1)] px-3 py-1 text-xs text-(--terracotta-deep)"
                   icon={<FiTrash2 className="h-3.5 w-3.5" />}
                 >
                   Cancella votazione
@@ -601,11 +601,11 @@ export default function PlannerBoard({
             {openEventVote.notes && <p className="text-sm text-[var(--ink)]">{openEventVote.notes}</p>}
 
             {nonVoters.length > 0 ? (
-              <div className="rounded-xl bg-[rgba(178,74,47,0.08)] p-3">
+              <div className="rounded-xl bg-[rgba(var(--terracotta-rgb),0.08)] p-3">
                 <p className="mb-2 text-xs font-semibold text-(--terracotta-deep)">Non hanno ancora votato</p>
                 <div className="flex flex-wrap gap-2">
                   {nonVoters.map((member) => (
-                    <span key={member.id} className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2 py-1 text-xs font-medium text-[var(--ink)]">
+                    <span key={member.id} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-strong)] px-2 py-1 text-xs font-medium text-[var(--ink)]">
                       <Avatar name={member.name} avatarUrl={member.avatar_url} size="sm" />
                       {member.name ?? 'Membro'}
                     </span>

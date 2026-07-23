@@ -38,7 +38,7 @@ export default function NextEventAttendees({ attendees }: NextEventAttendeesProp
           ) : (
             <div className="flex flex-col gap-1.5">
               {attendees.map((attendee) => (
-                <span key={attendee.id} className="rounded-full bg-[rgba(255,255,255,0.75)] px-3 py-1 text-xs text-foreground">
+                <span key={attendee.id} className="rounded-full bg-[var(--surface-soft)] px-3 py-1 text-xs text-foreground">
                   <MemberIdentity
                     name={attendee.name}
                     email={attendee.email}

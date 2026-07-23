@@ -255,7 +255,7 @@ export default async function Leaderboard({ city, cities }: LeaderboardProps) {
                     {rank}
                   </span>
                 )}
-                <div className="rounded-full border border-[var(--paper-border)] bg-[rgba(255,255,255,0.86)] px-4 py-2 text-2xl font-bold text-[var(--ink)]">
+                <div className="rounded-full border border-[var(--panel-border)] bg-[var(--surface-strong)] px-4 py-2 text-2xl font-bold text-[var(--ink)]">
                   {pizzeria.avg_score.toFixed(1)}
                 </div>
               </div>

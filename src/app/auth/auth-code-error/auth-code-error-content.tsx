@@ -33,7 +33,7 @@ export default function AuthCodeErrorContent() {
   return (
     <div className="app-shell flex min-h-screen items-center justify-center px-4 py-10">
       <div className="glass-card w-full max-w-lg p-8 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[rgba(178,74,47,0.15)]">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[rgba(var(--terracotta-rgb),0.15)]">
           <svg className="h-7 w-7 text-[var(--terracotta)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               strokeLinecap="round"

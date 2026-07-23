@@ -244,12 +244,12 @@ export default function PhotoGalleryManager({ visitId, userId, initialPhotos }: 
 
   return (
     <div className="space-y-4">
-      <section className="space-y-3 rounded-2xl border border-[var(--paper-border)] bg-[rgba(255,255,255,0.7)] p-4">
+      <section className="space-y-3 rounded-2xl border border-[var(--panel-border)] bg-[var(--surface-soft)] p-4">
         <div>
           <h3 className="text-lg font-semibold text-[var(--ink)]">Aggiungi nuova foto</h3>
           <p className="text-xs text-[var(--ink-soft)]">Seleziona o scatta una foto, poi conferma con il bottone Aggiungi.</p>
         </div>
-        <div className="space-y-2 rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
+        <div className="space-y-2 rounded-xl bg-[var(--surface-soft)] p-3">
           <Checkbox checked={pizzaOfNight} onChange={(event) => setPizzaOfNight(event.target.checked)} label="Segna come foto della serata" />
           <div className="flex flex-wrap gap-2">
             <FileButton
@@ -300,7 +300,7 @@ export default function PhotoGalleryManager({ visitId, userId, initialPhotos }: 
       {cameraOpen && (
         <div className="fixed inset-0 z-[120] bg-[rgba(43,31,26,0.65)] p-4" onClick={closeCamera}>
           <div
-            className="mx-auto relative flex h-full w-full max-w-2xl overflow-hidden rounded-2xl border border-[var(--paper-border)] bg-black"
+            className="mx-auto relative flex h-full w-full max-w-2xl overflow-hidden rounded-2xl border border-[var(--panel-border)] bg-black"
             onClick={(event) => event.stopPropagation()}
           >
             <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
@@ -328,7 +328,7 @@ export default function PhotoGalleryManager({ visitId, userId, initialPhotos }: 
         </div>
       )}
 
-      <section className="space-y-3 rounded-2xl border border-[var(--paper-border)] bg-[rgba(255,255,255,0.7)] p-4">
+      <section className="space-y-3 rounded-2xl border border-[var(--panel-border)] bg-[var(--surface-soft)] p-4">
         <div>
           <h3 className="text-lg font-semibold text-[var(--ink)]">Foto gia caricate</h3>
           <p className="text-xs text-[var(--ink-soft)]">Galleria dell’evento con gestione tag e modifiche.</p>
@@ -337,7 +337,7 @@ export default function PhotoGalleryManager({ visitId, userId, initialPhotos }: 
         {photos.length === 0 && <p className="page-subtitle">Nessuna foto disponibile.</p>}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
           {photos.map((photo) => (
-            <div key={photo.id} className="group relative overflow-hidden rounded-xl border border-[rgba(132,92,66,0.28)] bg-white">
+            <div key={photo.id} className="group relative overflow-hidden rounded-xl border border-[var(--panel-border)] bg-[var(--surface-solid)]">
               <a href={photo.url} target="_blank" rel="noreferrer">
                 <Image
                   src={photo.url}

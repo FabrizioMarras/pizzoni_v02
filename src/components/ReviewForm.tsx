@@ -93,7 +93,7 @@ export default function ReviewForm({ visitId, userId, initialReview }: ReviewFor
       )}
       <form onSubmit={submitReview} className="space-y-3">
         {scoreFields.map((field) => (
-          <label key={field.label} className="block rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
+          <label key={field.label} className="block rounded-xl bg-[var(--surface-soft)] p-3">
             <span className="mb-1 block text-sm font-semibold text-[var(--ink)]">{field.label}: {field.value}</span>
             <input
               type="range"

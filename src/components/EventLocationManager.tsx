@@ -256,8 +256,8 @@ export default function EventLocationManager({ visitId, currentPizzeria, initial
                       onClick={() => setSelectedId(pizzeria.id)}
                       className={`block w-full rounded-xl border px-3 py-2 text-left text-sm transition ${
                         isSelected
-                          ? 'border-[var(--olive)] bg-[rgba(81,100,58,0.12)]'
-                          : 'border-[var(--paper-border)] bg-white'
+                          ? 'border-[var(--olive)] bg-[rgba(var(--olive-rgb),0.12)]'
+                          : 'border-[var(--panel-border)] bg-[var(--surface-solid)]'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -310,8 +310,8 @@ export default function EventLocationManager({ visitId, currentPizzeria, initial
                         onClick={() => setPickedPlace(place)}
                         className={`block w-full rounded-xl border px-3 py-2 text-left text-xs transition ${
                           isPicked
-                            ? 'border-[var(--olive)] bg-[rgba(81,100,58,0.12)]'
-                            : 'border-[var(--paper-border)] bg-white'
+                            ? 'border-[var(--olive)] bg-[rgba(var(--olive-rgb),0.12)]'
+                            : 'border-[var(--panel-border)] bg-[var(--surface-solid)]'
                         }`}
                       >
                         <div className="flex items-center gap-1.5 font-semibold text-[var(--ink)]">

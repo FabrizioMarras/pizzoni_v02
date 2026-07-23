@@ -91,7 +91,7 @@ export default function VisitHistoryList({ visits }: VisitHistoryListProps) {
             {visibleVisits.map((visit) => (
               <article key={visit.id} className="surface-card flex h-full flex-col px-3 py-3">
                 {visit.pizzerias && (
-                  <div className="mb-3 overflow-hidden rounded-2xl border border-[var(--paper-border)]">
+                  <div className="mb-3 overflow-hidden rounded-2xl border border-[var(--panel-border)]">
                     <Image
                       src={getEventImageSrc({
                         photoOfNightUrl: (visit.photos ?? []).find((photo) => photo.is_pizza_of_night)?.url ?? null,

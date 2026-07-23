@@ -203,7 +203,7 @@ export default function AttendeesManager({ visitId, userId, isAdmin, initialAtte
                   type="button"
                   onClick={() => void removeMember(attendee.user_id)}
                   variant="unstyled"
-                  className="rounded-full bg-[rgba(178,74,47,0.15)] px-3 py-1 text-xs text-[var(--terracotta-deep)]"
+                  className="rounded-full bg-[rgba(var(--terracotta-rgb),0.15)] px-3 py-1 text-xs text-[var(--terracotta-deep)]"
                   icon={<FiX className="h-3.5 w-3.5" />}
                 >
                   Rimuovi
@@ -215,7 +215,7 @@ export default function AttendeesManager({ visitId, userId, isAdmin, initialAtte
       </div>
 
       {isAdmin && (
-        <div className="rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
+        <div className="rounded-xl bg-[var(--surface-soft)] p-3">
           <p className="mb-2 text-sm font-semibold text-[var(--ink)]">Gestione admin</p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <select value={memberToAdd} onChange={(event) => setMemberToAdd(event.target.value)} className="field-input">

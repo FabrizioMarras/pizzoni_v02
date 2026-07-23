@@ -24,18 +24,18 @@ const ToastContext = createContext<ToastContextValue | null>(null)
 
 function getToastClasses(type: ToastType) {
   if (type === 'success') {
-    return 'border-[rgba(81,100,58,0.35)] bg-[rgba(236,247,227,0.96)] text-[var(--olive)]'
+    return 'border-[rgba(var(--olive-rgb),0.35)] bg-[var(--toast-success-bg)] text-[var(--olive)]'
   }
 
   if (type === 'warning') {
-    return 'border-[rgba(184,131,41,0.35)] bg-[rgba(255,248,224,0.96)] text-[#8a6118]'
+    return 'border-[rgba(var(--warning-rgb),0.35)] bg-[var(--toast-warning-bg)] text-[var(--warning-deep)]'
   }
 
   if (type === 'error') {
-    return 'border-[rgba(178,74,47,0.35)] bg-[rgba(255,238,233,0.96)] text-[var(--terracotta-deep)]'
+    return 'border-[rgba(var(--terracotta-rgb),0.35)] bg-[var(--toast-error-bg)] text-[var(--terracotta-deep)]'
   }
 
-  return 'border-[rgba(132,92,66,0.35)] bg-[rgba(255,255,255,0.96)] text-[var(--ink-soft)]'
+  return 'border-[var(--panel-border)] bg-[var(--toast-neutral-bg)] text-[var(--ink-soft)]'
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {

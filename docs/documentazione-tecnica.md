@@ -68,6 +68,22 @@ Per ridurre coupling UI-query, le operazioni client sono estratte in moduli dedi
 - `src/lib/cloudinary.ts`: upload immagine centralizzato verso Cloudinary.
 - `src/lib/pizzeria-image.ts`: logica priorita immagini pizzeria/evento (Google photo → foto serata → custom_image_url → placeholder deterministico).
 
+### 2.5 Theming (dark mode)
+Tutto il tema (chiaro/scuro) vive in `src/app/globals.css`, pilotato automaticamente da `@media (prefers-color-scheme: dark)` — nessun toggle manuale, nessuno stato persistito.
+
+**Token base** (in `:root`, ridefiniti nel blocco dark): `--page-cream`, `--page-cream-strong`, `--ink`, `--ink-soft`, `--terracotta`, `--terracotta-deep`, `--olive`, `--olive-soft`, `--panel`, `--panel-border`, `--ring`, `--warning-deep`.
+
+**Token RGB-triplet** (es. `--terracotta-rgb: 178, 74, 47;`) per ogni colore brand sopra, piu `--ink-rgb` e `--warning-rgb`. Permettono a qualunque tinta inline di seguire il tema: invece di un valore hardcoded come `rgba(178,74,47,0.12)`, i componenti usano `rgba(var(--terracotta-rgb),0.12)`, che cambia automaticamente quando la variabile viene ridefinita in dark mode.
+
+**Token di superficie**, per il pattern ricorrente di "box interno chiaro" trovato in ~18 componenti:
+- `--surface-soft` / `--surface-strong`: bianco traslucido (due livelli di opacita) per card annidate, chip, badge.
+- `--surface-solid`: superficie neutra piena (sostituisce `bg-white` letterale) per righe di ricerca, celle calendario, checkbox.
+- `--toast-neutral-bg` / `--toast-success-bg` / `--toast-error-bg` / `--toast-warning-bg`: sfondi dedicati per `ToastProvider.tsx`, piu opachi dei token di superficie generici perche i toast devono restare leggibili come overlay sopra qualunque contenuto.
+
+**Convenzione per i componenti**: nessun colore hardcoded per superfici/tinte neutre — sempre `var(--token)` o `rgba(var(--x-rgb), alpha)`. Eccezioni intenzionali (lasciate letterali): testo bianco sopra un riempimento colorato pieno (bottoni, giorno selezionato nel calendario — leggibile in entrambi i temi senza bisogno di un token), la grafica SVG autoconclusiva di `RankBadge.tsx` (rosetta/medaglia, come un'icona stampata), e `eventi/[id]/opengraph-image.tsx` (PNG statico per le anteprime social, deve restare identico indipendentemente dal tema del browser di chi guarda).
+
+**Bug preesistente corretto nello stesso passaggio**: `--paper-border` era referenziata in 6 file (`Leaderboard.tsx`, `PhotoGalleryManager.tsx`, `PizzeriaManager.tsx`, `EventLocationManager.tsx`, `NextEventCard.tsx`, `VisitHistoryList.tsx`, `eventi/[id]/page.tsx`) ma non era mai definita in `globals.css` — i bordi corrispondenti venivano quindi resi con `currentColor` invece del marrone-panel previsto. Rinominata a `--panel-border`, l'unica variabile realmente esistente.
+
 ---
 
 ## 3. Routing applicativo
@@ -520,6 +536,9 @@ Stato atteso prima del deploy:
 
 **La votazione non si aggiorna in tempo reale tra piu utenti**
 Verificare che la migrazione `20260723140000_enable_realtime_planner_tables.sql` sia stata eseguita: senza le tabelle nella publication `supabase_realtime`, il canale si apre ma non riceve eventi. Controllare anche la console browser per errori tipo `CHANNEL_ERROR`.
+
+**Un riquadro appare chiaro/bianco su sfondo scuro (dark mode)**
+Quasi certamente un colore hardcoded sfuggito al refactor (vedi 2.5): cercare `rgba(255,255,255` o `bg-white` letterali nel componente incriminato e sostituire con `var(--surface-soft)` / `var(--surface-strong)` / `var(--surface-solid)` a seconda del contesto.
 
 **Avatar di alcuni utenti non si vedono (mostrano le iniziali al posto della foto)**
 Chrome blocca in modo incostante alcuni hotlink diretti a `lh3.googleusercontent.com` (ORB, Opaque Response Blocking) — non e un bug applicativo. `Avatar.tsx` instrada gia questi URL attraverso `/api/avatar`, che risolve il problema facendo il fetch server-side. Se il problema persiste, verificare nella tab Network del browser che la richiesta sia effettivamente verso `/api/avatar?url=...` e non direttamente verso `googleusercontent.com`.

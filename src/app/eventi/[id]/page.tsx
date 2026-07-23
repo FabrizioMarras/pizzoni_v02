@@ -322,7 +322,7 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
       <Nav />
       <main className="page-wrap space-y-6">
         <section className="glass-card relative p-6">
-          <div className="mb-4 overflow-hidden rounded-2xl border border-(--paper-border)">
+          <div className="mb-4 overflow-hidden rounded-2xl border border-(--panel-border)">
             <Image
               src={getEventImageSrc({
                 photoOfNightUrl: photoOfNight,
@@ -343,7 +343,7 @@ export default async function VisitDetailsPage({ params }: VisitPageProps) {
           {rank > 0 && (
             <div className="absolute right-3 top-3 z-10 flex items-center gap-2 md:bottom-4 md:right-4 md:top-auto">
               {score !== null && (
-                <div className="rounded-full border border-(--paper-border) bg-[rgba(255,255,255,0.92)] px-3 py-1 text-sm font-semibold text-foreground">
+                <div className="rounded-full border border-(--panel-border) bg-[var(--surface-strong)] px-3 py-1 text-sm font-semibold text-foreground">
                   {score.toFixed(1)}
                 </div>
               )}

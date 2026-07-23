@@ -12,9 +12,62 @@
   --panel: rgba(255, 251, 246, 0.9);
   --panel-border: rgba(147, 91, 53, 0.2);
   --ring: rgba(178, 74, 47, 0.35);
+
+  --ink-rgb: 43, 31, 26;
+  --terracotta-rgb: 178, 74, 47;
+  --terracotta-deep-rgb: 143, 51, 29;
+  --olive-rgb: 81, 100, 58;
+  --olive-soft-rgb: 111, 131, 86;
+
+  --surface-soft: rgba(255, 255, 255, 0.7);
+  --surface-strong: rgba(255, 255, 255, 0.92);
+  --surface-solid: #ffffff;
+
+  --warning-rgb: 184, 131, 41;
+  --warning-deep: #8a6118;
+
+  --toast-neutral-bg: rgba(255, 255, 255, 0.96);
+  --toast-success-bg: rgba(236, 247, 227, 0.96);
+  --toast-error-bg: rgba(255, 238, 233, 0.96);
+  --toast-warning-bg: rgba(255, 248, 224, 0.96);
+
   --font-sans: "Avenir Next", "Avenir", "Gill Sans", "Trebuchet MS", sans-serif;
   --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif;
   --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page-cream: #241a15;
+    --page-cream-strong: #190f0b;
+    --ink: #f3e9df;
+    --ink-soft: #cbb9ab;
+    --terracotta: #e07a52;
+    --terracotta-deep: #f5966d;
+    --olive: #92b06d;
+    --olive-soft: #b0c896;
+    --panel: rgba(38, 28, 22, 0.9);
+    --panel-border: rgba(230, 210, 190, 0.16);
+    --ring: rgba(224, 122, 82, 0.4);
+
+    --ink-rgb: 243, 233, 223;
+    --terracotta-rgb: 224, 122, 82;
+    --terracotta-deep-rgb: 245, 150, 109;
+    --olive-rgb: 146, 176, 109;
+    --olive-soft-rgb: 176, 200, 150;
+
+    --surface-soft: rgba(255, 255, 255, 0.05);
+    --surface-strong: rgba(255, 255, 255, 0.1);
+    --surface-solid: #2e211a;
+
+    --warning-rgb: 224, 168, 74;
+    --warning-deep: #f2b76b;
+
+    --toast-neutral-bg: rgba(40, 30, 24, 0.96);
+    --toast-success-bg: rgba(30, 42, 22, 0.96);
+    --toast-error-bg: rgba(48, 26, 20, 0.96);
+    --toast-warning-bg: rgba(48, 38, 16, 0.96);
+  }
 }
 
 @theme inline {
@@ -33,9 +86,9 @@ body {
   color: var(--ink);
   font-family: var(--font-sans);
   background:
-    radial-gradient(circle at 15% 15%, rgba(178, 74, 47, 0.14), transparent 36%),
-    radial-gradient(circle at 85% 0%, rgba(81, 100, 58, 0.16), transparent 34%),
-    radial-gradient(circle at 60% 65%, rgba(255, 255, 255, 0.45), transparent 40%),
+    radial-gradient(circle at 15% 15%, rgba(var(--terracotta-rgb), 0.14), transparent 36%),
+    radial-gradient(circle at 85% 0%, rgba(var(--olive-rgb), 0.16), transparent 34%),
+    radial-gradient(circle at 60% 65%, var(--surface-soft), transparent 40%),
     linear-gradient(130deg, var(--page-cream) 0%, var(--page-cream-strong) 100%);
 }
 
@@ -85,16 +138,16 @@ h4 {
 .glass-card {
   border: 1px solid var(--panel-border);
   border-radius: 18px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), var(--panel));
-  box-shadow: 0 14px 34px rgba(93, 66, 46, 0.12);
+  background: linear-gradient(145deg, var(--surface-strong), var(--panel));
+  box-shadow: 0 14px 34px rgba(var(--ink-rgb), 0.12);
   backdrop-filter: blur(5px);
 }
 
 .surface-card {
   border: 1px solid var(--panel-border);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 8px 20px rgba(111, 79, 55, 0.12);
+  background: var(--surface-soft);
+  box-shadow: 0 8px 20px rgba(var(--ink-rgb), 0.12);
 }
 
 .label-text {
@@ -107,9 +160,9 @@ h4 {
 
 .field-input {
   width: 100%;
-  border: 1px solid rgba(132, 92, 66, 0.32);
+  border: 1px solid var(--panel-border);
   border-radius: 11px;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--surface-strong);
   padding: 0.62rem 0.78rem;
   color: var(--ink);
   transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
@@ -134,7 +187,7 @@ h4 {
 
 .btn-primary:hover {
   filter: brightness(1.02);
-  box-shadow: 0 8px 18px rgba(143, 51, 29, 0.34);
+  box-shadow: 0 8px 18px rgba(var(--terracotta-deep-rgb), 0.34);
   transform: translateY(-1px);
 }
 
@@ -144,8 +197,8 @@ h4 {
 
 .btn-secondary {
   border-radius: 999px;
-  border: 1px solid rgba(132, 92, 66, 0.34);
-  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--panel-border);
+  background: var(--surface-strong);
   color: var(--ink);
   cursor: pointer;
   font-weight: 600;
@@ -159,8 +212,8 @@ h4 {
 
 .badge-pill {
   border-radius: 999px;
-  border: 1px solid rgba(81, 100, 58, 0.24);
-  background: rgba(81, 100, 58, 0.12);
+  border: 1px solid rgba(var(--olive-rgb), 0.24);
+  background: rgba(var(--olive-rgb), 0.12);
   color: var(--olive);
 }
 
@@ -168,8 +221,8 @@ h4 {
   position: sticky;
   top: 0;
   z-index: 40;
-  border-bottom: 1px solid rgba(147, 91, 53, 0.2);
-  background: rgba(255, 248, 238, 0.8);
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--panel);
   backdrop-filter: blur(8px);
 }
 
@@ -181,7 +234,7 @@ h4 {
 }
 
 .top-nav-link:hover {
-  background: rgba(178, 74, 47, 0.12);
+  background: rgba(var(--terracotta-rgb), 0.12);
   color: var(--ink);
 }
 

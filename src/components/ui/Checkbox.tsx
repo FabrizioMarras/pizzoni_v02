@@ -20,7 +20,7 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Checkbox(
       <span
         className={cx(
           'relative inline-flex h-4 w-4 items-center justify-center rounded-[6px] border transition',
-          'border-[rgba(132,92,66,0.45)] bg-white',
+          'border-[var(--panel-border)] bg-[var(--surface-solid)]',
           'peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ring)]',
           'peer-checked:border-[var(--terracotta)] peer-checked:[&>svg]:opacity-100',
           className
