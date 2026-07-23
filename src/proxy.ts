@@ -14,6 +14,10 @@ export async function proxy(request: NextRequest) {
   const ua = request.headers.get('user-agent') ?? ''
   if (CRAWLER_UA.test(ua)) return NextResponse.next({ request })
 
+  // Called by Vercel Cron (never an authenticated browser session); protected
+  // by its own CRON_SECRET check inside the route, not by login.
+  if (pathname === '/api/keepalive') return NextResponse.next({ request })
+
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(

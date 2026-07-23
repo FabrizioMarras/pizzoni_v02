@@ -29,27 +29,21 @@ Ordinate per impatto stimato, non per priorita assoluta.
 **Come:** componenti skeleton CSS inline, senza dipendenze esterne.
 **Stima:** bassa complessita tecnica, da applicare pagina per pagina.
 
-### 4. Protezione `/api/keepalive` con CRON_SECRET
-**Cosa:** aggiungere un controllo `Authorization: Bearer <CRON_SECRET>` sulla route keepalive.
-**Perche:** l'endpoint e pubblicamente raggiungibile; Vercel passa automaticamente questo header se `CRON_SECRET` e configurato nelle env vars.
-**Come:** aggiungere la variabile `CRON_SECRET` in Vercel + controllo header in `src/app/api/keepalive/route.ts`.
-**Stima:** 15 minuti di lavoro.
-
 ---
 
 ## Bassa priorita / nice to have
 
-### 5. Pagina statistiche
+### 4. Pagina statistiche
 **Cosa:** statistiche di gruppo — membro piu attivo, citta piu visitata, evento con punteggio piu alto, foto piu caricate, ecc.
 **Perche:** il gruppo usa l'app da tempo e ha dati sufficienti per visualizzazioni interessanti.
 **Come:** query aggregate su `reviews`, `visit_attendees`, `photos`, `visits`.
 
-### 6. PWA / app installabile
+### 5. PWA / app installabile
 **Cosa:** `manifest.json` + service worker per permettere l'installazione sul telefono come app nativa.
 **Perche:** l'UI e gia mobile-first; l'installazione migliora l'accessibilita per i membri meno tecnici.
 **Come:** Next.js supporta PWA con `next-pwa` o configurazione manuale del manifest.
 
-### 7. Dark mode
+### 6. Dark mode
 **Cosa:** tema scuro che si attiva in base alla preferenza di sistema.
 **Perche:** le CSS custom properties sono gia in `src/app/globals.css`; aggiungere `prefers-color-scheme: dark` non richiede modifiche strutturali.
 **Come:** aggiungere un blocco `@media (prefers-color-scheme: dark)` con le variabili di colore ridefinite.
@@ -60,7 +54,6 @@ Ordinate per impatto stimato, non per priorita assoluta.
 ## Note operative
 
 - Iniziare da **#1 (avatar upload)**: massimo impatto, minima complessita, tutto il codice necessario e gia nel repo.
-- **#4 (CRON_SECRET)** e piccolo ma vale la pena farlo insieme al prossimo deploy.
 - **#2 (notifiche email)** dipende dalla scelta del servizio email; valutare Supabase Edge Functions vs Resend.
 
 ---
@@ -71,3 +64,4 @@ Ordinate per impatto stimato, non per priorita assoluta.
 - **Aggiornamenti real-time nella votazione** (2026-07-23): i voti, le date proposte, le modifiche pizzeria e la finalizzazione/cancellazione della poll ora si propagano dal vivo a tutti i membri collegati, senza ricaricare la pagina. Implementato con un canale `supabase.channel()` su `postgres_changes` (`agenda_polls`, `agenda_poll_date_options`, `agenda_poll_date_votes`, `pizzerias`) in `PlannerBoard.tsx`, con refetch debounced (~300ms) invece di patch granulari sullo stato. Verificato manualmente con due finestre browser aperte in contemporanea.
 - **Mostra chi non ha ancora votato** (2026-07-23): nella votazione aperta, un riquadro "Non hanno ancora votato" elenca (con avatar) i membri senza un voto `available` sulla poll corrente; si aggiorna anche live grazie alla sottoscrizione real-time gia presente. Implementato aggiungendo il fetch di `profiles` (`is_member = true`) a `fetchPlannerData` in `event-votes-client.ts`.
 - **Fix caricamento avatar Google** (2026-07-23): alcuni avatar Google (`lh3.googleusercontent.com`) venivano bloccati dal browser (Chrome ORB, Opaque Response Blocking) quando caricati direttamente cross-origin, causando fallback silenzioso alle iniziali in modo incostante in tutta l'app. Risolto con un proxy server-side `/api/avatar` (stesso pattern di `/api/places/photo`, gia esistente per le foto Google delle pizzerie), usato automaticamente da `Avatar.tsx` per qualunque URL `googleusercontent.com`.
+- **Protezione `/api/keepalive` con CRON_SECRET** (2026-07-23): la route ora richiede `Authorization: Bearer <CRON_SECRET>` quando la variabile e configurata. Durante l'implementazione e emerso un bug preesistente piu serio: il middleware (`src/proxy.ts`) reindirizzava a `/accedi` qualsiasi richiesta non autenticata, incluso `/api/keepalive` — il che significa che le chiamate di Vercel Cron (che non hanno mai una sessione browser) molto probabilmente non arrivavano mai alla query di keepalive. Aggiunta un'eccezione esplicita in `proxy.ts` per questa route (protetta dal proprio controllo `CRON_SECRET` invece che dal login). Verificato manualmente: nessun header → 401, header errato → 401, header corretto → 200 `{ok:true}`.

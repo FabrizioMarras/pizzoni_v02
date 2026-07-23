@@ -135,6 +135,16 @@ Policy notevole per proposta date (`agenda_options_insert_participant`, migrazio
 
 Modifica pizzeria votazione aperta: nessuna nuova policy necessaria; riutilizza `agenda_polls_update_owner_or_admin` (gia presente in `agenda_poll_first`), che permette update a owner della poll o admin.
 
+### 4.5 Middleware (`src/proxy.ts`)
+Applicato a tutte le route tranne asset statici (matcher esclude `_next/static`, `_next/image`, `favicon.ico`, immagini).
+
+Bypass espliciti (nessun redirect a `/accedi`, in quest'ordine):
+1. Route `*/opengraph-image` (necessario per le anteprime social).
+2. User-agent noto di crawler social (WhatsApp, Telegram, facebookexternalhit, Twitterbot, Slackbot, LinkedInBot, Discordbot).
+3. `/api/keepalive` (chiamato da Vercel Cron, mai da una sessione browser autenticata; protetto invece dal controllo `CRON_SECRET` nella route stessa — vedi 7.5).
+
+Per ogni altra richiesta: legge la sessione Supabase dai cookie; se assente e la route non e `/auth/*`/`/accedi`, redirect a `/accedi`. Se l'utente e autenticato ma non e membro (`profiles.is_member = false`), redirect a `/auth/auth-code-error?error_code=not_invited`.
+
 ---
 
 ## 5. Modello dati
@@ -376,11 +386,14 @@ File: `src/app/api/keepalive/route.ts`.
 Scopo: prevenire la pausa automatica del DB Supabase sul piano free (pausa dopo 7 giorni di inattivita).
 
 Comportamento:
+- Se la variabile `CRON_SECRET` e configurata, richiede header `Authorization: Bearer <CRON_SECRET>`; altrimenti risponde 401 `{ ok: false, error: "Unauthorized" }`. Se `CRON_SECRET` non e configurata, il controllo viene saltato (nessuna rottura per ambienti che non l'hanno ancora impostata).
 - Crea un client Supabase con anon key (non richiede sessione utente).
 - Esegue `SELECT id FROM profiles LIMIT 1`.
 - Risponde `{ ok: true }` su successo, `{ ok: false, error: "..." }` con status 500 su errore.
 
-Invocazione: esclusivamente da Vercel Cron (configurato in `vercel.json`). Non e un endpoint funzionale pubblico.
+Invocazione: esclusivamente da Vercel Cron (configurato in `vercel.json`, header `Authorization` aggiunto automaticamente da Vercel quando `CRON_SECRET` e settata nelle env vars del progetto). Non e un endpoint funzionale pubblico.
+
+Nota middleware: `src/proxy.ts` esenta esplicitamente `/api/keepalive` dal redirect-to-login altrimenti applicato a ogni richiesta non autenticata (vedi 4.5) — senza questa eccezione le chiamate di Vercel Cron, che non hanno mai una sessione browser, non raggiungerebbero mai il route handler.
 
 ---
 
@@ -398,6 +411,7 @@ Variabili server-only:
 - `GOOGLE_MAPS_API_KEY` (Places API)
 - `CLOUDINARY_API_KEY` (opzionale, per operazioni server-side Cloudinary)
 - `CLOUDINARY_API_SECRET` (opzionale, per operazioni server-side Cloudinary)
+- `CRON_SECRET` (opzionale ma consigliata; protegge `/api/keepalive` — vedi 7.5)
 
 Template: `env.example` in root progetto. Non committare `.env.local`.
 
@@ -417,7 +431,7 @@ Template: `env.example` in root progetto. Non committare `.env.local`.
 ### 8.4 Vercel Deployment e Cron
 - File configurazione: `vercel.json` in root progetto.
 - Cron configurato: `GET /api/keepalive` ogni 5 giorni alle 08:00 UTC (`0 8 */5 * *`).
-- Variabili d'ambiente configurate in Vercel dashboard (Settings → Environment Variables).
+- Variabili d'ambiente configurate in Vercel dashboard (Settings → Environment Variables), inclusa `CRON_SECRET`: quando presente, Vercel aggiunge automaticamente l'header `Authorization: Bearer <CRON_SECRET>` alle chiamate cron, verificato dalla route (vedi 7.5).
 - Il cron si attiva automaticamente al primo deploy successivo al push di `vercel.json`.
 - Verificabile in Vercel dashboard sotto Settings → Crons.
 - Limite piano Hobby Vercel: massimo 2 cron job, frequenza massima una volta al giorno.
@@ -464,13 +478,14 @@ Pratiche applicate:
 - Cancellazione poll bloccata a livello RLS per poll chiuse e per non-admin.
 - Realtime (`postgres_changes`) rispetta le stesse policy RLS `select` delle query normali: nessun dato aggiuntivo esposto rispetto a quanto gia leggibile via REST.
 - `/api/avatar` valida host (`*.googleusercontent.com`) e protocollo (`https:`) prima di fare fetch server-side, per evitare che diventi un proxy generico verso URL arbitrari (mitigazione SSRF).
+- `/api/keepalive` protetta da `CRON_SECRET` quando configurata (vedi 7.5, 8.1); esplicitamente esentata dal redirect-to-login del middleware (vedi 4.5) perche invocata da Vercel Cron senza sessione browser.
 
 Attenzioni operative:
 - Non esporre `GOOGLE_MAPS_API_KEY` nel client; e e deve rimanere server-side.
 - Non committare `.env.local`.
 - Proteggere la API key Google con restrizioni HTTP/IP.
 - Usare l'upload preset Cloudinary corretto (case-sensitive).
-- `/api/keepalive` usa anon key ed e raggiungibile pubblicamente: non aggiungere logica privilegiata a questa route.
+- `/api/keepalive` usa anon key e non aggiunge logica privilegiata; senza `CRON_SECRET` configurata resta comunque raggiungibile pubblicamente (esegue solo una `SELECT` innocua, ma vale la pena impostare la variabile in produzione).
 
 ---
 
@@ -506,6 +521,12 @@ Verificare che la migrazione `20260723140000_enable_realtime_planner_tables.sql`
 
 **Avatar di alcuni utenti non si vedono (mostrano le iniziali al posto della foto)**
 Chrome blocca in modo incostante alcuni hotlink diretti a `lh3.googleusercontent.com` (ORB, Opaque Response Blocking) — non e un bug applicativo. `Avatar.tsx` instrada gia questi URL attraverso `/api/avatar`, che risolve il problema facendo il fetch server-side. Se il problema persiste, verificare nella tab Network del browser che la richiesta sia effettivamente verso `/api/avatar?url=...` e non direttamente verso `googleusercontent.com`.
+
+**`/api/keepalive` risponde 401 anche con la chiamata corretta di Vercel Cron**
+Verificare che il valore di `CRON_SECRET` in Vercel (Settings → Environment Variables) sia identico a quello atteso dalla route; Vercel deve rigenerare il deploy dopo aver aggiunto/modificato la variabile.
+
+**Il DB Supabase risulta comunque in pausa nonostante il cron**
+Prima di questa modifica, `src/proxy.ts` reindirizzava a `/accedi` qualsiasi richiesta non autenticata verso `/api/keepalive`, quindi la query di keepalive non veniva mai eseguita dalle chiamate di Vercel Cron. Verificare che sia presente l'eccezione per `/api/keepalive` in `proxy.ts` (vedi 4.5) e che la route non risponda con un redirect.
 
 **`Missing GOOGLE_MAPS_API_KEY`**
 Aggiungere la key in `.env.local` e riavviare il dev server.

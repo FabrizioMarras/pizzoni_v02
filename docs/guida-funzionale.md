@@ -198,3 +198,4 @@ Il flusso di pianificazione e votazione-first: prima si vota la data, poi l'even
 - 2026-07-23: La votazione aperta si aggiorna ora in tempo reale per tutti i membri collegati (voti, nuove date, modifica pizzeria, finalizzazione/cancellazione), senza bisogno di ricaricare la pagina.
 - 2026-07-23: Aggiunto il riquadro "Non hanno ancora votato" nella votazione aperta, per capire subito chi sollecitare.
 - 2026-07-23: Risolto un problema per cui alcuni avatar Google non venivano mostrati (fallback silenzioso alle iniziali) a causa di un blocco del browser sui link diretti; ora tutti gli avatar passano da un proxy interno.
+- 2026-07-23: Protetta la route interna di keepalive del database con un controllo di autorizzazione; risolto anche un bug per cui questa chiamata automatica non arrivava mai a destinazione, con il rischio che il database si mettesse in pausa nonostante il cron attivo.

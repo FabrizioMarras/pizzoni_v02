@@ -28,7 +28,7 @@ App privata per un gruppo chiuso: organizza serate pizza, vota le date, registra
   - Foto: upload da file o camera, tag unico "foto della serata"
 - Export calendario `.ics` per ogni evento
 - Anteprime OG dinamiche per la condivisione evento (WhatsApp, Telegram, etc.)
-- Vercel Cron per prevenire la pausa automatica del DB Supabase piano free
+- Vercel Cron per prevenire la pausa automatica del DB Supabase piano free, protetto da `CRON_SECRET`
 - Proxy server-side per gli avatar Google (`/api/avatar`), per evitare blocchi del browser sugli hotlink diretti
 
 ## Stack
@@ -58,9 +58,12 @@ SUPABASE_SERVICE_ROLE_KEY=
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=
 GOOGLE_MAPS_API_KEY=
+CRON_SECRET=
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` si trova in Supabase Dashboard → Project → Settings → API → "Project API keys" (sezione `service_role`). Usata solo server-side per generare le anteprime OG delle pagine evento.
+
+`CRON_SECRET` (opzionale ma consigliata): protegge `/api/keepalive`. Se impostata, aggiungere lo stesso valore anche in Vercel (Settings → Environment Variables) — Vercel la invia automaticamente come header `Authorization: Bearer <valore>` quando chiama la route via cron.
 
 ### 3. Migrazioni database (Supabase Cloud, senza CLI)
 
@@ -126,7 +129,7 @@ Push su GitHub → deploy automatico su Vercel.
 
 Il file `vercel.json` configura un Cron Job che chiama `/api/keepalive` ogni 5 giorni per prevenire la pausa automatica del DB Supabase piano free. Il cron si attiva automaticamente al deploy.
 
-Le variabili d'ambiente vanno configurate in Vercel dashboard (Settings → Environment Variables).
+Le variabili d'ambiente vanno configurate in Vercel dashboard (Settings → Environment Variables), inclusa `CRON_SECRET` (Vercel la invia automaticamente come header `Authorization` quando chiama la route via cron).
 
 ## Documentazione
 
