@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { FiCheck, FiExternalLink, FiMapPin, FiNavigation, FiPlus, FiTrash2, FiX } from 'react-icons/fi'
+import { FiCheck, FiEdit2, FiExternalLink, FiMapPin, FiNavigation, FiPlus, FiTrash2, FiX } from 'react-icons/fi'
 import { formatDateLabel } from '@/lib/date-format'
 import { supabase } from '@/lib/supabase'
 import {
@@ -12,6 +12,7 @@ import {
   finalizeEventVote as finalizeEventVoteRpc,
   proposeDateAndVote,
   removeDateVote,
+  updateEventVotePizzeria,
   type EventAvailabilityVote,
   type EventDateOption,
   type EventVote,
@@ -63,6 +64,7 @@ export default function PlannerBoard({
   const [notes, setNotes] = useState('')
 
   const [eventVoteModalOpen, setEventVoteModalOpen] = useState(false)
+  const [isEditingPizzeria, setIsEditingPizzeria] = useState(false)
   const [searchResults, setSearchResults] = useState<PlaceSuggestion[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [geo, setGeo] = useState<{ latitude: number; longitude: number } | null>(null)
@@ -192,15 +194,54 @@ export default function PlannerBoard({
     setSearchLoading(false)
   }
 
-  const createEventVote = async (event: React.FormEvent) => {
-    event.preventDefault()
+  const resetPizzeriaForm = () => {
+    setPizzeriaName('')
+    setLocation('')
+    setCity('')
+    setGooglePlaceId('')
+    setGoogleMapsUri('')
+    setGooglePhotoName('')
+    setLatitude(null)
+    setLongitude(null)
+    setNotes('')
+    setSelectedPizzeriaId('')
+    setSearchResults([])
+  }
 
-    if (!userId) return
-    if (openEventVote) {
-      toast.warning("Esiste gia una votazione aperta. Chiudila prima di crearne una nuova.")
-      return
-    }
+  const openCreateModal = () => {
+    resetPizzeriaForm()
+    setIsEditingPizzeria(false)
+    setEventVoteModalOpen(true)
+  }
 
+  const openEditPizzeriaModal = () => {
+    if (!openEventVote) return
+    const matched = existingPizzerias.find(
+      (pizzeria) =>
+        pizzeria.name.toLowerCase() === openEventVote.pizzeria_name.toLowerCase() && pizzeria.city.toLowerCase() === openEventVote.city.toLowerCase()
+    )
+
+    setSelectedPizzeriaId(matched?.id ?? '')
+    setPizzeriaName(openEventVote.pizzeria_name)
+    setLocation(openEventVote.location)
+    setCity(openEventVote.city)
+    setNotes(openEventVote.notes ?? '')
+    setGooglePlaceId(matched?.google_place_id ?? '')
+    setGoogleMapsUri(matched?.google_maps_uri ?? '')
+    setGooglePhotoName(matched?.google_photo_name ?? '')
+    setLatitude(matched?.latitude ?? null)
+    setLongitude(matched?.longitude ?? null)
+    setSearchResults([])
+    setIsEditingPizzeria(true)
+    setEventVoteModalOpen(true)
+  }
+
+  const closePizzeriaModal = () => {
+    setEventVoteModalOpen(false)
+    setIsEditingPizzeria(false)
+  }
+
+  const resolveEnsuredPizzeria = async (): Promise<ExistingPizzeria | null> => {
     const normalizedName = pizzeriaName.trim()
     const normalizedLocation = location.trim()
     const normalizedCity = city.trim()
@@ -231,12 +272,56 @@ export default function PlannerBoard({
 
       if (pizzeriaError || !insertedPizzeria) {
         toast.error(pizzeriaError?.message ?? 'Errore durante la creazione della pizzeria.')
-        return
+        return null
       }
 
       ensuredPizzeria = insertedPizzeria
       setExistingPizzerias((current) => [...current, insertedPizzeria].sort((a, b) => a.name.localeCompare(b.name, 'it')))
     }
+
+    return ensuredPizzeria
+  }
+
+  const submitPizzeriaForm = async (event: React.FormEvent) => {
+    event.preventDefault()
+
+    if (!userId) return
+
+    if (isEditingPizzeria) {
+      if (!openEventVote) return
+
+      const ensuredPizzeria = await resolveEnsuredPizzeria()
+      if (!ensuredPizzeria) return
+
+      setSubmitting(true)
+      const { error } = await updateEventVotePizzeria(supabase, openEventVote.id, {
+        pizzeria_name: ensuredPizzeria.name,
+        location: ensuredPizzeria.location,
+        city: ensuredPizzeria.city,
+        notes: notes.trim() || null,
+      })
+      setSubmitting(false)
+
+      if (error) {
+        toast.error(error.message ?? "Errore durante l'aggiornamento della pizzeria.")
+        return
+      }
+
+      resetPizzeriaForm()
+      setEventVoteModalOpen(false)
+      setIsEditingPizzeria(false)
+      toast.success('Pizzeria aggiornata.')
+      void loadData()
+      return
+    }
+
+    if (openEventVote) {
+      toast.warning("Esiste gia una votazione aperta. Chiudila prima di crearne una nuova.")
+      return
+    }
+
+    const ensuredPizzeria = await resolveEnsuredPizzeria()
+    if (!ensuredPizzeria) return
 
     setSubmitting(true)
 
@@ -255,17 +340,7 @@ export default function PlannerBoard({
       return
     }
 
-    setPizzeriaName('')
-    setLocation('')
-    setCity('')
-    setGooglePlaceId('')
-    setGoogleMapsUri('')
-    setGooglePhotoName('')
-    setLatitude(null)
-    setLongitude(null)
-    setNotes('')
-    setSelectedPizzeriaId('')
-    setSearchResults([])
+    resetPizzeriaForm()
     setEventVoteModalOpen(false)
     toast.success('Nuovo evento creato: votazione avviata con successo.')
     void loadData()
@@ -323,7 +398,7 @@ export default function PlannerBoard({
         <div className="flex justify-end">
           <Button
             type="button"
-            onClick={() => setEventVoteModalOpen(true)}
+            onClick={openCreateModal}
             variant="primary"
             className="px-4 py-2 text-sm"
             icon={<FiPlus className="h-4 w-4" />}
@@ -342,7 +417,7 @@ export default function PlannerBoard({
             </div>
             <Button
               type="button"
-              onClick={() => setEventVoteModalOpen(true)}
+              onClick={openCreateModal}
               variant="primary"
               className="px-4 py-2 text-sm"
               icon={<FiPlus className="h-4 w-4" />}
@@ -353,8 +428,8 @@ export default function PlannerBoard({
         </section>
       )}
 
-      <Modal open={eventVoteModalOpen} onClose={() => setEventVoteModalOpen(false)} title="Nuovo Evento">
-        <form onSubmit={createEventVote} className="space-y-3">
+      <Modal open={eventVoteModalOpen} onClose={closePizzeriaModal} title={isEditingPizzeria ? 'Modifica Pizzeria' : 'Nuovo Evento'}>
+        <form onSubmit={submitPizzeriaForm} className="space-y-3">
           <div className="rounded-xl bg-[rgba(255,255,255,0.66)] p-3">
             <label className="mb-1 block text-sm font-semibold text-[var(--ink)]">Pizzeria esistente (opzionale)</label>
             <select value={selectedPizzeriaId} onChange={(event) => onSelectExistingPizzeria(event.target.value)} className="field-input">
@@ -407,7 +482,9 @@ export default function PlannerBoard({
           <input value={city} onChange={(event) => onCityChange(event.target.value)} placeholder="Città" className="field-input" required />
           <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Note (opzionale)" className="field-input min-h-[80px]" />
 
-          <p className="text-xs text-[var(--ink-soft)]">Dopo la creazione, ognuno potrà segnare le proprie date disponibili sul calendario.</p>
+          {!isEditingPizzeria && (
+            <p className="text-xs text-[var(--ink-soft)]">Dopo la creazione, ognuno potrà segnare le proprie date disponibili sul calendario.</p>
+          )}
 
           <Button
             variant="primary"
@@ -416,7 +493,7 @@ export default function PlannerBoard({
             disabled={submitting}
             icon={<FiCheck className="h-4 w-4" />}
           >
-            {submitting ? 'Creazione...' : 'Crea Evento'}
+            {isEditingPizzeria ? (submitting ? 'Salvataggio...' : 'Salva modifiche') : submitting ? 'Creazione...' : 'Crea Evento'}
           </Button>
         </form>
       </Modal>
@@ -452,17 +529,30 @@ export default function PlannerBoard({
         <section className="glass-card space-y-3 p-6">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-3xl">Votazione Aperta</h2>
-            {isAdmin && (
-              <Button
-                type="button"
-                onClick={() => setCancelConfirmOpen(true)}
-                variant="unstyled"
-                className="rounded-full bg-[rgba(178,74,47,0.1)] px-3 py-1 text-xs text-(--terracotta-deep)"
-                icon={<FiTrash2 className="h-3.5 w-3.5" />}
-              >
-                Cancella votazione
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {canFinalizeOpenEventVote && (
+                <Button
+                  type="button"
+                  onClick={openEditPizzeriaModal}
+                  variant="unstyled"
+                  className="rounded-full bg-[rgba(81,100,58,0.1)] px-3 py-1 text-xs text-[var(--olive)]"
+                  icon={<FiEdit2 className="h-3.5 w-3.5" />}
+                >
+                  Modifica pizzeria
+                </Button>
+              )}
+              {isAdmin && (
+                <Button
+                  type="button"
+                  onClick={() => setCancelConfirmOpen(true)}
+                  variant="unstyled"
+                  className="rounded-full bg-[rgba(178,74,47,0.1)] px-3 py-1 text-xs text-(--terracotta-deep)"
+                  icon={<FiTrash2 className="h-3.5 w-3.5" />}
+                >
+                  Cancella votazione
+                </Button>
+              )}
+            </div>
           </div>
           <article className="surface-card space-y-3 px-4 py-4">
             <div className="text-lg font-semibold text-[var(--ink)]">{openEventVote.pizzeria_name}</div>

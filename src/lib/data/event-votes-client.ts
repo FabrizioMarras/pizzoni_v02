@@ -135,6 +135,29 @@ export async function createEventVote(
   return { eventVoteError }
 }
 
+export async function updateEventVotePizzeria(
+  supabase: SB,
+  pollId: string,
+  payload: {
+    pizzeria_name: string
+    location: string
+    city: string
+    notes: string | null
+  }
+): Promise<{ error: PostgrestError | null }> {
+  const { error } = await supabase
+    .from('agenda_polls')
+    .update({
+      pizzeria_name: payload.pizzeria_name,
+      location: payload.location,
+      city: payload.city,
+      notes: payload.notes,
+    })
+    .eq('id', pollId)
+
+  return { error }
+}
+
 export async function proposeDateAndVote(
   supabase: SB,
   payload: {
