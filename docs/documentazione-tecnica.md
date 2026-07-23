@@ -53,12 +53,13 @@ Punti chiave:
 ### 2.3 API interne Next.js
 - `POST /api/places/search`: ricerca pizzerie via Google Places API (New).
 - `GET /api/places/photo`: proxy server-side immagini Google Places.
+- `GET /api/avatar`: proxy server-side avatar Google (evita il blocco ORB del browser su hotlink diretti).
 - `GET /api/calendar`: export ICS per calendario eventi.
 - `GET /api/keepalive`: ping DB Supabase per prevenire la pausa automatica del piano free (chiamato da Vercel Cron ogni 5 giorni).
 
 ### 2.4 Data access layer
 Per ridurre coupling UI-query, le operazioni client sono estratte in moduli dedicati:
-- `src/lib/data/event-votes-client.ts`: snapshot, creazione votazione, proposta data + voto disponibilita (`proposeDateAndVote`), rimozione voto (`removeDateVote`), modifica pizzeria votazione aperta (`updateEventVotePizzeria`), finalizzazione, cancellazione poll (admin).
+- `src/lib/data/event-votes-client.ts`: snapshot (inclusi tutti i membri `is_member = true`, tipo `PollMember`), creazione votazione, proposta data + voto disponibilita (`proposeDateAndVote`), rimozione voto (`removeDateVote`), modifica pizzeria votazione aperta (`updateEventVotePizzeria`), finalizzazione, cancellazione poll (admin).
 - `src/lib/data/photos-client.ts`: CRUD foto evento e tag "foto della serata".
 - `src/lib/data/pizzeria-mapper.ts`: normalizzazione dati pizzerie + conteggio visitate con modalita `all/past`.
 - `src/lib/data/pizzeria-queries.ts`: selector condivisi per query pizzerie.
@@ -240,6 +241,12 @@ Vincolo UI: il form di creazione e nascosto se esiste gia una votazione aperta (
 - Prerequisito DB: le tabelle devono essere aggiunte alla publication `supabase_realtime` (migrazione `20260723140000_enable_realtime_planner_tables.sql`); senza questo passaggio manuale in SQL Editor, la sottoscrizione si apre ma non riceve eventi. Le policy RLS `select` esistenti (`auth.role() = 'authenticated'`) coprono gia il controllo permessi di Realtime, nessuna nuova policy necessaria.
 - Le chiamate manuali `void loadData()` dopo ogni mutazione locale restano invariate: sono ridondanti con la sottoscrizione (il debounce assorbe il doppione) ma fungono da rete di sicurezza se il socket realtime è temporaneamente disconnesso.
 
+**Chi non ha ancora votato:**
+- `fetchPlannerData` include ora una quarta query (`profiles` con `is_member = true`), esposta come `members: PollMember[]` in `PlannerSnapshot`; nessuna nuova RLS necessaria (`profiles_select_authenticated`/`profiles_select_all_members` gia permettono la lettura a qualsiasi utente autenticato).
+- In `PlannerBoard.tsx`, `votedUserIds` = insieme degli `user_id` con voto `available` su un'opzione data appartenente alla poll aperta; `nonVoters` = `members` che non compaiono in quell'insieme.
+- Renderizzato come riquadro tinta terracotta "Non hanno ancora votato" sopra il calendario, con un tile per membro (`Avatar` + nome — non `MemberIdentity`, per evitare l'emoji pizza sull'avatar); se tutti hanno votato mostra invece una riga tinta oliva "Tutti hanno votato! 🎉".
+- Si aggiorna automaticamente in tempo reale, perche `members` viene ripopolato dentro lo stesso `loadData()` gia richiamato dalla sottoscrizione realtime sopra.
+
 ### 6.3 Dettaglio evento
 Pagina: `/eventi/[id]` — componente principale: `src/app/eventi/[id]/page.tsx`.
 
@@ -343,7 +350,18 @@ Input query:
 
 Comportamento: proxy server-side verso Google Places Photo; non espone la API key al client; ritorna stream immagine con cache header.
 
-### 7.3 `GET /api/calendar`
+### 7.3 `GET /api/avatar`
+File: `src/app/api/avatar/route.ts`.
+
+Input query: `url` (required) — URL completo dell'avatar Google da proxare.
+
+Comportamento:
+- Valida che `url` sia `https:` e che l'host corrisponda a `*.googleusercontent.com` (allowlist); altrimenti risponde 400.
+- Fetch server-side dell'immagine e restituzione dello stream con `Content-Type` originale e `Cache-Control: public, max-age=86400`; 502 se l'upstream fallisce.
+- Motivo: alcuni avatar Google, se caricati direttamente cross-origin dal browser, vengono bloccati in modo incostante da Chrome ORB (Opaque Response Blocking), causando fallback silenzioso alle iniziali. Il proxy server-side elimina il problema rendendo la richiesta same-origin.
+- Usato automaticamente da `src/components/ui/Avatar.tsx` (funzione `resolveAvatarSrc`) per qualunque `avatarUrl` con host `googleusercontent.com`; altri URL (es. incollati manualmente nel profilo) restano invariati.
+
+### 7.4 `GET /api/calendar`
 File: `src/app/api/calendar/route.ts`.
 
 Input query: `id` (visit ID, required).
@@ -352,7 +370,7 @@ Comportamento:
 - Se `scheduled_at` esiste: esporta evento ICS con orario.
 - Se `scheduled_at` manca: esporta evento ICS all-day sulla sola `date`.
 
-### 7.4 `GET /api/keepalive`
+### 7.5 `GET /api/keepalive`
 File: `src/app/api/keepalive/route.ts`.
 
 Scopo: prevenire la pausa automatica del DB Supabase sul piano free (pausa dopo 7 giorni di inattivita).
@@ -445,6 +463,7 @@ Pratiche applicate:
 - Vincolo DB di unicita tag "foto della serata" per evento.
 - Cancellazione poll bloccata a livello RLS per poll chiuse e per non-admin.
 - Realtime (`postgres_changes`) rispetta le stesse policy RLS `select` delle query normali: nessun dato aggiuntivo esposto rispetto a quanto gia leggibile via REST.
+- `/api/avatar` valida host (`*.googleusercontent.com`) e protocollo (`https:`) prima di fare fetch server-side, per evitare che diventi un proxy generico verso URL arbitrari (mitigazione SSRF).
 
 Attenzioni operative:
 - Non esporre `GOOGLE_MAPS_API_KEY` nel client; e e deve rimanere server-side.
@@ -484,6 +503,9 @@ Stato atteso prima del deploy:
 
 **La votazione non si aggiorna in tempo reale tra piu utenti**
 Verificare che la migrazione `20260723140000_enable_realtime_planner_tables.sql` sia stata eseguita: senza le tabelle nella publication `supabase_realtime`, il canale si apre ma non riceve eventi. Controllare anche la console browser per errori tipo `CHANNEL_ERROR`.
+
+**Avatar di alcuni utenti non si vedono (mostrano le iniziali al posto della foto)**
+Chrome blocca in modo incostante alcuni hotlink diretti a `lh3.googleusercontent.com` (ORB, Opaque Response Blocking) — non e un bug applicativo. `Avatar.tsx` instrada gia questi URL attraverso `/api/avatar`, che risolve il problema facendo il fetch server-side. Se il problema persiste, verificare nella tab Network del browser che la richiesta sia effettivamente verso `/api/avatar?url=...` e non direttamente verso `googleusercontent.com`.
 
 **`Missing GOOGLE_MAPS_API_KEY`**
 Aggiungere la key in `.env.local` e riavviare il dev server.

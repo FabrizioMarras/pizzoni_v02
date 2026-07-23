@@ -17,10 +17,12 @@ import {
   type EventDateOption,
   type EventVote,
   type ExistingPizzeria,
+  type PollMember,
 } from '@/lib/data/event-votes-client'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import ButtonLink from '@/components/ui/ButtonLink'
+import Avatar from '@/components/ui/Avatar'
 import AvailabilityCalendar from '@/components/AvailabilityCalendar'
 import { getCurrentPosition, searchPlaces, type PlaceSuggestion } from '@/lib/places'
 import { useToast } from '@/components/ui/ToastProvider'
@@ -32,6 +34,7 @@ interface PlannerBoardProps {
   initialDateChoices: EventDateOption[]
   initialAvailabilityVotes: EventAvailabilityVote[]
   initialPizzerias: ExistingPizzeria[]
+  initialMembers: PollMember[]
   hideClosedPolls?: boolean
   hideCreateSection?: boolean
   showTopAddButton?: boolean
@@ -48,6 +51,7 @@ export default function PlannerBoard({
   initialDateChoices,
   initialAvailabilityVotes,
   initialPizzerias,
+  initialMembers,
   hideClosedPolls = false,
   hideCreateSection = false,
   showTopAddButton = false,
@@ -56,6 +60,7 @@ export default function PlannerBoard({
   const [eventVotes, setEventVotes] = useState<EventVote[]>(initialEventVotes)
   const [dateChoices, setDateChoices] = useState<EventDateOption[]>(initialDateChoices)
   const [availabilityVotes, setAvailabilityVotes] = useState<EventAvailabilityVote[]>(initialAvailabilityVotes)
+  const [members, setMembers] = useState<PollMember[]>(initialMembers)
   const [selectedPizzeriaId, setSelectedPizzeriaId] = useState('')
 
   const [pizzeriaName, setPizzeriaName] = useState('')
@@ -87,6 +92,7 @@ export default function PlannerBoard({
     setDateChoices(snapshot.dateChoices)
     setAvailabilityVotes(snapshot.availabilityVotes)
     setExistingPizzerias(snapshot.existingPizzerias)
+    setMembers(snapshot.members)
   }, [])
 
   useEffect(() => {
@@ -148,6 +154,17 @@ export default function PlannerBoard({
     () => (openEventVote ? dateChoices.filter((option) => option.poll_id === openEventVote.id) : []),
     [openEventVote, dateChoices]
   )
+  const openPollOptionIds = useMemo(() => new Set(openEventDateChoices.map((option) => option.id)), [openEventDateChoices])
+  const votedUserIds = useMemo(
+    () =>
+      new Set(
+        availabilityVotes
+          .filter((vote) => vote.availability === 'available' && openPollOptionIds.has(vote.date_option_id))
+          .map((vote) => vote.user_id)
+      ),
+    [availabilityVotes, openPollOptionIds]
+  )
+  const nonVoters = useMemo(() => members.filter((member) => !votedUserIds.has(member.id)), [members, votedUserIds])
 
   const onSelectExistingPizzeria = (pizzeriaId: string) => {
     setSelectedPizzeriaId(pizzeriaId)
@@ -582,6 +599,22 @@ export default function PlannerBoard({
             <div className="text-lg font-semibold text-[var(--ink)]">{openEventVote.pizzeria_name}</div>
             <div className="text-sm text-[var(--ink-soft)]">{openEventVote.city} · {openEventVote.location}</div>
             {openEventVote.notes && <p className="text-sm text-[var(--ink)]">{openEventVote.notes}</p>}
+
+            {nonVoters.length > 0 ? (
+              <div className="rounded-xl bg-[rgba(178,74,47,0.08)] p-3">
+                <p className="mb-2 text-xs font-semibold text-(--terracotta-deep)">Non hanno ancora votato</p>
+                <div className="flex flex-wrap gap-2">
+                  {nonVoters.map((member) => (
+                    <span key={member.id} className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2 py-1 text-xs font-medium text-[var(--ink)]">
+                      <Avatar name={member.name} avatarUrl={member.avatar_url} size="sm" />
+                      {member.name ?? 'Membro'}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              members.length > 0 && <p className="text-xs text-[var(--olive)]">Tutti hanno votato! 🎉</p>
+            )}
 
             <AvailabilityCalendar
               dateChoices={openEventDateChoices}

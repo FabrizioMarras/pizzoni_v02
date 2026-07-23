@@ -16,6 +16,7 @@ App privata per un gruppo chiuso: organizza serate pizza, vota le date, registra
   - Classifica "Date piu votate" con le prime 3 in evidenza e toggle per vederle tutte
   - Modifica pizzeria della votazione aperta (owner/admin), per correggere errori senza dover ricreare la poll
   - Aggiornamenti in tempo reale (Supabase Realtime): voti, nuove date, modifica pizzeria e finalizzazione/cancellazione si propagano subito a tutti i membri collegati
+  - Riquadro "Non hanno ancora votato" per capire subito chi sollecitare
   - Finalizzazione da owner o admin: crea l'evento e pre-compila i partecipanti dai voti disponibili
   - Cancellazione votazione aperta (solo admin)
 - Dettaglio evento con sezioni collassabili:
@@ -28,6 +29,7 @@ App privata per un gruppo chiuso: organizza serate pizza, vota le date, registra
 - Export calendario `.ics` per ogni evento
 - Anteprime OG dinamiche per la condivisione evento (WhatsApp, Telegram, etc.)
 - Vercel Cron per prevenire la pausa automatica del DB Supabase piano free
+- Proxy server-side per gli avatar Google (`/api/avatar`), per evitare blocchi del browser sugli hotlink diretti
 
 ## Stack
 

@@ -4,7 +4,7 @@ import PlannerBoard from '@/components/PlannerBoard'
 import VisitsManager from '@/components/VisitsManager'
 import { fetchPlannerData } from '@/lib/data/event-votes-client'
 import { VISIT_EVENTS_PAGE_SELECT } from '@/lib/data/visit-queries'
-import type { EventAvailabilityVote, EventDateOption, EventVote, ExistingPizzeria } from '@/lib/data/event-votes-client'
+import type { EventAvailabilityVote, EventDateOption, EventVote, ExistingPizzeria, PollMember } from '@/lib/data/event-votes-client'
 import { getProfileMembershipFlags } from '@/lib/profile-flags'
 import { firstOrThrow } from '@/lib/supabase-relations'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
@@ -56,6 +56,7 @@ export default async function VisitsPage() {
   let dateChoices: EventDateOption[] = []
   let availabilityVotes: EventAvailabilityVote[] = []
   let existingPizzerias: ExistingPizzeria[] = []
+  let members: PollMember[] = []
 
   if (currentUserId) {
     const [{ isAdmin: profileIsAdmin }, plannerData] = await Promise.all([
@@ -68,6 +69,7 @@ export default async function VisitsPage() {
     dateChoices = plannerData.dateChoices
     availabilityVotes = plannerData.availabilityVotes
     existingPizzerias = plannerData.existingPizzerias
+    members = plannerData.members
   }
 
   return (
@@ -83,6 +85,7 @@ export default async function VisitsPage() {
           initialDateChoices={dateChoices}
           initialAvailabilityVotes={availabilityVotes}
           initialPizzerias={existingPizzerias}
+          initialMembers={members}
           hideClosedPolls
           hideCreateSection
           showTopAddButton

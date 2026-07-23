@@ -22,6 +22,20 @@ function getInitial(name?: string | null, email?: string | null) {
   return source[0]?.toUpperCase() ?? 'P'
 }
 
+// Google's avatar CDN sometimes triggers Chrome's Opaque Response Blocking (ORB)
+// when hotlinked directly cross-origin; route those through our own proxy instead.
+function resolveAvatarSrc(rawUrl: string) {
+  try {
+    const parsed = new URL(rawUrl)
+    if (/(^|\.)googleusercontent\.com$/.test(parsed.hostname)) {
+      return `/api/avatar?url=${encodeURIComponent(rawUrl)}`
+    }
+  } catch {
+    // Not a valid absolute URL; fall through and let <Image> handle/reject it.
+  }
+  return rawUrl
+}
+
 const SIZE_CLASSES: Record<AvatarSize, { wrapper: string; image: number; text: string }> = {
   sm: { wrapper: 'h-6 w-6', image: 24, text: 'text-sm' },
   md: { wrapper: 'h-8 w-8', image: 32, text: 'text-base' },
@@ -54,7 +68,7 @@ export default function Avatar({ name, email, avatarUrl, size = 'sm', className 
 
   return (
     <Image
-      src={normalizedAvatarUrl}
+      src={resolveAvatarSrc(normalizedAvatarUrl)}
       alt={label}
       width={image}
       height={image}

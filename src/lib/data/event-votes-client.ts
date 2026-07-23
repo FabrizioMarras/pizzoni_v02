@@ -44,6 +44,13 @@ export interface ExistingPizzeria {
   longitude: number | null
 }
 
+export interface PollMember {
+  id: string
+  name: string | null
+  avatar_url: string | null
+  pizza_emoji: string | null
+}
+
 export interface PlannerSnapshot {
   userId: string
   isAdmin: boolean
@@ -51,16 +58,18 @@ export interface PlannerSnapshot {
   dateChoices: EventDateOption[]
   availabilityVotes: EventAvailabilityVote[]
   existingPizzerias: ExistingPizzeria[]
+  members: PollMember[]
 }
 
 type SB = SupabaseClient
 
 export async function fetchPlannerData(supabase: SB) {
-  const [{ data: eventVotes }, { data: dateChoices }, { data: availabilityVotes }, { data: existingPizzerias }] = await Promise.all([
+  const [{ data: eventVotes }, { data: dateChoices }, { data: availabilityVotes }, { data: existingPizzerias }, { data: members }] = await Promise.all([
     supabase.from('agenda_polls').select('*').order('created_at', { ascending: false }).returns<EventVote[]>(),
     supabase.from('agenda_poll_date_options').select('id, poll_id, option_date').order('option_date', { ascending: true }).returns<EventDateOption[]>(),
     supabase.from('agenda_poll_date_votes').select('id, poll_id, date_option_id, user_id, availability, voter:profiles(name, avatar_url, pizza_emoji)').returns<EventAvailabilityVote[]>(),
     supabase.from('pizzerias').select('id, name, location, city, google_place_id, google_maps_uri, google_photo_name, latitude, longitude').order('name', { ascending: true }).returns<ExistingPizzeria[]>(),
+    supabase.from('profiles').select('id, name, avatar_url, pizza_emoji').eq('is_member', true).order('name', { ascending: true }).returns<PollMember[]>(),
   ])
 
   return {
@@ -68,6 +77,7 @@ export async function fetchPlannerData(supabase: SB) {
     dateChoices: dateChoices ?? [],
     availabilityVotes: availabilityVotes ?? [],
     existingPizzerias: existingPizzerias ?? [],
+    members: members ?? [],
   }
 }
 
@@ -90,6 +100,7 @@ export async function fetchPlannerSnapshot(supabase: SB): Promise<PlannerSnapsho
     dateChoices: plannerData.dateChoices,
     availabilityVotes: plannerData.availabilityVotes,
     existingPizzerias: plannerData.existingPizzerias,
+    members: plannerData.members,
   }
 }
 

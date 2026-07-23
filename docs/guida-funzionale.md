@@ -126,6 +126,7 @@ Il flusso di pianificazione e votazione-first: prima si vota la data, poi l'even
 - Ogni giorno con almeno un voto mostra un numero che indica quante persone sono disponibili; il giorno odierno e evidenziato con un contorno.
 - Sotto al calendario, la lista **"Date piu votate"** mostra le date con voti ordinate per numero di disponibili (le prime 3 per default, con un toggle "Mostra tutte" per vederle tutte).
 - Tutto si aggiorna in tempo reale: se un altro membro tocca una data, propone una nuova data, cambia la pizzeria o finalizza/cancella la votazione mentre hai la pagina aperta, lo vedi comparire senza dover ricaricare.
+- Un riquadro **"Non hanno ancora votato"** mostra, con foto profilo, i membri che non hanno ancora segnato nessuna data disponibile; quando tutti hanno votato viene mostrato un messaggio di conferma al suo posto.
 
 **Modifica pizzeria** *(owner della votazione o admin)*
 - Bottone `Modifica pizzeria` nell'header della sezione "Votazione Aperta".
@@ -195,3 +196,5 @@ Il flusso di pianificazione e votazione-first: prima si vota la data, poi l'even
 - 2026-07-23: Aggiunta la lista "Date piu votate" con le prime 3 date in evidenza e toggle per mostrarle tutte.
 - 2026-07-23: Aggiunta la possibilita per owner/admin di modificare la pizzeria di una votazione aperta senza doverla ricreare.
 - 2026-07-23: La votazione aperta si aggiorna ora in tempo reale per tutti i membri collegati (voti, nuove date, modifica pizzeria, finalizzazione/cancellazione), senza bisogno di ricaricare la pagina.
+- 2026-07-23: Aggiunto il riquadro "Non hanno ancora votato" nella votazione aperta, per capire subito chi sollecitare.
+- 2026-07-23: Risolto un problema per cui alcuni avatar Google non venivano mostrati (fallback silenzioso alle iniziali) a causa di un blocco del browser sui link diretti; ora tutti gli avatar passano da un proxy interno.
