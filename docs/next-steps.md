@@ -21,29 +21,19 @@ Ordinate per impatto stimato, non per priorita assoluta.
 
 ---
 
-## Media priorita
-
-### 3. Scheletri di caricamento (loading skeletons)
-**Cosa:** placeholder visivi mentre i dati vengono caricati su connessioni lente.
-**Perche:** alcune pagine (eventi, pizzerie) mostrano contenuto vuoto durante il fetch server-side.
-**Come:** componenti skeleton CSS inline, senza dipendenze esterne.
-**Stima:** bassa complessita tecnica, da applicare pagina per pagina.
-
----
-
 ## Bassa priorita / nice to have
 
-### 4. Pagina statistiche
+### 3. Pagina statistiche
 **Cosa:** statistiche di gruppo — membro piu attivo, citta piu visitata, evento con punteggio piu alto, foto piu caricate, ecc.
 **Perche:** il gruppo usa l'app da tempo e ha dati sufficienti per visualizzazioni interessanti.
 **Come:** query aggregate su `reviews`, `visit_attendees`, `photos`, `visits`.
 
-### 5. PWA / app installabile
+### 4. PWA / app installabile
 **Cosa:** `manifest.json` + service worker per permettere l'installazione sul telefono come app nativa.
 **Perche:** l'UI e gia mobile-first; l'installazione migliora l'accessibilita per i membri meno tecnici.
 **Come:** Next.js supporta PWA con `next-pwa` o configurazione manuale del manifest.
 
-### 6. Dark mode
+### 5. Dark mode
 **Cosa:** tema scuro che si attiva in base alla preferenza di sistema.
 **Perche:** le CSS custom properties sono gia in `src/app/globals.css`; aggiungere `prefers-color-scheme: dark` non richiede modifiche strutturali.
 **Come:** aggiungere un blocco `@media (prefers-color-scheme: dark)` con le variabili di colore ridefinite.
@@ -65,3 +55,4 @@ Ordinate per impatto stimato, non per priorita assoluta.
 - **Mostra chi non ha ancora votato** (2026-07-23): nella votazione aperta, un riquadro "Non hanno ancora votato" elenca (con avatar) i membri senza un voto `available` sulla poll corrente; si aggiorna anche live grazie alla sottoscrizione real-time gia presente. Implementato aggiungendo il fetch di `profiles` (`is_member = true`) a `fetchPlannerData` in `event-votes-client.ts`.
 - **Fix caricamento avatar Google** (2026-07-23): alcuni avatar Google (`lh3.googleusercontent.com`) venivano bloccati dal browser (Chrome ORB, Opaque Response Blocking) quando caricati direttamente cross-origin, causando fallback silenzioso alle iniziali in modo incostante in tutta l'app. Risolto con un proxy server-side `/api/avatar` (stesso pattern di `/api/places/photo`, gia esistente per le foto Google delle pizzerie), usato automaticamente da `Avatar.tsx` per qualunque URL `googleusercontent.com`.
 - **Protezione `/api/keepalive` con CRON_SECRET** (2026-07-23): la route ora richiede `Authorization: Bearer <CRON_SECRET>` quando la variabile e configurata. Durante l'implementazione e emerso un bug preesistente piu serio: il middleware (`src/proxy.ts`) reindirizzava a `/accedi` qualsiasi richiesta non autenticata, incluso `/api/keepalive` — il che significa che le chiamate di Vercel Cron (che non hanno mai una sessione browser) molto probabilmente non arrivavano mai alla query di keepalive. Aggiunta un'eccezione esplicita in `proxy.ts` per questa route (protetta dal proprio controllo `CRON_SECRET` invece che dal login). Verificato manualmente: nessun header → 401, header errato → 401, header corretto → 200 `{ok:true}`.
+- **Scheletri di caricamento** (2026-07-23): aggiunto un `loading.tsx` per `/`, `/eventi`, `/eventi/[id]` e `/pizzerie` — la convenzione nativa di Next.js che avvolge automaticamente la pagina in un Suspense boundary e mostra questo file mentre il Server Component asincrono (e i componenti async annidati come `Leaderboard`/`NextEventCard`) sono ancora in fetch. Ogni skeleton ricalca le proporzioni reali della pagina (stesso `Nav`/`page-wrap`, stesse dimensioni di card/immagine) per un layout shift minimo. Nuovo primitivo condiviso `src/components/ui/Skeleton.tsx` (blocco `animate-pulse`, nessuna dipendenza esterna). Verificato via streaming HTML (`curl` con `--max-time`) confermando che il markup dello skeleton corretto arriva per ciascuna route prima del contenuto reale.

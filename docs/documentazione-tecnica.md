@@ -42,6 +42,7 @@ Punti chiave:
 - Next.js App Router sotto `src/app`.
 - UI in componenti client/server sotto `src/components`.
 - Stili globali in `src/app/globals.css`.
+- Skeleton di caricamento (`loading.tsx`) per le route con fetch server-side pesante: `/`, `/eventi`, `/eventi/[id]`, `/pizzerie`. Convenzione nativa Next.js: ogni file avvolge automaticamente la route in un Suspense boundary e viene mostrato finche il Server Component (e gli eventuali componenti async annidati, es. `Leaderboard`/`NextEventCard`) non risolve il fetch. Primitivo condiviso: `src/components/ui/Skeleton.tsx` (`animate-pulse` di Tailwind, nessuna dipendenza esterna).
 
 ### 2.2 Backend/BaaS
 - Supabase Auth per autenticazione.
@@ -302,6 +303,7 @@ Tutti i componenti sono in `src/components/ui/`.
 | `ToastProvider.tsx` | Sistema toast globale (success / warning / error / info). |
 | `SearchBar.tsx` | Barra ricerca controllata con label, placeholder, conteggio risultati e azione clear. Gestisce solo UI/input; la logica di matching resta nel componente padre. |
 | `ScrollPagination.tsx` | Trigger scroll per paginazione incrementale. Non carica al mount; aggiunge batch solo su evento `scroll` con sentinel vicino al viewport. |
+| `Skeleton.tsx` | Blocco placeholder `animate-pulse` riusato da tutti i `loading.tsx`. Props: `className` (dimensioni/forma a discrezione del chiamante). |
 
 ### 6.6 Utility condivise
 
