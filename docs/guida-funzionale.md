@@ -115,16 +115,25 @@ Per i dettagli tecnici, vedere `docs/documentazione-tecnica.md`.
 Il flusso di pianificazione e votazione-first: prima si vota la data, poi l'evento viene creato.
 
 **Creazione votazione** *(qualsiasi membro)*
-- Apertura modal con: pizzeria (esistente o nuova), opzioni data multiple, nota opzionale.
+- Apertura modal con: pizzeria (esistente o nuova), nota opzionale. Non si scelgono date in questa fase.
 - La votazione appare nella sezione "Votazione Aperta" della pagina eventi.
+- Puo esistere una sola votazione aperta alla volta: il form di creazione resta nascosto finche quella attiva non viene chiusa o cancellata.
 
-**Voto disponibilita** *(tutti i membri)*
-- Per ogni data proposta, ogni membro indica se e disponibile o non disponibile.
-- I votanti sono visibili per ogni data, con nome ed emoji.
+**Calendario disponibilita** *(tutti i membri)*
+- Ogni membro apre un calendario e segna le proprie date libere toccando i giorni: il tocco propone la data (se non esiste ancora) e registra il voto "disponibile"; toccando di nuovo il voto viene rimosso.
+- Non esiste un voto esplicito "non disponibile": l'assenza di selezione significa semplicemente nessuna informazione per quel giorno.
+- Su desktop il calendario mostra due mesi affiancati (mese corrente + successivo); su mobile un solo mese alla volta, con frecce per navigare avanti/indietro.
+- Ogni giorno con almeno un voto mostra un numero che indica quante persone sono disponibili; il giorno odierno e evidenziato con un contorno.
+- Sotto al calendario, la lista **"Date piu votate"** mostra le date con voti ordinate per numero di disponibili (le prime 3 per default, con un toggle "Mostra tutte" per vederle tutte).
+
+**Modifica pizzeria** *(owner della votazione o admin)*
+- Bottone `Modifica pizzeria` nell'header della sezione "Votazione Aperta".
+- Permette di correggere nome/indirizzo/citta/nota della votazione aperta, oppure di sostituire completamente la pizzeria scelta (cercandone una nuova o selezionandone una esistente), senza dover cancellare e ricreare la votazione.
+- Non modifica retroattivamente eventi gia finalizzati: agisce solo sulla votazione ancora aperta.
 
 **Finalizzazione** *(owner della votazione o admin)*
-- L'owner (o un admin) seleziona la data vincente e chiude la votazione.
-- Alla chiusura: viene creato automaticamente l'evento in `visits`, con i partecipanti pre-compilati dai voti "disponibile".
+- L'owner (o un admin) seleziona la data con piu voti (o un'altra data proposta) e chiude la votazione dalla lista "Date piu votate".
+- Alla chiusura: viene creato automaticamente l'evento in `visits`, con i partecipanti pre-compilati dai voti "disponibile" sulla data scelta.
 - L'orario prenotazione si aggiunge dopo, nel dettaglio evento.
 - Una volta finalizzata, la votazione diventa sola lettura.
 
@@ -137,8 +146,9 @@ Il flusso di pianificazione e votazione-first: prima si vota la data, poi l'even
 
 **Regole operative:**
 - Un solo owner per votazione.
-- Piu votazioni aperte possono tecnicamente coesistere, ma per chiarezza e consigliato averne una sola attiva alla volta.
-- In caso di pareggio date, la scelta spetta all'owner.
+- Una sola votazione aperta alla volta: l'app blocca la creazione di una seconda finche quella attiva non viene chiusa o cancellata.
+- Qualsiasi membro puo proporre nuove date sul calendario, non solo l'owner.
+- In caso di pareggio tra piu date, la scelta finale spetta a owner/admin.
 - Una votazione finalizzata non si puo modificare retroattivamente; eventuali correzioni richiedono una nuova votazione.
 
 ---
@@ -180,3 +190,6 @@ Il flusso di pianificazione e votazione-first: prima si vota la data, poi l'even
 - 2026-06-21: Aggiunta cancellazione votazione aperta da admin con conferma modal.
 - 2026-06-21: Aggiunto Vercel Cron per prevenire pausa DB Supabase piano free.
 - 2026-06-21: Aggiunta anteprima OG dinamica per condivisione eventi (WhatsApp, Telegram, etc.): immagine pizzeria, nome, data e orario.
+- 2026-07-23: Sostituito il voto per opzioni data fisse con un calendario di disponibilita condiviso (doppio mese su desktop, singolo su mobile); qualsiasi membro puo proporre nuove date. Rimosso il voto esplicito "non disponibile" a favore di un modello opt-in.
+- 2026-07-23: Aggiunta la lista "Date piu votate" con le prime 3 date in evidenza e toggle per mostrarle tutte.
+- 2026-07-23: Aggiunta la possibilita per owner/admin di modificare la pizzeria di una votazione aperta senza doverla ricreare.

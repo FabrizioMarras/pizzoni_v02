@@ -35,19 +35,13 @@ Ordinate per impatto stimato, non per priorita assoluta.
 
 ## Media priorita
 
-### 5. Modifica votazione aperta
-**Cosa:** owner o admin possono modificare una votazione aperta (aggiungere opzioni data, correggere nome/indirizzo pizzeria).
-**Perche:** oggi l'unica correzione possibile e cancellare e ricreare la poll da zero.
-**Come:** form di edit inline nella sezione "Votazione Aperta", visibile solo a owner/admin. RLS update gia permessa a owner/admin.
-**Nota:** rimozione di opzioni data con voti esistenti va gestita con attenzione (bloccare o avvisare).
-
-### 6. Scheletri di caricamento (loading skeletons)
+### 5. Scheletri di caricamento (loading skeletons)
 **Cosa:** placeholder visivi mentre i dati vengono caricati su connessioni lente.
 **Perche:** alcune pagine (eventi, pizzerie) mostrano contenuto vuoto durante il fetch server-side.
 **Come:** componenti skeleton CSS inline, senza dipendenze esterne.
 **Stima:** bassa complessita tecnica, da applicare pagina per pagina.
 
-### 7. Protezione `/api/keepalive` con CRON_SECRET
+### 6. Protezione `/api/keepalive` con CRON_SECRET
 **Cosa:** aggiungere un controllo `Authorization: Bearer <CRON_SECRET>` sulla route keepalive.
 **Perche:** l'endpoint e pubblicamente raggiungibile; Vercel passa automaticamente questo header se `CRON_SECRET` e configurato nelle env vars.
 **Come:** aggiungere la variabile `CRON_SECRET` in Vercel + controllo header in `src/app/api/keepalive/route.ts`.
@@ -57,17 +51,17 @@ Ordinate per impatto stimato, non per priorita assoluta.
 
 ## Bassa priorita / nice to have
 
-### 8. Pagina statistiche
+### 7. Pagina statistiche
 **Cosa:** statistiche di gruppo — membro piu attivo, citta piu visitata, evento con punteggio piu alto, foto piu caricate, ecc.
 **Perche:** il gruppo usa l'app da tempo e ha dati sufficienti per visualizzazioni interessanti.
 **Come:** query aggregate su `reviews`, `visit_attendees`, `photos`, `visits`.
 
-### 9. PWA / app installabile
+### 8. PWA / app installabile
 **Cosa:** `manifest.json` + service worker per permettere l'installazione sul telefono come app nativa.
 **Perche:** l'UI e gia mobile-first; l'installazione migliora l'accessibilita per i membri meno tecnici.
 **Come:** Next.js supporta PWA con `next-pwa` o configurazione manuale del manifest.
 
-### 10. Dark mode
+### 9. Dark mode
 **Cosa:** tema scuro che si attiva in base alla preferenza di sistema.
 **Perche:** le CSS custom properties sono gia in `src/app/globals.css`; aggiungere `prefers-color-scheme: dark` non richiede modifiche strutturali.
 **Come:** aggiungere un blocco `@media (prefers-color-scheme: dark)` con le variabili di colore ridefinite.
@@ -78,5 +72,11 @@ Ordinate per impatto stimato, non per priorita assoluta.
 ## Note operative
 
 - Iniziare da **#1 (real-time)** e **#2 (avatar upload)**: massimo impatto, minima complessita, tutto il codice necessario e gia nel repo.
-- **#7 (CRON_SECRET)** e piccolo ma vale la pena farlo insieme al prossimo deploy.
+- **#6 (CRON_SECRET)** e piccolo ma vale la pena farlo insieme al prossimo deploy.
 - **#4 (notifiche email)** dipende dalla scelta del servizio email; valutare Supabase Edge Functions vs Resend.
+
+---
+
+## Completate
+
+- **Modifica votazione aperta** (2026-07-23): owner/admin possono ora modificare pizzeria/nota di una votazione aperta senza cancellarla e ricrearla (`updateEventVotePizzeria`). Le date non sono piu opzioni fisse decise dall'owner: qualsiasi membro le propone tramite calendario condiviso, risolvendo di fatto anche la parte "aggiungere opzioni data" di questo item.

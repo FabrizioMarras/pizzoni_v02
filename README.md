@@ -11,9 +11,11 @@ App privata per un gruppo chiuso: organizza serate pizza, vota le date, registra
   - Ricerca integrata Google Places con geolocalizzazione opzionale
   - Immagine custom caricabile manualmente; fallback automatico: Google → foto evento recente → placeholder
 - Pianificazione evento (votazione-first):
-  - Creazione votazione con pizzeria + opzioni data multiple
-  - Voto disponibilita per ogni data; votanti visibili per nome ed emoji
-  - Finalizzazione da owner o admin: crea l'evento e pre-compila i partecipanti
+  - Creazione votazione con sola pizzeria + nota; le date si propongono dopo, in modo collaborativo
+  - Calendario disponibilita condiviso: ogni membro segna le proprie date libere (vista doppio mese su desktop, singolo su mobile); qualsiasi membro puo proporre una nuova data
+  - Classifica "Date piu votate" con le prime 3 in evidenza e toggle per vederle tutte
+  - Modifica pizzeria della votazione aperta (owner/admin), per correggere errori senza dover ricreare la poll
+  - Finalizzazione da owner o admin: crea l'evento e pre-compila i partecipanti dai voti disponibili
   - Cancellazione votazione aperta (solo admin)
 - Dettaglio evento con sezioni collassabili:
   - Impostazione orario prenotazione (owner/admin)
@@ -83,6 +85,7 @@ Migrazioni rilevanti per il flusso attuale:
 | `20260424150000_cleanup_deleted_photo_references.sql` | Pulizia riferimenti foto eliminati |
 | `20260424151000_cleanup_updated_photo_references.sql` | Pulizia riferimenti foto aggiornati |
 | `20260621000000_cancel_poll_admin_only.sql` | Policy delete poll: solo admin, solo aperte |
+| `20260723130000_calendar_open_date_proposals.sql` | Permette a qualsiasi membro di proporre date sulla votazione aperta |
 
 ### 4. Supabase Auth
 

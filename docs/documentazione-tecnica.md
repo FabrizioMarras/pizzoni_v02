@@ -1,6 +1,6 @@
 # Documentazione Tecnica Pizzoni
 
-Versione documento: 2026-06-21
+Versione documento: 2026-07-23
 Stack: Next.js 16 (App Router), React 19, TypeScript, Supabase, Tailwind CSS 4
 
 ---
@@ -57,7 +57,7 @@ Punti chiave:
 
 ### 2.4 Data access layer
 Per ridurre coupling UI-query, le operazioni client sono estratte in moduli dedicati:
-- `src/lib/data/event-votes-client.ts`: snapshot, creazione votazione, voto disponibilita, finalizzazione, cancellazione poll (admin).
+- `src/lib/data/event-votes-client.ts`: snapshot, creazione votazione, proposta data + voto disponibilita (`proposeDateAndVote`), rimozione voto (`removeDateVote`), modifica pizzeria votazione aperta (`updateEventVotePizzeria`), finalizzazione, cancellazione poll (admin).
 - `src/lib/data/photos-client.ts`: CRUD foto evento e tag "foto della serata".
 - `src/lib/data/pizzeria-mapper.ts`: normalizzazione dati pizzerie + conteggio visitate con modalita `all/past`.
 - `src/lib/data/pizzeria-queries.ts`: selector condivisi per query pizzerie.
@@ -119,14 +119,19 @@ Flusso:
   - aggiunta/rimozione manuale partecipanti a un evento;
   - modifica orario prenotazione evento (condivisa con owner);
   - cambio pizzeria associata a un evento (condivisa con owner);
+  - modifica pizzeria di una votazione aperta (condivisa con owner della votazione);
   - finalizzazione di qualsiasi votazione (non solo la propria);
   - gestione inviti (`/profilo`).
 
 ### 4.4 RLS
 RLS attiva su tutte le tabelle applicative principali.
-Policy principali distribuite nelle migrazioni: `init`, `existing_db_security_sync`, `membership_and_invites`, `agenda_poll_first`, `visit_attendees_admin_management`, `cancel_poll_admin_only`.
+Policy principali distribuite nelle migrazioni: `init`, `existing_db_security_sync`, `membership_and_invites`, `agenda_poll_first`, `visit_attendees_admin_management`, `cancel_poll_admin_only`, `calendar_open_date_proposals`.
 
 Policy notevole per cancellazione poll (`agenda_polls_delete_admin_only`, migrazione `20260621000000`): richiede `is_admin = true` e `status = 'open'`. Le poll chiuse non possono essere eliminate da nessuno.
+
+Policy notevole per proposta date (`agenda_options_insert_participant`, migrazione `20260723130000`): sostituisce la vecchia policy owner/admin-only; qualsiasi utente autenticato puo inserire una riga in `agenda_poll_date_options`, purche la poll referenziata sia `status = 'open'`. La modifica/eliminazione di opzioni data resta owner/admin-only.
+
+Modifica pizzeria votazione aperta: nessuna nuova policy necessaria; riutilizza `agenda_polls_update_owner_or_admin` (gia presente in `agenda_poll_first`), che permette update a owner della poll o admin.
 
 ---
 
@@ -145,8 +150,8 @@ Tabelle principali in `public`:
 | `visit_notes` | Note evento multiutente (una nota per autore) |
 | `photos` | Foto evento |
 | `agenda_polls` | Votazione aperta/chiusa per il prossimo evento |
-| `agenda_poll_date_options` | Opzioni data proposte per una votazione |
-| `agenda_poll_date_votes` | Disponibilita utenti per opzione data |
+| `agenda_poll_date_options` | Date proposte per una votazione; qualsiasi membro puo aggiungerne (non solo l'owner) |
+| `agenda_poll_date_votes` | Disponibilita utenti per data proposta. Solo `available` viene scritto dal calendario (voto opt-in); il valore `not_available` resta nello schema per compatibilita storica ma non e piu usato dalla UI |
 
 Metadati Google su `pizzerias`:
 - `google_place_id`, `google_maps_uri`, `google_photo_name`, `latitude`, `longitude`
@@ -198,14 +203,26 @@ Pagina: `/pizzerie` — componente: `src/components/PizzeriaManager.tsx`.
 - Per pizzerie manuali (senza Google), e possibile caricare una copertina custom.
 
 ### 6.2 Nuovo evento (votazione-first)
-Pagina: `/eventi` — componente: `src/components/PlannerBoard.tsx`.
+Pagina: `/eventi` — componenti: `src/components/PlannerBoard.tsx` (form creazione, header votazione, finalizzazione) e `src/components/AvailabilityCalendar.tsx` (calendario disponibilita).
 
 - Se non esiste votazione aperta, mostra il bottone `Aggiungi`.
-- Creazione nuova votazione: scelta pizzeria (esistente o nuova), opzioni data multiple, nota opzionale.
-- I membri votano la disponibilita per ogni opzione data; i votanti sono visualizzati per nome ed emoji.
-- Finalizzazione consentita a owner o admin; crea la riga in `visits`.
+- Creazione nuova votazione: scelta pizzeria (esistente o nuova) + nota opzionale. Nessuna data si sceglie in fase di creazione (`createEventVote` in `event-votes-client.ts` inserisce solo la riga `agenda_polls`).
+- Il form di creazione e il form di modifica pizzeria condividono lo stesso modal/stato in `PlannerBoard.tsx`, distinti da un flag `isEditingPizzeria`; la risoluzione pizzeria (esistente/nuova) e centralizzata in `resolveEnsuredPizzeria()`.
 
-Vincolo UI: il form di creazione e nascosto se esiste gia una votazione aperta. Non c'e un blocco tecnico a livello DB.
+**Calendario disponibilita (`AvailabilityCalendar.tsx`):**
+- Componente client puro (nessuna libreria di date esterna; calcolo griglia mese con `Date` nativo).
+- Layout responsive: due mesi affiancati da `md:` in su (mese corrente + successivo, ciascuno in una propria card `surface-card`), un solo mese su mobile. Header di navigazione condiviso: il pulsante "avanti" reale si sposta dal mese1 (mobile) al mese2 (desktop) via classi responsive (`md:invisible`), mantenendo simmetria nei due header.
+- Tap su un giorno: se l'utente non ha gia un voto su quella data, chiama `proposeDateAndVote` (crea la riga `agenda_poll_date_options` se non esiste ancora, poi upsert su `agenda_poll_date_votes` con `availability: 'available'`); se lo ha gia, chiama `removeDateVote` (delete del voto). Non esiste scrittura di `not_available`.
+- Ogni cella giorno mostra: evidenziazione se selezionata dall'utente corrente (bg olive), badge conteggio voti (bg terracotta, per contrasto sempre leggibile), anello per il giorno odierno, tinta terracotta per i weekend.
+- Sotto il calendario: lista `rankedDates` (date con almeno un voto, ordinate per numero di voti decrescente), limitata a `TOP_DATES_COLLAPSED_COUNT` (3) con toggle "Mostra tutte/Mostra meno" (stato locale `showAllDates`).
+- Finalizzazione (bottone "Conferma data evento" su ciascuna riga della lista, visibile solo a owner/admin) invoca lo stesso RPC `finalize_agenda_poll` di prima, invariato.
+
+**Modifica pizzeria votazione aperta (owner/admin):**
+- Bottone `Modifica pizzeria` nell'header della sezione "Votazione Aperta", accanto a `Cancella votazione`.
+- Apre lo stesso modal di creazione, precompilato con i dati correnti della poll (`openEditPizzeriaModal()` in `PlannerBoard.tsx`); se i valori corrispondono a una pizzeria gia presente in catalogo, la ricollega automaticamente per riusare i metadati Google.
+- Al salvataggio chiama `updateEventVotePizzeria(supabase, pollId, { pizzeria_name, location, city, notes })`, che fa update diretto su `agenda_polls`. Nessuna nuova RLS: riusa `agenda_polls_update_owner_or_admin`.
+
+Vincolo UI: il form di creazione e nascosto se esiste gia una votazione aperta (`if (openEventVote) return` in `submitPizzeriaForm`). Non c'e un blocco tecnico a livello DB.
 
 **Cancellazione votazione (admin only):**
 - Bottone `Cancella votazione` nell'header della sezione "Votazione Aperta", visibile solo se `is_admin = true`.
@@ -404,6 +421,7 @@ Cartella: `supabase/migrations/`. Applicare in ordine cronologico via SQL Editor
 | 16 | `20260424150000_cleanup_deleted_photo_references.sql` | |
 | 17 | `20260424151000_cleanup_updated_photo_references.sql` | |
 | 18 | `20260621000000_cancel_poll_admin_only.sql` | Policy delete admin-only su poll aperte |
+| 19 | `20260723130000_calendar_open_date_proposals.sql` | Policy insert `agenda_poll_date_options`: qualsiasi membro, non solo owner/admin |
 
 ---
 

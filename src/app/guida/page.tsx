@@ -14,8 +14,8 @@ export default function GuidaPage() {
           <h2 className="text-3xl">Flusso Consigliato</h2>
           <div className="space-y-2 text-sm text-[var(--ink)]">
             <p><strong>1. Eventi:</strong> apri o crea la votazione della prossima uscita.</p>
-            <p><strong>2. Vota le date:</strong> indica per ogni data se sei disponibile o no.</p>
-            <p><strong>3. Finalizzazione:</strong> owner/admin chiude la votazione e seleziona la data.</p>
+            <p><strong>2. Segna le tue date:</strong> apri il calendario e seleziona i giorni in cui sei libero.</p>
+            <p><strong>3. Finalizzazione:</strong> owner/admin chiude la votazione e seleziona la data più votata.</p>
             <p><strong>4. Evento creato:</strong> l&apos;evento viene creato automaticamente in <strong>Eventi</strong>.</p>
             <p><strong>5. Orario:</strong> owner/admin imposta data+ora prenotazione nel dettaglio evento.</p>
             <p><strong>6. Serata completata:</strong> apri il dettaglio evento, aggiungi recensione, note e foto.</p>
@@ -59,6 +59,7 @@ export default function GuidaPage() {
             <p><strong>Posso essere aggiunto manualmente?</strong> Si, un admin puo aggiungerti nei partecipanti.</p>
             <p><strong>Come entro nell&apos;app?</strong> Accesso solo con Google e solo per email invitate.</p>
             <p><strong>Posso avere più eventi futuri?</strong> Sì, il sistema lo permette.</p>
+            <p><strong>Ho sbagliato pizzeria nella votazione?</strong> Owner o admin possono cambiarla con il bottone <strong>Modifica pizzeria</strong> finché la votazione è aperta.</p>
           </div>
         </section>
       </main>

@@ -27,6 +27,8 @@ This project uses SQL migration files stored in `supabase/migrations/`.
 - `20260424145000_set_pizza_of_night_event_only.sql`: restores event-only behavior for "foto della serata" (no pizzeria sync).
 - `20260424150000_cleanup_deleted_photo_references.sql`: clears stale DB references when a photo is deleted.
 - `20260424151000_cleanup_updated_photo_references.sql`: updates DB references when a photo URL is replaced.
+- `20260621000000_cancel_poll_admin_only.sql`: restricts open-poll deletion to admins only.
+- `20260723130000_calendar_open_date_proposals.sql`: allows any authenticated participant (not just the poll owner/admin) to propose a date option on an open poll, for the calendar-based availability picker.
 
 ## Which file should I run?
 
@@ -52,6 +54,8 @@ This project uses SQL migration files stored in `supabase/migrations/`.
   - `20260424145000_set_pizza_of_night_event_only.sql`
   - `20260424150000_cleanup_deleted_photo_references.sql`
   - `20260424151000_cleanup_updated_photo_references.sql`
+  - `20260621000000_cancel_poll_admin_only.sql`
+  - `20260723130000_calendar_open_date_proposals.sql`
 
 ## Naming convention
 
