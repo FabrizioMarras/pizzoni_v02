@@ -32,6 +32,10 @@
   --warning-rgb: 184, 131, 41;
   --warning-deep: #8a6118;
 
+  --priority-high-rgb: 220, 38, 38;
+  --priority-mid-rgb: 234, 88, 12;
+  --priority-low-rgb: 37, 99, 235;
+
   --toast-neutral-bg: rgba(255, 255, 255, 0.96);
   --toast-success-bg: rgba(236, 247, 227, 0.96);
   --toast-error-bg: rgba(255, 238, 233, 0.96);
@@ -71,6 +75,10 @@
 
     --warning-rgb: 224, 168, 74;
     --warning-deep: #f2b76b;
+
+    --priority-high-rgb: 248, 113, 113;
+    --priority-mid-rgb: 251, 146, 60;
+    --priority-low-rgb: 96, 165, 250;
 
     --tag-featured-bg: rgba(74, 58, 24, 0.92);
 

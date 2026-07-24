@@ -14,10 +14,11 @@ Per i dettagli tecnici, vedere `docs/documentazione-tecnica.md`.
 4. [Eventi](#4-eventi-eventi)
 5. [Dettaglio Evento](#5-dettaglio-evento-eventiid)
 6. [Votazione](#6-votazione-in-eventi)
-7. [Profilo](#7-profilo-profilo)
-8. [Errore autenticazione](#8-errore-autenticazione-authauth-code-error)
-9. [Installazione come app sul telefono](#9-installazione-come-app-sul-telefono)
-10. [Changelog](#changelog)
+7. [Feedback](#7-feedback-feedback)
+8. [Profilo](#8-profilo-profilo)
+9. [Errore autenticazione](#9-errore-autenticazione-authauth-code-error)
+10. [Installazione come app sul telefono](#10-installazione-come-app-sul-telefono)
+11. [Changelog](#changelog)
 
 ---
 
@@ -156,7 +157,16 @@ Il flusso di pianificazione e votazione-first: prima si vota la data, poi l'even
 
 ---
 
-## 7. Profilo (`/profilo`)
+## 7. Feedback (`/feedback`)
+
+- Chiunque puo scrivere un feedback (un miglioramento da suggerire o qualcosa che non funziona) tramite un semplice campo di testo.
+- L'elenco mostra tutti i feedback di tutti i membri, con lo stato (fatto/da fare) sempre visibile.
+- **Modifica testo:** solo l'autore puo modificare il proprio feedback.
+- **Stato e priorita:** solo un admin puo segnare un feedback come fatto e assegnargli una priorita (alta/media/bassa). Per gli altri membri questi campi sono di sola lettura.
+- **Eliminazione (solo admin):** un singolo feedback, una selezione di piu elementi, oppure l'intero elenco — sempre con una richiesta di conferma prima di procedere, perche l'azione e irreversibile.
+- **Filtri:** per stato (tutti / da fare / fatti) e per priorita.
+
+## 8. Profilo (`/profilo`)
 
 - Modifica profilo personale: nome e URL avatar.
 
@@ -167,7 +177,7 @@ Il flusso di pianificazione e votazione-first: prima si vota la data, poi l'even
 
 ---
 
-## 8. Errore autenticazione (`/auth/auth-code-error`)
+## 9. Errore autenticazione (`/auth/auth-code-error`)
 
 - Pagina di fallback in caso di errore durante il login.
 - Mostra il motivo principale (es. email non invitata).
@@ -175,7 +185,7 @@ Il flusso di pianificazione e votazione-first: prima si vota la data, poi l'even
 
 ---
 
-## 9. Installazione come app sul telefono
+## 10. Installazione come app sul telefono
 
 Pizzoni si puo installare sulla schermata home del telefono, come un'app vera e propria (icona, apertura a schermo intero, nessuna barra del browser). Non e un file da scaricare ne un'app da cercare nello store: e una funzione del browser che "aggiunge" il sito come app.
 
@@ -215,4 +225,5 @@ Una volta installata, l'app si apre dall'icona come le altre; se manca la connes
 - 2026-07-23: Aggiunti placeholder di caricamento (skeleton) su Classifica, Eventi, Pizzerie e dettaglio evento, cosi la pagina non resta vuota su connessioni lente mentre i dati arrivano.
 - 2026-07-23: Aggiunto un tema scuro automatico che segue le preferenze del dispositivo/browser (nessun interruttore manuale in app): se il telefono o il computer sono impostati su tema scuro, Pizzoni si adatta da solo.
 - 2026-07-24: Corretti alcuni punti rimasti chiari in tema scuro dopo il rilascio: il menu mobile e le finestre di dialogo (es. creazione/modifica votazione) ora seguono correttamente il tema scuro.
-- 2026-07-24: Pizzoni e ora installabile sulla schermata home del telefono (icona propria, apertura a schermo intero, schermata "Sei offline" quando manca la connessione). Vedi sezione 9.
+- 2026-07-24: Pizzoni e ora installabile sulla schermata home del telefono (icona propria, apertura a schermo intero, schermata "Sei offline" quando manca la connessione). Vedi sezione 10.
+- 2026-07-24: Aggiunta la pagina Feedback: chiunque puo scrivere e vedere feedback/segnalazioni; solo un admin puo segnarli come fatti, assegnare una priorita o eliminarli (singolarmente, in gruppo o tutti insieme). Vedi sezione 7.

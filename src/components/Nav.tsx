@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { IconType } from 'react-icons'
-import { FiBookOpen, FiCalendar, FiHome, FiLogOut, FiMapPin, FiMenu, FiUser, FiX } from 'react-icons/fi'
+import { FiBookOpen, FiCalendar, FiHome, FiLogOut, FiMapPin, FiMenu, FiMessageSquare, FiUser, FiX } from 'react-icons/fi'
 import { supabase } from '@/lib/supabase'
 import Button from '@/components/ui/Button'
 
@@ -12,6 +12,7 @@ const items = [
   { href: '/', label: 'Classifica', icon: FiHome },
   { href: '/pizzerie', label: 'Pizzerie', icon: FiMapPin },
   { href: '/eventi', label: 'Eventi', icon: FiCalendar },
+  { href: '/feedback', label: 'Feedback', icon: FiMessageSquare },
   { href: '/guida', label: 'Guida', icon: FiBookOpen },
   { href: '/profilo', label: 'Profilo', icon: FiUser },
 ] satisfies Array<{ href: string; label: string; icon: IconType }>

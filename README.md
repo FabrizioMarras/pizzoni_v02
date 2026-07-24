@@ -33,6 +33,7 @@ App privata per un gruppo chiuso: organizza serate pizza, vota le date, registra
 - Skeleton di caricamento su Classifica, Eventi, Pizzerie e dettaglio evento (`loading.tsx` per route, nessuna dipendenza esterna)
 - Tema scuro automatico (`prefers-color-scheme`, nessun toggle manuale), CSS puro senza dipendenze aggiuntive
 - App installabile (PWA): manifest + icone generate via `ImageResponse` + service worker con cache degli asset statici e pagina di fallback offline
+- Pagina Feedback: chiunque puo inviare/vedere feedback e modificare il proprio; solo l'admin puo segnare come fatto, assegnare priorita (alta/media/bassa) o eliminare (singolo, selezione multipla o tutto), con filtri per stato e priorita
 
 ## Stack
 

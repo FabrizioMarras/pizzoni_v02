@@ -173,7 +173,9 @@ Flusso:
 
 ### 4.4 RLS
 RLS attiva su tutte le tabelle applicative principali.
-Policy principali distribuite nelle migrazioni: `init`, `existing_db_security_sync`, `membership_and_invites`, `agenda_poll_first`, `visit_attendees_admin_management`, `cancel_poll_admin_only`, `calendar_open_date_proposals`.
+Policy principali distribuite nelle migrazioni: `init`, `existing_db_security_sync`, `membership_and_invites`, `agenda_poll_first`, `visit_attendees_admin_management`, `cancel_poll_admin_only`, `calendar_open_date_proposals`, `feedback_board`.
+
+`feedback` non ha alcuna policy `update`: niente in questa tabella e aggiornabile via update diretto, solo tramite le due RPC `security definer` descritte in 5.2 (vedi anche 6.9).
 
 Policy notevole per cancellazione poll (`agenda_polls_delete_admin_only`, migrazione `20260621000000`): richiede `is_admin = true` e `status = 'open'`. Le poll chiuse non possono essere eliminate da nessuno.
 
@@ -211,6 +213,7 @@ Tabelle principali in `public`:
 | `agenda_polls` | Votazione aperta/chiusa per il prossimo evento |
 | `agenda_poll_date_options` | Date proposte per una votazione; qualsiasi membro puo aggiungerne (non solo l'owner) |
 | `agenda_poll_date_votes` | Disponibilita utenti per data proposta. Solo `available` viene scritto dal calendario (voto opt-in); il valore `not_available` resta nello schema per compatibilita storica ma non e piu usato dalla UI |
+| `feedback` | Bacheca feedback/suggerimenti: `content`, `is_done`, `priority` (`high`/`mid`/`low`, nullable) |
 
 Metadati Google su `pizzerias`:
 - `google_place_id`, `google_maps_uri`, `google_photo_name`, `latitude`, `longitude`
@@ -236,6 +239,11 @@ Tabelle legacy rimosse:
 - `public.set_pizza_of_night(p_visit_id uuid, p_photo_id uuid) → void`
   - assegna in modo atomico il tag "foto della serata";
   - garantisce un solo tag attivo per evento.
+- `public.update_feedback_content(p_feedback_id uuid, p_content text) → void`
+  - `security definer`; aggiorna `content` solo se `auth.uid() = author_id`, altrimenti solleva `not_allowed`.
+- `public.update_feedback_status(p_feedback_id uuid, p_is_done boolean, p_priority text) → void`
+  - `security definer`; aggiorna `is_done`/`priority` solo se il chiamante e admin, altrimenti solleva `not_allowed`.
+  - Motivo dell'RPC invece di una policy RLS diretta: RLS e row-level, non column-level — una policy "author puo aggiornare la propria riga" permetterebbe anche di modificare `status`/`priority`. Niente policy `update` diretta su `feedback`: ogni mutazione passa da una di queste due funzioni, ciascuna con il proprio controllo di colonna.
 
 Note sui campi dell'evento:
 - `date`: data logica evento.
@@ -381,6 +389,16 @@ Tutti i componenti sono in `src/components/ui/`.
 - Controllo AST-based su `src` per individuare riferimenti ai path legacy in: `href` JSX, `redirect()`/`permanentRedirect()`, `router.push()`/`router.replace()`.
 - Comando: `npm run check:routes`.
 
+### 6.9 Feedback
+Pagina: `/feedback` — componente: `src/components/FeedbackBoard.tsx`, data layer: `src/lib/data/feedback-client.ts`.
+
+- Qualsiasi membro puo inserire un feedback (testo libero) e vede l'elenco completo di tutti, incluso lo stato.
+- Modifica testo: solo l'autore, sulla propria riga (`update_feedback_content`).
+- Stato "fatto" e priorita (alta/media/bassa): solo admin (`update_feedback_status`); per i membri non-admin la checkbox di stato e disabilitata e la priorita e mostrata come badge sola lettura.
+- Eliminazione: solo admin — singolo elemento, una selezione multipla (checkbox dedicata per riga, distinta da quella di stato), o l'intera lista. Tutte e tre passano dalla stessa modal di conferma (`ui/Modal.tsx`, stesso pattern gia usato per la cancellazione di una votazione aperta in `PlannerBoard.tsx`).
+- Filtri: stato (tutti/da fare/fatti) e priorita, entrambi calcolati client-side sull'elenco gia caricato (`useMemo`), stesso pattern di `PizzeriaManager.tsx`.
+- Nessun Supabase Realtime su questa tabella: a differenza della votazione, il feedback e asincrono (non richiede una sessione collaborativa dal vivo).
+
 ---
 
 ## 7. API interne
@@ -512,6 +530,7 @@ Cartella: `supabase/migrations/`. Applicare in ordine cronologico via SQL Editor
 | 18 | `20260621000000_cancel_poll_admin_only.sql` | Policy delete admin-only su poll aperte |
 | 19 | `20260723130000_calendar_open_date_proposals.sql` | Policy insert `agenda_poll_date_options`: qualsiasi membro, non solo owner/admin |
 | 20 | `20260723140000_enable_realtime_planner_tables.sql` | Abilita `postgres_changes` su `agenda_polls`, `agenda_poll_date_options`, `agenda_poll_date_votes`, `pizzerias` |
+| 21 | `20260724100000_feedback_board.sql` | Tabella `feedback` + RLS + RPC `update_feedback_content`/`update_feedback_status` |
 
 ---
 

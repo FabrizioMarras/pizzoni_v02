@@ -30,6 +30,7 @@ This project uses SQL migration files stored in `supabase/migrations/`.
 - `20260621000000_cancel_poll_admin_only.sql`: restricts open-poll deletion to admins only.
 - `20260723130000_calendar_open_date_proposals.sql`: allows any authenticated participant (not just the poll owner/admin) to propose a date option on an open poll, for the calendar-based availability picker.
 - `20260723140000_enable_realtime_planner_tables.sql`: adds `agenda_polls`, `agenda_poll_date_options`, `agenda_poll_date_votes`, and `pizzerias` to the `supabase_realtime` publication so the availability calendar updates live across connected members.
+- `20260724100000_feedback_board.sql`: new `feedback` table (members submit/edit their own feedback, everyone reads, admin-only status/priority via RPC, admin-only delete).
 
 ## Which file should I run?
 
@@ -58,6 +59,7 @@ This project uses SQL migration files stored in `supabase/migrations/`.
   - `20260621000000_cancel_poll_admin_only.sql`
   - `20260723130000_calendar_open_date_proposals.sql`
   - `20260723140000_enable_realtime_planner_tables.sql`
+  - `20260724100000_feedback_board.sql`
 
 ## Naming convention
 
